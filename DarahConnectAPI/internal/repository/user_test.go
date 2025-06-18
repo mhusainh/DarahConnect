@@ -3,9 +3,10 @@ package repository_test
 import (
 	"context"
 	"errors"
-	"mhusainh/DarahConnect/DarahConnectAPI/internal/repository"
 	"regexp"
 	"testing"
+
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/repository"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/golang/mock/gomock"

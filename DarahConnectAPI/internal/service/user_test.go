@@ -4,14 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
 	"testing"
 	"time"
 
-	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/internal/service"
-	mock_cache "github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/test/mock/pkg/cache"
-	mock_token "github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/test/mock/pkg/token"
-	mock_repository "github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/test/mock/repository"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
+
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/service"
+	mock_cache "github.com/mhusainh/DarahConnect/DarahConnectAPI/test/mock/pkg/cache"
+	mock_token "github.com/mhusainh/DarahConnect/DarahConnectAPI/test/mock/pkg/token"
+	mock_repository "github.com/mhusainh/DarahConnect/DarahConnectAPI/test/mock/repository"
 
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/mock/gomock"
@@ -40,7 +41,7 @@ func TestUser(t *testing.T) {
 }
 
 func (s *UserTestSuite) TestFindAll() {
-	keyFindAll := "github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI-api:users:find-all"
+	keyFindAll := "github.com/mhusainh/DarahConnect/DarahConnectAPI-api:users:find-all"
 	users := make([]entity.User, 0)
 	marshalledData, _ := json.Marshal(users)
 

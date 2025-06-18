@@ -1,15 +1,15 @@
 package builder
 
 import (
-	"mhusainh/DarahConnect/DarahConnectAPI/configs"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/configs"
 
-	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/internal/http/handler"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/internal/http/router"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/internal/repository"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/internal/service"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/pkg/cache"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/pkg/route"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/pkg/token"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/handler"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/router"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/repository"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/service"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cache"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/route"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/token"
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"

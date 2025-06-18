@@ -2,7 +2,8 @@ package repository
 
 import (
 	"context"
-	"mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
+
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
 
 	"gorm.io/gorm"
 )

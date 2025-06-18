@@ -1,12 +1,13 @@
 package server
 
 import (
-	"mhusainh/DarahConnect/DarahConnectAPI/configs"
 	"net/http"
 
-	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/pkg/response"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/pkg/route"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/pkg/token"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/configs"
+
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/response"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/route"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/token"
 
 	"github.com/golang-jwt/jwt/v5"
 	echojwt "github.com/labstack/echo-jwt/v4"

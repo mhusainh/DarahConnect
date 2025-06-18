@@ -4,15 +4,16 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"mhusainh/DarahConnect/DarahConnectAPI/configs"
 	"os"
 	"os/signal"
 	"time"
 
-	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/internal/builder"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/pkg/cache"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/pkg/database"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/pkg/server"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/configs"
+
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/builder"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cache"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/database"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/server"
 )
 
 func main() {

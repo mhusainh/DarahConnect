@@ -2,7 +2,8 @@ package database
 
 import (
 	"fmt"
-	"mhusainh/DarahConnect/DarahConnectAPI/configs"
+
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/configs"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

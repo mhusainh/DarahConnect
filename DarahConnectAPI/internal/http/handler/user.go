@@ -1,10 +1,11 @@
 package handler
 
 import (
-	"mhusainh/DarahConnect/DarahConnectAPI/internal/service"
 	"net/http"
 
-	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/pkg/response"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/service"
+
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/response"
 
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"

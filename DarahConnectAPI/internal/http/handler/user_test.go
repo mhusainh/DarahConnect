@@ -2,14 +2,15 @@ package handler_test
 
 import (
 	"errors"
-	"mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/internal/http/handler"
-	mock_service "github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/test/mock/service"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
+
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/handler"
+	mock_service "github.com/mhusainh/DarahConnect/DarahConnectAPI/test/mock/service"
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/suite"

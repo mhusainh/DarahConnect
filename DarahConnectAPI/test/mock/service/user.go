@@ -11,7 +11,7 @@ package mock_service
 
 import (
 	context "context"
-	entity "mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
+	entity "github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"

@@ -10,7 +10,7 @@
 package mock_token
 
 import (
-	token "mhusainh/DarahConnect/DarahConnectAPI/pkg/token"
+	token "github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/token"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
