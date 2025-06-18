@@ -60,37 +60,38 @@ func (s *UserTestSuite) TestFindAll() {
 	s.Run("failed to get all users", func() {
 		s.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "public"."users"`)).
 			WillReturnError(errors.New("error"))
-		result, err := s.repo.FindAll(context.Background())
+		result, err := s.repo.GetAll(context.Background())
 		s.NotNil(err)
 		s.Nil(result)
 	})
 	s.Run("success get all users", func() {
 		s.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "public"."users"`)).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
-		result, err := s.repo.FindAll(context.Background())
+		result, err := s.repo.GetAll(context.Background())
 		s.Nil(err)
 		s.NotNil(result)
 	})
 }
 
 func (s *UserTestSuite) TestFindByUsername() {
-	username := "admin"
-	s.Run("error get user by username", func() {
-		s.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "public"."users" WHERE username = $1 ORDER BY "users"."id" LIMIT $2`)).
-			WithArgs(username, 1).
+	email := "admin"
+	s.Run("error get user by email", func() {
+		s.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "public"."users" WHERE email = $1 ORDER BY "users"."id" LIMIT $2`)).
+			WithArgs(email, 1).
 			WillReturnError(errors.New("error"))
 
-		result, err := s.repo.FindByUsername(context.Background(), username)
+		result, err := s.repo.GetByEmail(context.Background(), email)
 		s.NotNil(err)
 		s.Nil(result)
 	})
-	s.Run("successfully get user by username", func() {
-		s.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "public"."users" WHERE username = $1 ORDER BY "users"."id" LIMIT $2`)).
-			WithArgs(username, 1).
+	s.Run("successfully get user by email", func() {
+		s.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "public"."users" WHERE email = $1 ORDER BY "users"."id" LIMIT $2`)).
+			WithArgs(email, 1).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 
-		result, err := s.repo.FindByUsername(context.Background(), username)
+		result, err := s.repo.GetByEmail(context.Background(), email)
 		s.Nil(err)
 		s.NotNil(result)
 	})
 }
+

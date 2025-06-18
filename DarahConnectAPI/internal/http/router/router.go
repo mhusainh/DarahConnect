@@ -8,7 +8,15 @@ import (
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/route"
 )
 
-func PublicRoutes(userHandler handler.UserHandler) []route.Route {
+var (
+	adminOnly = []string{"Administrator"}
+	userOnly  = []string{"User"}
+	allRoles  = []string{"Administrator", "User"}
+)
+
+func PublicRoutes(
+	userHandler handler.UserHandler,
+	) []route.Route {
 	return []route.Route{
 		{
 			Method:  http.MethodPost,
@@ -16,20 +24,61 @@ func PublicRoutes(userHandler handler.UserHandler) []route.Route {
 			Handler: userHandler.Login,
 		},
 		{
+			Method:  http.MethodPost,
+			Path:    "/register",
+			Handler: userHandler.Register,
+		},
+		{
+			Method:  http.MethodPost,
+			Path:    "/request-reset-password",
+			Handler: userHandler.ResetPasswordRequest,
+		},
+		{
+			Method:  http.MethodPost,
+			Path:    "/reset-password/:token",
+			Handler: userHandler.ResetPassword,
+		},
+		{
 			Method:  http.MethodGet,
-			Path:    "/generate-password/:password",
-			Handler: userHandler.GeneratePassword,
+			Path:    "/verify-email/:token",
+			Handler: userHandler.VerifyEmail,
 		},
 	}
 }
 
-func PrivateRoutes(userHandler handler.UserHandler) []route.Route {
+func PrivateRoutes(
+	userHandler handler.UserHandler,
+	) []route.Route {
 	return []route.Route{
+				{
+			Method:  http.MethodGet,
+			Path:    "/users/profile",
+			Handler: userHandler.GetProfile,
+			Roles:   allRoles,
+		},
+		{
+			Method:  http.MethodPut,
+			Path:    "/users/profile",
+			Handler: userHandler.UpdateUser,
+			Roles:   allRoles,
+		},
 		{
 			Method:  http.MethodGet,
 			Path:    "/users",
-			Handler: userHandler.FindAll,
-			Roles:   []string{"admin", "editor"},
+			Handler: userHandler.GetUsers,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/users/:id",
+			Handler: userHandler.GetUser,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodDelete,
+			Path:    "/users/:id",
+			Handler: userHandler.DeleteUser,
+			Roles:   adminOnly,
 		},
 	}
 }

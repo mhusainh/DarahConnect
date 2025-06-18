@@ -14,6 +14,7 @@ type Config struct {
 	PostgresConfig PostgresConfig `envPrefix:"POSTGRES_" mapstructure:"POSTGRES"`
 	JWT            JWTConfig      `envPrefix:"JWT_" mapstructure:"JWT"`
 	RedisConfig    RedisConfig    `envPrefix:"REDIS_" mapstructure:"REDIS"`
+	SMTPConfig     SMTPConfig     `envPrefix:"SMTP_" mapstructure:"SMTP"`
 }
 
 type RedisConfig struct {
@@ -24,6 +25,13 @@ type RedisConfig struct {
 
 type JWTConfig struct {
 	SecretKey string `env:"SECRET_KEY" envDefault:"secret" mapstructure:"SECRET_KEY"`
+}
+
+type SMTPConfig struct {
+	Host     string `env:"HOST" envDefault:"localhost"`
+	Port     int    `env:"PORT" envDefault:"587"`
+	Username string `env:"USERNAME"`
+	Password string `env:"PASSWORD"`
 }
 
 type PostgresConfig struct {

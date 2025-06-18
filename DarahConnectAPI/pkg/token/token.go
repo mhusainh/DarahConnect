@@ -5,7 +5,7 @@ import (
 )
 
 type TokenUseCase interface {
-	GenerateAccessToken(claims JwtCustomClaims) (string, error)
+	GenerateAccessToken(claims jwt.Claims) (string, error)
 }
 
 type tokenUseCase struct {
@@ -17,13 +17,19 @@ func NewTokenUseCase(secretKey string) TokenUseCase {
 }
 
 type JwtCustomClaims struct {
-	Username string `json:"username"`
-	Role     string `json:"role"`
-	FullName string `json:"full_name"`
+	Id    int64    `json:"id"`
+	Email string `json:"email"`
+	Role  string `json:"role"`
+	Name  string `json:"name"`
 	jwt.RegisteredClaims
 }
 
-func (t *tokenUseCase) GenerateAccessToken(claims JwtCustomClaims) (string, error) {
+type ResetPasswordClaims struct {
+	Email string `json:"email"`
+	jwt.RegisteredClaims
+}
+
+func (t *tokenUseCase) GenerateAccessToken(claims jwt.Claims) (string, error) {
 	plainToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	encodedToken, err := plainToken.SignedString([]byte(t.secretKey))
@@ -33,3 +39,4 @@ func (t *tokenUseCase) GenerateAccessToken(claims JwtCustomClaims) (string, erro
 
 	return encodedToken, nil
 }
+

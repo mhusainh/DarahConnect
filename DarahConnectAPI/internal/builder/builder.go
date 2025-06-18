@@ -17,18 +17,38 @@ import (
 
 func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client) []route.Route {
 	cacheable := cache.NewCacheable(rdb)
-	userRepository := repository.NewUserRepository(db)
 	tokenUseCase := token.NewTokenUseCase(cfg.JWT.SecretKey)
-	userService := service.NewUserService(userRepository, tokenUseCase, cacheable)
+	
+	//repository
+	userRepository := repository.NewUserRepository(db)
+	//end
+
+	//service
+	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg)
+	//end
+
+	//handler
 	userHandler := handler.NewUserHandler(userService)
+	//end
+
 	return router.PublicRoutes(userHandler)
 }
 
 func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client) []route.Route {
 	cacheable := cache.NewCacheable(rdb)
-	userRepository := repository.NewUserRepository(db)
 	tokenUseCase := token.NewTokenUseCase(cfg.JWT.SecretKey)
-	userService := service.NewUserService(userRepository, tokenUseCase, cacheable)
+
+	//repository
+	userRepository := repository.NewUserRepository(db)
+	//end
+
+	//service
+	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg)
+	//end
+
+	//handler
 	userHandler := handler.NewUserHandler(userService)
+	//end
+
 	return router.PrivateRoutes(userHandler)
 }

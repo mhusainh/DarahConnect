@@ -1,40 +1,49 @@
 package dto
 
+import "time"
+
 type UserLoginRequest struct {
 	Email    string `json:"email" validate:"required"`
 	Password string `json:"password" validate:"required"`
 }
 
 type UserRegisterRequest struct {
-	FullName         string `json:"full_name" validate:"required"`
-	Gender           string `json:"gender" validate:"required"`
-	Email            string `json:"email" validate:"required"`
-	Password         string `json:"password" validate:"required"`
-	Role             string `json:"role" validate:"required"`
-	VerifyEmailToken string `json:"verify_email_token" validate:"required"`
+	Name      string    `json:"name" validate:"required"`
+	Gender    string    `json:"gender" validate:"required"`
+	Email     string    `json:"email" validate:"required"`
+	Password  string    `json:"password" validate:"required"`
+	Phone     string    `json:"phone" validate:"required"`
+	BloodType string    `json:"blood_type" validate:"required"`
+	BirthDate time.Time `json:"birth_date" validate:"required"`
+	Address   string    `json:"address" validate:"required"`
 }
 
 type UpdateUserRequest struct {
-	ID       int64  `param:"id" validate:"required"`
-	FullName string `json:"full_name" validate:"required"`
-	Gender   string `json:"gender" validate:"required"`
-	Email    string `json:"email" validate:"required"`
-	Password string `json:"password" validate:"required"`
+	Id        int64  `param:"id" validate:"required"`
+	Name      string `json:"name" validate:"required"`
+	Gender    string `json:"gender" validate:"required"`
+	Email     string `json:"email" validate:"required"`
+	Password  string `json:"password" validate:"required"`
+	Phone     string `json:"phone" validate:"required"`
+	BloodType string `json:"blood_type" validate:"required"`
+	BirthDate string `json:"birth_date" validate:"required"`
+	Address   string `json:"address" validate:"required"`
+	Image     string `json:"image" validate:"required"`
 }
 
 type DeleteUserRequest struct {
-	ID int64 `param:"id" validate:"required"`
+	Id int64 `param:"id" validate:"required"`
 }
 
-type GetUserByIDRequest struct {
-	ID int64 `param:"id" validate:"required"`
+type GetUserByIdRequest struct {
+	Id int64 `param:"id" validate:"required"`
 }
 
-type GetUserByIDByUserRequest struct {
-	ID       int64  `param:"id" validate:"required"`
-	FullName string `json:"full_name" validate:"required"`
-	Gender   string `json:"gender" validate:"required"`
-	Email    string `json:"email" validate:"required"`
+type GetUserByIdByUserRequest struct {
+	Id     int64  `param:"id" validate:"required"`
+	Name   string `json:"name" validate:"required"`
+	Gender string `json:"gender" validate:"required"`
+	Email  string `json:"email" validate:"required"`
 }
 
 type ResetPasswordRequest struct {
