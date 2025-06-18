@@ -1,11 +1,27 @@
 package entity
 
+import "time"
+
 type User struct {
-	ID       int64  `json:"id"`
-	Username string `json:"username"`
-	Password string `json:"-"`
-	Role     string `json:"role"`
-	FullName string `json:"full_name"`
+	Id                 int64     `json:"id"`
+	Name               string    `json:"name"`
+	Gender             string    `json:"gender"`
+	Email              string    `json:"email"`
+	Password           string    `json:"password"`
+	Phone              string    `json:"phone"`
+	BloodType          string    `json:"blood_type"`
+	BirthDate          time.Time `json:"birth_date"`
+	Address            string    `json:"address"`
+	Role               string    `json:"role"`
+	ResetPasswordToken string    `json:"reset_password_token"`
+	VerifyEmailToken   string    `json:"verify_email_token"`
+	IsVerified         int       `json:"is_verified"`
+	LastDonationDate   time.Time `json:"last_donation_date"`
+	DonationCount      int       `json:"donation_count"`
+	PublicId           string    `json:"public_id"`
+	UrlFile            string    `json:"url_file"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
 func (User) TableName() string {
