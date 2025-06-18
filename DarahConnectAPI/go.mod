@@ -1,4 +1,4 @@
-module darah-connect
+module github.com/mhusainh/DarahConnect/DarahConnectAPI
 
 go 1.23.3
 
