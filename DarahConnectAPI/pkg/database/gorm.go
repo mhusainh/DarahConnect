@@ -3,7 +3,7 @@ package database
 import (
 	"fmt"
 
-	"github.com/mhusainh/DarahConnect/config"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/config"
 	"gorm.io/driver/postgres" // Ganti driver MySQL dengan PostgreSQL
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"

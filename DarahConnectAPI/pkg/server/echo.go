@@ -6,10 +6,10 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
-	"github.com/mhusainh/DarahConnect/config"
-	"github.com/mhusainh/DarahConnect/internal/entity"
-	"github.com/mhusainh/DarahConnect/pkg/response"
-	"github.com/mhusainh/DarahConnect/pkg/route"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/config"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/response"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/route"
 )
 
 type Server struct {

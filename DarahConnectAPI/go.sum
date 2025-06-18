@@ -1,5 +1,5 @@
-github.com/mhusainh/DarahConnect v0.0.0-20241223141722-cb2d163342e4 h1:nC/OpFRqYfiZak7OJLnONY86uD6/Ya+iOdKmxknl1SE=
-github.com/mhusainh/DarahConnect v0.0.0-20241223141722-cb2d163342e4/go.mod h1:qn2UId/WRLU6Geg9G8Mlr3c9riby2h9vTT3fZpZl6dI=
+github.com/mhusainh/DarahConnect/DarahConnectAPI v0.0.0-20241223141722-cb2d163342e4 h1:nC/OpFRqYfiZak7OJLnONY86uD6/Ya+iOdKmxknl1SE=
+github.com/mhusainh/DarahConnect/DarahConnectAPI v0.0.0-20241223141722-cb2d163342e4/go.mod h1:qn2UId/WRLU6Geg9G8Mlr3c9riby2h9vTT3fZpZl6dI=
 github.com/caarlos0/env/v6 v6.10.1 h1:t1mPSxNpei6M5yAeu1qtRdPAK29Nbcf/n3G7x+b3/II=
 github.com/caarlos0/env/v6 v6.10.1/go.mod h1:hvp/ryKXKipEkcuYjs9mI4bBCg+UI0Yhgm5Zu0ddvwc=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

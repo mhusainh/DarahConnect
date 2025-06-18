@@ -1,12 +1,12 @@
 package builder
 
 import (
-	"github.com/mhusainh/DarahConnect/config"
-	"github.com/mhusainh/DarahConnect/internal/http/handler"
-	"github.com/mhusainh/DarahConnect/internal/http/router"
-	"github.com/mhusainh/DarahConnect/internal/repository"
-	service "github.com/mhusainh/DarahConnect/internal/services"
-	"github.com/mhusainh/DarahConnect/pkg/route"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/config"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/handler"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/router"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/repository"
+	service "github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/services"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/route"
 	"github.com/midtrans/midtrans-go/snap"
 
 	"gorm.io/gorm"

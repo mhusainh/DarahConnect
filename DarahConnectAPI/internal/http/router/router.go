@@ -3,8 +3,8 @@ package router
 import (
 	"net/http"
 
-	"github.com/mhusainh/DarahConnect/internal/http/handler"
-	"github.com/mhusainh/DarahConnect/pkg/route"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/handler"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/route"
 )
 
 var (

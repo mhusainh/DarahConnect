@@ -3,7 +3,7 @@ module darah-connect
 go 1.23.3
 
 require (
-	github.com/mhusainh/DarahConnect v0.0.0-20241223141722-cb2d163342e4
+	github.com/mhusainh/DarahConnect/DarahConnectAPI v0.0.0-20241223141722-cb2d163342e4
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/joho/godotenv v1.5.1
 	github.com/midtrans/midtrans-go v1.3.8
