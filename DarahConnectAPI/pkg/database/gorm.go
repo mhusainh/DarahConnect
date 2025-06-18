@@ -1,29 +1,17 @@
 package database
 
 import (
+	"design-pattern/configs"
 	"fmt"
 
-	"github.com/mhusainh/DarahConnect/DarahConnectAPI/config"
-	"gorm.io/driver/postgres" // Ganti driver MySQL dengan PostgreSQL
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
-func InitDatabase(postgresConfig config.PostgresConfig) (*gorm.DB, error) {
-	// Format string DSN untuk PostgreSQL
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		postgresConfig.Host,
-		postgresConfig.Port,
-		postgresConfig.User,
-		postgresConfig.Password,
-		postgresConfig.Database,
-		postgresConfig.SSLMode, // Menggunakan pengaturan SSL
-	)
-
-	// Koneksi ke database PostgreSQL menggunakan GORM
-	return gorm.Open(postgres.New(postgres.Config{
-		DSN: dsn, // Data Source Name
-	}), &gorm.Config{
+func InitDatabase(cfg configs.PostgresConfig) (*gorm.DB, error) {
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Jakarta", cfg.Host, cfg.User, cfg.Password, cfg.Database, cfg.Port)
+	return gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 }

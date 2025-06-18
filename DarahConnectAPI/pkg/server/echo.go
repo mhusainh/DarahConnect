@@ -1,24 +1,28 @@
 package server
 
 import (
+	"design-pattern/configs"
+	"design-pattern/pkg/response"
+	"design-pattern/pkg/route"
+	"design-pattern/pkg/token"
 	"net/http"
 
 	"github.com/golang-jwt/jwt/v5"
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPI/config"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/response"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/route"
 )
 
 type Server struct {
 	*echo.Echo
 }
 
-func NewServer(cfg *config.Config, publicRoutes, privateRoutes []route.Route) *Server {
+func NewServer(cfg *configs.Config,
+	publicRoutes, privateRoutes []route.Route) *Server {
 	e := echo.New()
-	v1 := e.Group("api/v1")
+	e.HideBanner = true
+
+	v1 := e.Group("/api/v1")
+
 	if len(publicRoutes) > 0 {
 		for _, route := range publicRoutes {
 			v1.Add(route.Method, route.Path, route.Handler)
@@ -27,7 +31,7 @@ func NewServer(cfg *config.Config, publicRoutes, privateRoutes []route.Route) *S
 
 	if len(privateRoutes) > 0 {
 		for _, route := range privateRoutes {
-			v1.Add(route.Method, route.Path, route.Handler, JWTMiddleware(cfg.JWTConfig.SecretKey), RBACMiddleware(route.Roles))
+			v1.Add(route.Method, route.Path, route.Handler, JWTMiddleware(cfg.JWT.SecretKey), RBACMiddleware(route.Roles))
 		}
 	}
 	return &Server{e}
@@ -36,22 +40,22 @@ func NewServer(cfg *config.Config, publicRoutes, privateRoutes []route.Route) *S
 func JWTMiddleware(secretKey string) echo.MiddlewareFunc {
 	return echojwt.WithConfig(echojwt.Config{
 		NewClaimsFunc: func(c echo.Context) jwt.Claims {
-			return new(entity.JWTCustomClaims)
+			return new(token.JwtCustomClaims)
 		},
 		SigningKey: []byte(secretKey),
 		ErrorHandler: func(ctx echo.Context, err error) error {
-			return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusUnauthorized, "you need to login first"))
+			return ctx.JSON(http.StatusUnauthorized, response.ErrorResponse(http.StatusUnauthorized, "anda harus login untuk megakses resource ini."))
 		},
 	})
 }
 
 func RBACMiddleware(roles []string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			user := c.Get("user").(*jwt.Token)
-			claims := user.Claims.(*entity.JWTCustomClaims)
-			allowed := false
+		return func(ctx echo.Context) error {
+			user := ctx.Get("user").(*jwt.Token)
+			claims := user.Claims.(*token.JwtCustomClaims)
 
+			allowed := false
 			for _, role := range roles {
 				if role == claims.Role {
 					allowed = true
@@ -60,10 +64,10 @@ func RBACMiddleware(roles []string) echo.MiddlewareFunc {
 			}
 
 			if !allowed {
-				return c.JSON(http.StatusForbidden, response.ErrorResponse(http.StatusForbidden, "anda tidak memiliki akses ke resource ini"))
+				return ctx.JSON(http.StatusForbidden, response.ErrorResponse(http.StatusForbidden, "anda tidak diizinkan untuk mengakses resource ini."))
 			}
 
-			return next(c)
+			return next(ctx)
 		}
 	}
 }

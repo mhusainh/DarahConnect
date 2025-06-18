@@ -1,8 +1,6 @@
 package route
 
-import (
-	"github.com/labstack/echo/v4"
-)
+import "github.com/labstack/echo/v4"
 
 type Route struct {
 	Method  string
