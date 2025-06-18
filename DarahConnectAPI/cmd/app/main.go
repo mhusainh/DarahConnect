@@ -12,6 +12,7 @@ import (
 
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/builder"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cache"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cloudinary"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/database"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/server"
 )
@@ -26,8 +27,11 @@ func main() {
 
 	rdb := cache.InitCache(cfg.RedisConfig)
 
-	publicRoutes := builder.BuildPublicRoutes(cfg, db, rdb)
-	privateRoutes := builder.BuildPrivateRoutes(cfg, db, rdb)
+	cloudinaryService, err := cloudinary.NewService(&cfg.CloudinaryConfig)
+	checkError(err)
+
+	publicRoutes := builder.BuildPublicRoutes(cfg, db, rdb, cloudinaryService)
+	privateRoutes := builder.BuildPrivateRoutes(cfg, db, rdb, cloudinaryService)
 
 	srv := server.NewServer(cfg, publicRoutes, privateRoutes)
 	runServer(srv, cfg.PORT)

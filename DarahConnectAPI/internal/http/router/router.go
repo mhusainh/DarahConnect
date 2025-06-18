@@ -16,7 +16,7 @@ var (
 
 func PublicRoutes(
 	userHandler handler.UserHandler,
-	) []route.Route {
+) []route.Route {
 	return []route.Route{
 		{
 			Method:  http.MethodPost,
@@ -48,9 +48,9 @@ func PublicRoutes(
 
 func PrivateRoutes(
 	userHandler handler.UserHandler,
-	) []route.Route {
+) []route.Route {
 	return []route.Route{
-				{
+		{
 			Method:  http.MethodGet,
 			Path:    "/users/profile",
 			Handler: userHandler.GetProfile,
@@ -60,6 +60,12 @@ func PrivateRoutes(
 			Method:  http.MethodPut,
 			Path:    "/users/profile",
 			Handler: userHandler.UpdateUser,
+			Roles:   allRoles,
+		},
+		{
+			Method:  http.MethodPost,
+			Path:    "/users/profile/picture",
+			Handler: userHandler.UploadProfilePicture,
 			Roles:   allRoles,
 		},
 		{

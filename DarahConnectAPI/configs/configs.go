@@ -9,12 +9,13 @@ import (
 )
 
 type Config struct {
-	ENV            string         `env:"ENV" envDefault:"dev" mapstructure:"ENV"`
-	PORT           string         `env:"PORT" envDefault:"8080" mapstructure:"PORT"`
-	PostgresConfig PostgresConfig `envPrefix:"POSTGRES_" mapstructure:"POSTGRES"`
-	JWT            JWTConfig      `envPrefix:"JWT_" mapstructure:"JWT"`
-	RedisConfig    RedisConfig    `envPrefix:"REDIS_" mapstructure:"REDIS"`
-	SMTPConfig     SMTPConfig     `envPrefix:"SMTP_" mapstructure:"SMTP"`
+	ENV              string           `env:"ENV" envDefault:"dev" mapstructure:"ENV"`
+	PORT             string           `env:"PORT" envDefault:"8080" mapstructure:"PORT"`
+	PostgresConfig   PostgresConfig   `envPrefix:"POSTGRES_" mapstructure:"POSTGRES"`
+	JWT              JWTConfig        `envPrefix:"JWT_" mapstructure:"JWT"`
+	RedisConfig      RedisConfig      `envPrefix:"REDIS_" mapstructure:"REDIS"`
+	SMTPConfig       SMTPConfig       `envPrefix:"SMTP_" mapstructure:"SMTP"`
+	CloudinaryConfig CloudinaryConfig `envPrefix:"CLOUDINARY_" mapstructure:"CLOUDINARY"`
 }
 
 type RedisConfig struct {
@@ -40,6 +41,12 @@ type PostgresConfig struct {
 	User     string `env:"USER" envDefault:"postgres" mapstructure:"USER"`
 	Password string `env:"PASSWORD" envDefault:"postgres" mapstructure:"PASSWORD"`
 	Database string `env:"DATABASE" envDefault:"postgres" mapstructure:"DATABASE"`
+}
+
+type CloudinaryConfig struct {
+	CloudName string `env:"CLOUD_NAME" mapstructure:"CLOUD_NAME"`
+	APIKey    string `env:"API_KEY" mapstructure:"API_KEY"`
+	APISecret string `env:"API_SECRET" mapstructure:"API_SECRET"`
 }
 
 func NewConfig(envPath string) (*Config, error) {
