@@ -2,14 +2,15 @@ package service
 
 import (
 	"context"
-	"design-pattern/internal/entity"
-	"design-pattern/internal/repository"
-	"design-pattern/pkg/cache"
-	"design-pattern/pkg/token"
 	"encoding/json"
 	"errors"
 	"log"
+	"mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
 	"time"
+
+	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/internal/repository"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/pkg/cache"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/pkg/token"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -35,7 +36,7 @@ func NewUserService(
 }
 
 func (s *userService) FindAll(ctx context.Context) (result []entity.User, err error) {
-	keyFindAll := "design-pattern-api:users:find-all"
+	keyFindAll := "github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI-api:users:find-all"
 	data := s.cacheable.Get(keyFindAll)
 	if data == "" {
 		result, err = s.userRepository.FindAll(ctx)
@@ -80,7 +81,7 @@ func (s *userService) Login(ctx context.Context, username, password string) (str
 		Role:     user.Role,
 		FullName: user.FullName,
 		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    "design-pattern",
+			Issuer:    "github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI",
 			ExpiresAt: jwt.NewNumericDate(expiredTime),
 		},
 	}

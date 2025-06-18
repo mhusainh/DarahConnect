@@ -1,14 +1,15 @@
 package handler_test
 
 import (
-	"design-pattern/internal/entity"
-	"design-pattern/internal/http/handler"
-	mock_service "design-pattern/test/mock/service"
 	"errors"
+	"mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/internal/http/handler"
+	mock_service "github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/test/mock/service"
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/suite"

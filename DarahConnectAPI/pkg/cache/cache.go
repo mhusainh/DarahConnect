@@ -2,8 +2,8 @@ package cache
 
 import (
 	"context"
-	"design-pattern/configs"
 	"fmt"
+	"mhusainh/DarahConnect/DarahConnectAPI/configs"
 	"time"
 
 	"github.com/redis/go-redis/v9"

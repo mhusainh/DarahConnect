@@ -2,16 +2,17 @@ package main
 
 import (
 	"context"
-	"design-pattern/configs"
-	"design-pattern/internal/builder"
-	"design-pattern/pkg/cache"
-	"design-pattern/pkg/database"
-	"design-pattern/pkg/server"
 	"fmt"
 	"log"
+	"mhusainh/DarahConnect/DarahConnectAPI/configs"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/internal/builder"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/pkg/cache"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/pkg/database"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/pkg/server"
 )
 
 func main() {

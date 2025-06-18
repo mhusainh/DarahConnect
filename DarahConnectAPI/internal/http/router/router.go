@@ -1,9 +1,10 @@
 package router
 
 import (
-	"design-pattern/internal/http/handler"
-	"design-pattern/pkg/route"
+	"mhusainh/DarahConnect/DarahConnectAPI/internal/http/handler"
 	"net/http"
+
+	"github.com/mhusainh/DarahConnect/DarahConnectAPIConnect/DarahConnectAPI/pkg/route"
 )
 
 func PublicRoutes(userHandler handler.UserHandler) []route.Route {

@@ -11,7 +11,7 @@ package mock_repository
 
 import (
 	context "context"
-	entity "design-pattern/internal/entity"
+	entity "mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"

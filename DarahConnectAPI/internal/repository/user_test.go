@@ -2,8 +2,8 @@ package repository_test
 
 import (
 	"context"
-	"design-pattern/internal/repository"
 	"errors"
+	"mhusainh/DarahConnect/DarahConnectAPI/internal/repository"
 	"regexp"
 	"testing"
 

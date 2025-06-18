@@ -5,7 +5,7 @@ POSTGRES:
   PORT: "5432"
   USER: "postgres"
   PASSWORD: "mysecretpassword"
-  DATABASE: "design-pattern"
+  DATABASE: "mhusainh/DarahConnect/DarahConnectAPI"
 JWT:
   SECRET_KEY: "asdaxzmcnzxdlajsdrqworukk"
 REDIS:

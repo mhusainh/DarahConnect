@@ -1,4 +1,4 @@
-module design-pattern
+module github.com/mhusainh/DarahConnect/DarahConnectAPI
 
 go 1.23.2
 

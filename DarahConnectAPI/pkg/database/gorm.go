@@ -1,8 +1,8 @@
 package database
 
 import (
-	"design-pattern/configs"
 	"fmt"
+	"mhusainh/DarahConnect/DarahConnectAPI/configs"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
