@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/mailjet/mailjet-apiv3-go/v4"
-	"github.com/mailjet/mailjet-apiv3-go/v4/resources"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/configs"
 )
 
@@ -31,17 +30,17 @@ func maskString(s string) string {
 	if s == "" {
 		return "<tidak dikonfigurasi>"
 	}
-	
+
 	// Tampilkan hanya 4 karakter pertama dan ganti sisanya dengan '*'
 	if len(s) <= 8 {
 		return strings.Repeat("*", len(s))
 	}
-	
+
 	visible := 4
 	if len(s) < visible {
 		visible = len(s)
 	}
-	
+
 	return s[:visible] + strings.Repeat("*", len(s)-visible)
 }
 
@@ -50,20 +49,20 @@ func setupProxy(proxyURLStr string) (*http.Client, error) {
 	if proxyURLStr == "" {
 		return nil, nil // Tidak ada proxy yang dikonfigurasi
 	}
-	
+
 	proxyURL, err := url.Parse(proxyURLStr)
 	if err != nil {
 		return nil, fmt.Errorf("gagal parsing URL proxy: %w", err)
 	}
-	
+
 	tr := &http.Transport{Proxy: http.ProxyURL(proxyURL)}
 	client := &http.Client{Transport: tr}
-	
+
 	return client, nil
 }
 
 // NewMailer creates a new Mailer instance
-func NewMailer(config configs.SMTPConfig) *Mailer {
+func NewMailer(config *configs.SMTPConfig) (*Mailer, error) {
 	// Log konfigurasi untuk debugging
 	fmt.Printf("Inisialisasi Mailjet dengan konfigurasi:\n")
 	fmt.Printf("  - Host: %s\n", config.Host)
@@ -72,10 +71,10 @@ func NewMailer(config configs.SMTPConfig) *Mailer {
 	fmt.Printf("  - API Key: %s...\n", maskString(config.APIKey))
 	fmt.Printf("  - Secret Key: %s...\n", maskString(config.SecretKey))
 	fmt.Printf("  - Proxy URL: %s\n", maskString(config.ProxyURL))
-	
+
 	// Inisialisasi client Mailjet dengan API Key dan Secret Key
 	client := mailjet.NewMailjetClient(config.APIKey, config.SecretKey)
-	
+
 	// Jika proxy dikonfigurasi, gunakan proxy
 	if config.ProxyURL != "" {
 		fmt.Printf("Menggunakan proxy: %s\n", maskString(config.ProxyURL))
@@ -84,21 +83,21 @@ func NewMailer(config configs.SMTPConfig) *Mailer {
 			client.SetClient(httpClient)
 			fmt.Printf("HTTP client dengan proxy berhasil dikonfigurasi\n")
 		} else {
-			fmt.Printf("Gagal mengkonfigurasi proxy: %v\n", err)
+			return nil, err
 		}
 	}
-	
+
 	return &Mailer{
-		config: config,
+		config: *config,
 		client: client,
-	}
+	}, nil
 }
 
 // SendEmail sends an email using Mailjet API
 func (m *Mailer) SendEmail(templatePath string, emailData EmailData) error {
 	// Parse template - coba beberapa path alternatif jika diperlukan
 	fmt.Printf("Mencoba membaca template dari: %s\n", templatePath)
-	
+
 	// Daftar path alternatif yang akan dicoba
 	pathsToTry := []string{
 		templatePath,
@@ -106,11 +105,11 @@ func (m *Mailer) SendEmail(templatePath string, emailData EmailData) error {
 		"../" + templatePath,
 		"../../" + templatePath,
 	}
-	
+
 	var tmpl *template.Template
 	var err error
 	var lastErr error
-	
+
 	// Coba setiap path sampai berhasil
 	for _, path := range pathsToTry {
 		fmt.Printf("Mencoba path: %s\n", path)
@@ -122,7 +121,7 @@ func (m *Mailer) SendEmail(templatePath string, emailData EmailData) error {
 		}
 		lastErr = err
 	}
-	
+
 	// Jika semua path gagal
 	if err != nil {
 		return fmt.Errorf("gagal membaca template email dari semua path yang dicoba: %w", lastErr)
@@ -142,7 +141,7 @@ func (m *Mailer) SendEmail(templatePath string, emailData EmailData) error {
 	fmt.Printf("  - Subjek: %s\n", emailData.Subject)
 	fmt.Printf("  - Konfigurasi SMTP: Host=%s, Port=%d\n", m.config.Host, m.config.Port)
 	fmt.Printf("  - Ukuran konten HTML: %d bytes\n", body.Len())
-	
+
 	messagesInfo := []mailjet.InfoMessagesV31{
 		{
 			From: &mailjet.RecipientV31{
@@ -160,7 +159,7 @@ func (m *Mailer) SendEmail(templatePath string, emailData EmailData) error {
 	}
 
 	messages := mailjet.MessagesV31{Info: messagesInfo}
-	
+
 	// Kirim email menggunakan Mailjet API
 	fmt.Printf("Mengirim email ke: %s dengan subjek: %s\n", emailData.To, emailData.Subject)
 	res, err := m.client.SendMailV31(&messages)
@@ -168,16 +167,17 @@ func (m *Mailer) SendEmail(templatePath string, emailData EmailData) error {
 		// Jika terjadi error, tambahkan informasi error untuk debugging
 		return fmt.Errorf("gagal mengirim email: %w", err)
 	}
-	
+
 	// Log respons untuk debugging
 	fmt.Printf("Email berhasil dikirim ke %s, status: %d\n", emailData.To, res.ResultsV31[0].Status)
-	
+
 	// Periksa status respons
-	if res.ResultsV31[0].Status != 200 && res.ResultsV31[0].Status != 201 {
-		return fmt.Errorf("email dikirim tetapi dengan status tidak sukses: %d, pesan: %s", 
-			res.ResultsV31[0].Status, res.ResultsV31[0].Errors)
+	if res.ResultsV31[0].Status != "200" && res.ResultsV31[0].Status != "201" {
+		// Log the full response for debugging if the status is not successful
+		return fmt.Errorf("email dikirim tetapi dengan status tidak sukses: %s. Full response: %+v",
+			res.ResultsV31[0].Status, res.ResultsV31[0])
 	}
-	
+
 	// Jika berhasil, kembalikan nil
 	return nil
 }

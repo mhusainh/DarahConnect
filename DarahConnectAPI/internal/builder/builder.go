@@ -9,6 +9,7 @@ import (
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/service"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cache"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cloudinary"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/mailer"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/route"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/token"
 
@@ -16,7 +17,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, cloudinaryService *cloudinary.Service) []route.Route {
+func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, cloudinaryService *cloudinary.Service, mailer *mailer.Mailer) []route.Route {
 	cacheable := cache.NewCacheable(rdb)
 	tokenUseCase := token.NewTokenUseCase(cfg.JWT.SecretKey)
 
@@ -25,7 +26,7 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clou
 	//end
 
 	//service
-	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg)
+	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg, mailer)
 	//end
 
 	//handler
@@ -35,7 +36,7 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clou
 	return router.PublicRoutes(userHandler)
 }
 
-func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, cloudinaryService *cloudinary.Service) []route.Route {
+func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, cloudinaryService *cloudinary.Service, mailer *mailer.Mailer) []route.Route {
 	cacheable := cache.NewCacheable(rdb)
 	tokenUseCase := token.NewTokenUseCase(cfg.JWT.SecretKey)
 
@@ -44,7 +45,7 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clo
 	//end
 
 	//service
-	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg)
+	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg, mailer)
 	//end
 
 	//handler

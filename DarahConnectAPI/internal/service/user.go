@@ -45,9 +45,9 @@ func NewUserService(
 	tokenUseCase token.TokenUseCase,
 	cacheable cache.Cacheable,
 	cfg *configs.Config,
+	mailer *mailer.Mailer,
 ) UserService {
-	mailer := mailer.NewMailer(cfg.SMTPConfig)
-	return &userService{userRepository, tokenUseCase, cacheable, mailer, cfg}
+		return &userService{userRepository, tokenUseCase, cacheable, mailer, cfg}
 }
 
 

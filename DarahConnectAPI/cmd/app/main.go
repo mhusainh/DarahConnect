@@ -14,6 +14,7 @@ import (
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cache"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cloudinary"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/database"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/mailer"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/server"
 )
 
@@ -30,8 +31,11 @@ func main() {
 	cloudinaryService, err := cloudinary.NewService(&cfg.CloudinaryConfig)
 	checkError(err)
 
-	publicRoutes := builder.BuildPublicRoutes(cfg, db, rdb, cloudinaryService)
-	privateRoutes := builder.BuildPrivateRoutes(cfg, db, rdb, cloudinaryService)
+	mailer, err := mailer.NewMailer(&cfg.SMTPConfig)
+	checkError(err)
+
+	publicRoutes := builder.BuildPublicRoutes(cfg, db, rdb, cloudinaryService, mailer)
+	privateRoutes := builder.BuildPrivateRoutes(cfg, db, rdb, cloudinaryService, mailer)
 
 	srv := server.NewServer(cfg, publicRoutes, privateRoutes)
 	runServer(srv, cfg.PORT)
