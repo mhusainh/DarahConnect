@@ -1,0 +1,20 @@
+BEGIN;
+
+ALTER TABLE public.users
+DROP COLUMN IF EXISTS gender,
+DROP COLUMN IF EXISTS email,
+DROP COLUMN IF EXISTS phone,
+DROP COLUMN IF EXISTS blood_type,
+DROP COLUMN IF EXISTS birth_date,
+DROP COLUMN IF EXISTS address,
+DROP COLUMN IF EXISTS reset_password_token,
+DROP COLUMN IF EXISTS verify_email_token,
+DROP COLUMN IF EXISTS is_verified,
+DROP COLUMN IF EXISTS last_donation_date,
+DROP COLUMN IF EXISTS donation_count,
+DROP COLUMN IF EXISTS public_id,
+DROP COLUMN IF EXISTS url_file,
+DROP COLUMN IF EXISTS created_at,
+DROP COLUMN IF EXISTS updated_at;
+
+COMMIT;

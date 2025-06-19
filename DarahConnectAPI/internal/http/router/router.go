@@ -65,7 +65,7 @@ func PrivateRoutes(
 		{
 			Method:  http.MethodPost,
 			Path:    "/users/profile/picture",
-			Handler: userHandler.UploadProfilePicture,
+			Handler: userHandler.UpdateUser,
 			Roles:   allRoles,
 		},
 		{

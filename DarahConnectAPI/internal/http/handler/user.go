@@ -5,9 +5,9 @@ import (
 
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/service"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cloudinary"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/response"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/token"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cloudinary"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
@@ -16,7 +16,7 @@ import (
 type UserHandler struct {
 	userService       service.UserService
 	cloudinaryService *cloudinary.Service
-}
+}	
 
 func NewUserHandler(userService service.UserService, cloudinaryService *cloudinary.Service) UserHandler {
 	return UserHandler{userService, cloudinaryService}
@@ -101,34 +101,7 @@ func (h *UserHandler) GetProfile(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully showing a user", user))
 }
 
-func (h *UserHandler) UpdateUser(ctx echo.Context) error {
-	var req dto.UpdateUserRequest
 
-	// Retrieve user claims from the JWT token
-	claims, ok := ctx.Get("user").(*jwt.Token)
-	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, "unable to get user claims")
-	}
-
-	// Extract user information from claims
-	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
-	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, "unable to get user information from claims")
-	}
-
-	req.Id = claimsData.Id
-
-	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
-	}
-
-	err := h.userService.Update(ctx.Request().Context(), req)
-	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
-	}
-
-	return ctx.JSON(http.StatusCreated, response.SuccessResponse("successfully update user", nil))
-}
 
 func (h *UserHandler) DeleteUser(ctx echo.Context) error {
 	var req dto.DeleteUserRequest
@@ -195,36 +168,47 @@ func (h *UserHandler) VerifyEmail(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully verify email", nil))
 }
 
-func (h *UserHandler) UploadProfilePicture(ctx echo.Context) error {
-	fileHeader, err := ctx.FormFile("profile_picture")
-	if err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Failed to get file from form data"))
-	}
+func (h *UserHandler) UpdateUser(ctx echo.Context) error {
+	var req dto.UpdateUserRequest
 
-	uploadResult, err := h.cloudinaryService.UploadFile(fileHeader)
-	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Failed to upload file to Cloudinary"))
+	// Bind form data terlebih dahulu
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
 
 	// Retrieve user claims from the JWT token
 	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, "unable to get user claims")
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user claims"))
 	}
 
 	// Extract user information from claims
 	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, "unable to get user information from claims")
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user information from claims"))
 	}
 
-	// Update user profile with Cloudinary URL and PublicID
-	err = h.userService.UpdateProfilePicture(ctx.Request().Context(), claimsData.Id, uploadResult.PublicID, uploadResult.SecureURL)
+	// Set user ID dari token
+	req.Id = claimsData.Id
+
+	// Handle file upload jika ada
+	if fileHeader, err := ctx.FormFile("image");err == nil { // File ditemukan, lakukan upload
+		// Upload file ke Cloudinary dengan folder "profile"
+		imageURL, publicId, err := h.cloudinaryService.UploadFile(fileHeader, "profile")
+		if err != nil {
+			return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "error uploading file: "+err.Error()))
+		}
+		
+		// Simpan URL dan Public ID ke request
+		req.UrlFile = imageURL
+		req.PublicId = publicId
+	}
+
+	// Update user data
+	err := h.userService.Update(ctx.Request().Context(), req)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Failed to update user profile with picture URL"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("Profile picture uploaded successfully", map[string]interface{}{
-		"url": uploadResult.SecureURL,
-	}))
+	return ctx.JSON(http.StatusCreated, response.SuccessResponse("successfully update user", nil))
 }
