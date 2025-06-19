@@ -44,7 +44,7 @@ func (r *userRepository) GetById(ctx context.Context, id int64) (*entity.User, e
 }
 
 func (r *userRepository) Create(ctx context.Context, user *entity.User) error {
-	return r.db.WithContext(ctx).Create(user).Error
+	return r.db.WithContext(ctx).Create(&user).Error
 }
 
 func (r *userRepository) Update(ctx context.Context, user *entity.User) error {
