@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifikasi Email</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+        .content {
+            background-color: #f9f9f9;
+            padding: 30px;
+            border-radius: 5px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #e74c3c;
+            color: white;
+            text-decoration: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #777;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Darah Connect</h1>
+    </div>
+    
+    <div class="content">
+        <h2>Verifikasi Email Anda</h2>
+        <p>Terima kasih telah mendaftar di Darah Connect. Untuk menyelesaikan pendaftaran, silakan verifikasi email Anda dengan mengklik tombol di bawah ini:</p>
+        
+        <div style="text-align: center;">
+            <a href="https://darahconnect.com/verify?token={{.Token}}" class="button">Verifikasi Email</a>
+        </div>
+        
+        <p>Atau, Anda dapat menyalin dan menempelkan tautan berikut ke browser Anda:</p>
+        <p><a href="https://darahconnect.com/verify?token={{.Token}}">https://darahconnect.com/verify?token={{.Token}}</a></p>
+        
+        <p>Jika Anda tidak mendaftar untuk akun Darah Connect, Anda dapat mengabaikan email ini.</p>
+    </div>
+    
+    <div class="footer">
+        <p>&copy; 2024 Darah Connect. Semua hak dilindungi undang-undang.</p>
+        <p>Ini adalah email yang dibuat secara otomatis, mohon jangan membalas email ini.</p>
+    </div>
+</body>
+</html>

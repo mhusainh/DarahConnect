@@ -31,8 +31,10 @@ type JWTConfig struct {
 type SMTPConfig struct {
 	Host     string `env:"HOST" envDefault:"localhost"`
 	Port     int    `env:"PORT" envDefault:"587"`
-	Username string `env:"USERNAME"`
-	Password string `env:"PASSWORD"`
+	Username string `env:"SMTP_SENDER_EMAIL" mapstructure:"SMTP_USERNAME"`
+	APIKey string `env:"SMTP_API_KEY" mapstructure:"SMTP_API_KEY"`
+	SecretKey string `env:"SMTP_SECRET_KEY" mapstructure:"SMTP_SECRET_KEY"`
+	ProxyURL string `env:"SMTP_PROXY_URL" mapstructure:"SMTP_PROXY_URL"` // URL proxy jika diperlukan
 }
 
 type PostgresConfig struct {

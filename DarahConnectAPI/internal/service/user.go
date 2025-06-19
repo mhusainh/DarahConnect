@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"errors"
+	"log"
+	"os"
 	"time"
 
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/configs"
@@ -21,7 +23,7 @@ import (
 type UserService interface {
 	GetAll(ctx context.Context) ([]entity.User, error)
 	GetById(ctx context.Context, id int64) (*entity.User, error)
-	Login(ctx context.Context, username, password string) (string, error)
+	Login(ctx context.Context, email, password string) (string, error)
 	Register(ctx context.Context, req dto.UserRegisterRequest) error
 	Update(ctx context.Context, req dto.UpdateUserRequest) error
 	Delete(ctx context.Context, user *entity.User) error
@@ -55,7 +57,7 @@ func (s *userService) Login(ctx context.Context, email string, password string) 
 		return "", errors.New("Email atau password salah")
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+	if bcryptErr := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); bcryptErr != nil {
 		return "", errors.New("Email atau password salah")
 	}
 
@@ -121,9 +123,21 @@ func (s *userService) Register(ctx context.Context, req dto.UserRegisterRequest)
 	}
 
 	// Send verification email
-	if err := s.mailer.SendEmail("./templates/email/verify-email.html", emailData); err != nil {
-		return errors.New("gagal mengirim email verifikasi")
+	// Coba beberapa kemungkinan path untuk template
+	workingDir, _ := os.Getwd()
+	log.Printf("Working directory: %s", workingDir)
+	
+	// Gunakan path relatif terhadap root project
+	templatePath := "templates/email/verify-email.html"
+	log.Printf("Mencoba mengirim email verifikasi ke %s menggunakan template: %s", user.Email, templatePath)
+	
+	if Senderr := s.mailer.SendEmail(templatePath, emailData); Senderr != nil {
+		// Log error untuk debugging
+		log.Printf("Gagal mengirim email verifikasi: %v", Senderr)
+		return errors.New("gagal mengirim email verifikasi: " + Senderr.Error())
 	}
+	
+	log.Printf("Email verifikasi berhasil dikirim ke: %s", user.Email)
 
 	// Create user in database
 	if err = s.userRepository.Create(ctx, user); err != nil {

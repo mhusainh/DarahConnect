@@ -10,6 +10,7 @@ import (
 	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/cloudinary/cloudinary-go/v2/api"
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/configs"
 )
 
 // Service adalah struct untuk layanan Cloudinary
@@ -18,17 +19,18 @@ type Service struct {
 }
 
 // NewService membuat instance baru dari Service Cloudinary
-func NewService() (*Service, error) {
-	// Inisialisasi Cloudinary dari environment variable CLOUDINARY_URL
-	cld, err := cloudinary.New()
-	if err != nil {
-		return nil, err
-	}
+// NewService membuat instance baru dari Service Cloudinary
+func NewService(config *configs.CloudinaryConfig) (*Service, error) {
+    // Inisialisasi Cloudinary dari konfigurasi
+    cld, err := cloudinary.NewFromParams(config.CloudName, config.APIKey, config.APISecret)
+    if err != nil {
+        return nil, err
+    }
 
-	// Mengatur konfigurasi untuk menggunakan HTTPS
-	cld.Config.URL.Secure = true
+    // Mengatur konfigurasi untuk menggunakan HTTPS
+    cld.Config.URL.Secure = true
 
-	return &Service{cld: cld}, nil
+    return &Service{cld: cld}, nil
 }
 
 // UploadFile mengunggah file ke Cloudinary
