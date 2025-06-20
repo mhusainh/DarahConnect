@@ -48,7 +48,7 @@ func (r *userRepository) Create(ctx context.Context, user *entity.User) error {
 }
 
 func (r *userRepository) Update(ctx context.Context, user *entity.User) error {
-	return r.db.WithContext(ctx).Updates(&user).Error
+	return r.db.WithContext(ctx).Model(&user).Updates(&user).Error
 }
 
 func (r *userRepository) Delete(ctx context.Context, user *entity.User) error {

@@ -50,7 +50,6 @@ func NewUserService(
 	return &userService{userRepository, tokenUseCase, cacheable, mailer, cfg}
 }
 
-
 func (s *userService) Login(ctx context.Context, email string, password string) (string, error) {
 	user, err := s.userRepository.GetByEmail(ctx, email)
 	if err != nil {
@@ -103,12 +102,12 @@ func (s *userService) Register(ctx context.Context, req dto.UserRegisterRequest)
 	user.Role = "User"
 	user.VerifyEmailToken = utils.RandomString(16)
 	user.IsVerified = 0
-	
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return errors.New("ada kesalahan di server")
 	}
-	
+
 	user.Password = string(hashedPassword)
 
 	// Prepare email data
@@ -118,8 +117,8 @@ func (s *userService) Register(ctx context.Context, req dto.UserRegisterRequest)
 		Template: "verify-email.html",
 		Data: struct {
 			Token string
-			}{
-				Token: user.VerifyEmailToken,
+		}{
+			Token: user.VerifyEmailToken,
 		},
 	}
 
@@ -132,11 +131,11 @@ func (s *userService) Register(ctx context.Context, req dto.UserRegisterRequest)
 	// Coba beberapa kemungkinan path untuk template
 	workingDir, _ := os.Getwd()
 	log.Printf("Working directory: %s", workingDir)
-	
+
 	// Gunakan path relatif terhadap root project
 	templatePath := "templates/email/verify-email.html"
 	log.Printf("Mencoba mengirim email verifikasi ke %s menggunakan template: %s", user.Email, templatePath)
-	
+
 	if Senderr := s.mailer.SendEmail(templatePath, emailData); Senderr != nil {
 		// Log error untuk debugging
 		log.Printf("Gagal mengirim email verifikasi: %v", Senderr)
@@ -144,8 +143,13 @@ func (s *userService) Register(ctx context.Context, req dto.UserRegisterRequest)
 		log.Printf("Pengguna berhasil dibuat tetapi email verifikasi gagal dikirim: %v", Senderr)
 		return nil
 	}
-	
+
 	log.Printf("Email verifikasi berhasil dikirim ke: %s", user.Email)
+
+	// Create user in database
+	if err = s.userRepository.Create(ctx, user); err != nil {
+		return errors.New("gagal membuat user")
+	}
 	
 	return nil
 }
@@ -254,8 +258,8 @@ func (s *userService) RequestResetPassword(ctx context.Context, email string) er
 		Template: "reset-password.html",
 		Data: struct {
 			Token string
-			}{
-				Token: user.ResetPasswordToken,
+		}{
+			Token: user.ResetPasswordToken,
 		},
 	}
 
@@ -275,7 +279,7 @@ func (s *userService) VerifyEmail(ctx context.Context, req dto.VerifyEmailReques
 	}
 	user.IsVerified = 1
 	return s.userRepository.Update(ctx, user)
-} 
+}
 
 // func (s *userService) GetAll(ctx context.Context) (result []entity.User, err error) {
 // 	keyFindAll := "github.com/mhusainh/DarahConnect/DarahConnectAPI-api:users:find-all"

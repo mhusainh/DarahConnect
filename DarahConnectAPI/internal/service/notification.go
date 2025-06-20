@@ -67,7 +67,7 @@ func (s *notificationService) Create(ctx context.Context, req dto.NotificationCr
 	notification.Message = req.Message
 	notification.NotificationType = req.NotificationType
 	notification.IsRead = false // Default to unread
-	
+
 	if err := s.notificationRepository.Create(ctx, notification); err != nil {
 		return errors.New("Notifikasi gagal dibuat")
 	}
@@ -75,19 +75,28 @@ func (s *notificationService) Create(ctx context.Context, req dto.NotificationCr
 }
 
 func (s *notificationService) Update(ctx context.Context, req dto.NotificationUpdateRequest) error {
-	_, err := s.notificationRepository.GetById(ctx, req.Id)
+	notification, err := s.notificationRepository.GetById(ctx, req.Id)
 	if err != nil {
 		return errors.New("Notifikasi tidak ditemukan")
 	}
 
-	if err := s.notificationRepository.Update(ctx, &entity.Notification{
-		Id:               req.Id,
-		UserId:           req.UserId,
-		Title:            req.Title,
-		Message:          req.Message,
-		NotificationType: req.NotificationType,
-		IsRead:           req.IsRead,
-	}); err != nil {
+	if req.UserId != 0 {
+		notification.UserId = req.UserId
+	}
+	if req.Title != "" {
+		notification.Title = req.Title
+	}
+	if req.Message != "" {
+		notification.Message = req.Message
+	}
+	if req.NotificationType != "" {
+		notification.NotificationType = req.NotificationType
+	}
+	if req.IsRead != false {
+		notification.IsRead = req.IsRead
+	}
+
+	if err := s.notificationRepository.Update(ctx, notification); err != nil {
 		return errors.New("Notifikasi gagal diperbarui")
 	}
 	return nil
