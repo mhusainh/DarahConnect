@@ -9,7 +9,6 @@ type NotificationCreateRequest struct {
 
 type NotificationUpdateRequest struct {
 	Id               int64  `param:"id" validate:"required"`
-	UserId           int64  `json:"user_id"`
 	Title            string `json:"title"`
 	Message          string `json:"message"`
 	NotificationType string `json:"notification_type"` // e.g., "alert", "reminder", "info"
