@@ -15,7 +15,6 @@ type DonorScheduleCreateRequest struct {
 
 type DonorScheduleUpdateRequest struct {
 	Id             int64     `param:"id" validate:"required"`
-	HospitalId     int64     `json:"hospital_id"`
 	EventName      string    `json:"event_name"`
 	EventDate      time.Time `json:"event_date"`
 	StartTime      time.Time `json:"start_time"`

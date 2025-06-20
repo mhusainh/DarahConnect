@@ -10,8 +10,6 @@ type CertificateCreateRequest struct {
 
 type CertificateUpdateRequest struct {
 	Id int64 `param:"id" validate:"required"`
-	DonationId int64 `json:"donation_id"`
-	UserId     int64 `json:"user_id"`
 	CertificateNumber string `json:"certificate_number"` // Unique identifier for the certificat
 	DigitalSignature string `json:"digital_signature"` // Digital signature of the certificate
 	CertificateUrl string `json:"certificate_url"` // URL to access the certificate document

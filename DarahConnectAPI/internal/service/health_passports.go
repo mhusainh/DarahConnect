@@ -3,10 +3,12 @@ package service
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/repository"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/timezone"
 )
 
 type HealthPassportService interface {
@@ -30,6 +32,8 @@ func (s *healthPassportService) Create(ctx context.Context, req dto.HealthPasspo
 	healthPassport := new(entity.HealthPassport)
 	healthPassport.UserId = req.UserId
 	healthPassport.PassportNumber = req.PassportNumber
+	healthPassport.ExpiryDate = time.Now().In(timezone.JakartaLocation).Add(24 * time.Hour)
+	healthPassport.Status = "active"
 
 	if err := s.healthPassportRepository.Create(ctx, healthPassport); err != nil {
 		return errors.New("Riwayat kesehatan gagal dibuat")
@@ -60,12 +64,11 @@ func (s *healthPassportService) Update(ctx context.Context, req dto.HealthPasspo
 		return errors.New("Riwayat kesehatan tidak ditemukan")
 	}
 
-	if req.UserId != 0 {
-		healthPassport.UserId = req.UserId
-	}
 	if req.PassportNumber != "" {
 		healthPassport.PassportNumber = req.PassportNumber
 	}
+	healthPassport.ExpiryDate = time.Now().In(timezone.JakartaLocation).Add(24 * time.Hour)
+	healthPassport.Status = "active"
 
 	if err := s.healthPassportRepository.Update(ctx, healthPassport); err != nil {
 		return errors.New("Riwayat kesehatan gagal diperbarui")

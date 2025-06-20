@@ -80,9 +80,6 @@ func (s *notificationService) Update(ctx context.Context, req dto.NotificationUp
 		return errors.New("Notifikasi tidak ditemukan")
 	}
 
-	if req.UserId != 0 {
-		notification.UserId = req.UserId
-	}
 	if req.Title != "" {
 		notification.Title = req.Title
 	}

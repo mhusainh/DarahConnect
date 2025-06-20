@@ -15,6 +15,7 @@ import (
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/database"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/mailer"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/server"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/timezone"
 )
 
 func main() {
@@ -27,6 +28,9 @@ func main() {
 
 	rdb := cache.InitCache(cfg.RedisConfig)
 
+	err = timezone.InitTimezone()
+	checkError(err)
+	
 	cloudinaryService, err := cloudinary.NewService(&cfg.CloudinaryConfig)
 	checkError(err)
 
