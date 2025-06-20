@@ -31,7 +31,7 @@ func (s *donorRegistrationService) Create(ctx context.Context, req *dto.DonorReg
 	donorRegistration := new(entity.DonorRegistration)
 	donorRegistration.UserId = req.UserId
 	donorRegistration.ScheduleId = req.ScheduleId
-	donorRegistration.Status = "pending"
+	donorRegistration.Status = "registered"
 	donorRegistration.Notes = req.Notes
 	
 	if err := s.donorRegistrationRepository.Create(ctx, donorRegistration); err != nil {

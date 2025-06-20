@@ -53,7 +53,7 @@ func (s *donorScheduleService) Create(ctx context.Context, req dto.DonorSchedule
 	donorSchedule.SlotsAvailable = req.SlotsAvailable
 	donorSchedule.SlotsBooked = req.SlotsBooked
 	donorSchedule.Description = req.Description
-	donorSchedule.Status = "available"
+	donorSchedule.Status = "upcoming"
 
 	err := s.donorScheduleRepository.Create(ctx, donorSchedule)
 	if err != nil {

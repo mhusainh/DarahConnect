@@ -14,5 +14,5 @@ type BloodDonationUpdateRequest struct {
 	Id           int64     `param:"id" validate:"required"`
 	DonationDate time.Time `json:"donation_date"`
 	BloodType    string    `json:"blood_type"` // e.g., "A+", "O-", etc.
-	Status       string    `json:"status"`     // e.g., "completed", "pending", "cancelled"
+	Status       string    `json:"status"`     //'Completed', 'Rejected', 'Deferred'
 }
