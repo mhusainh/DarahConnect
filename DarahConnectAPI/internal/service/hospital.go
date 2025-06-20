@@ -57,20 +57,31 @@ func (s *hospitalService) Create(ctx context.Context, req dto.HospitalCreateRequ
 }
 
 func (s *hospitalService) Update(ctx context.Context, req dto.HospitalUpdateRequest) error {
-	_, err := s.hospitalRepository.GetById(ctx, req.Id)
+	hospital, err := s.hospitalRepository.GetById(ctx, req.Id)
 	if err != nil {
 		return errors.New("Rumah sakit tidak ditemukan")
 	}
 
-	if err := s.hospitalRepository.Update(ctx, &entity.Hospital{
-		Id:        req.Id,
-		Name:      req.Name,
-		Address:   req.Address,
-		City:      req.City,
-		Province:  req.Province,
-		Latitude:  req.Latitude,
-		Longitude: req.Longitude,
-	}); err != nil {
+	if req.Name != "" {
+		hospital.Name = req.Name
+	}
+	if req.Address != "" {
+		hospital.Address = req.Address
+	}
+	if req.City != "" {
+		hospital.City = req.City
+	}
+	if req.Province != "" {
+		hospital.Province = req.Province
+	}
+	if req.Latitude != 0 {
+		hospital.Latitude = req.Latitude
+	}
+	if req.Longitude != 0 {
+		hospital.Longitude = req.Longitude
+	}
+
+	if err := s.hospitalRepository.Update(ctx, hospital); err != nil {
 		return errors.New("Rumah sakit gagal diperbarui")
 	}
 	return nil

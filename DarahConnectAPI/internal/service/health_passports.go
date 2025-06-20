@@ -26,9 +26,11 @@ func NewHealthPassportService(healthPassportRepository repository.HealthPassport
 }
 
 func (s *healthPassportService) Create(ctx context.Context, req dto.HealthPassportCreateRequest) error {
+
 	healthPassport := new(entity.HealthPassport)
 	healthPassport.UserId = req.UserId
 	healthPassport.PassportNumber = req.PassportNumber
+
 	if err := s.healthPassportRepository.Create(ctx, healthPassport); err != nil {
 		return errors.New("Riwayat kesehatan gagal dibuat")
 	}
@@ -53,16 +55,19 @@ func (s *healthPassportService) GetById(ctx context.Context, id int64) (*entity.
 }
 
 func (s *healthPassportService) Update(ctx context.Context, req dto.HealthPassportUpdateRequest) error {
-	_, err := s.healthPassportRepository.GetById(ctx, req.Id)
+	healthPassport, err := s.healthPassportRepository.GetById(ctx, req.Id)
 	if err != nil {
 		return errors.New("Riwayat kesehatan tidak ditemukan")
 	}
 
-	if err := s.healthPassportRepository.Update(ctx, &entity.HealthPassport{
-		Id:               req.Id,
-		UserId:           req.UserId,
-		PassportNumber:   req.PassportNumber,
-	}); err != nil {
+	if req.UserId != 0 {
+		healthPassport.UserId = req.UserId
+	}
+	if req.PassportNumber != "" {
+		healthPassport.PassportNumber = req.PassportNumber
+	}
+
+	if err := s.healthPassportRepository.Update(ctx, healthPassport); err != nil {
 		return errors.New("Riwayat kesehatan gagal diperbarui")
 	}
 	return nil
