@@ -114,11 +114,17 @@ func (s *userService) Register(ctx context.Context, req dto.UserRegisterRequest)
 	emailData := mailer.EmailData{
 		To:      user.Email,
 		Subject: "Darah Connect : Verifikasi Email!",
+		Template: "verify-email.html",
 		Data: struct {
 			Token string
 		}{
 			Token: user.VerifyEmailToken,
 		},
+	}
+
+	// Create user in database
+	if err = s.userRepository.Create(ctx, user); err != nil {
+		return errors.New("gagal membuat user")
 	}
 
 	// Send verification email
@@ -133,7 +139,9 @@ func (s *userService) Register(ctx context.Context, req dto.UserRegisterRequest)
 	if Senderr := s.mailer.SendEmail(templatePath, emailData); Senderr != nil {
 		// Log error untuk debugging
 		log.Printf("Gagal mengirim email verifikasi: %v", Senderr)
-		return errors.New("gagal mengirim email verifikasi: " + Senderr.Error())
+		// Pengguna sudah dibuat, jadi kita tidak perlu mengembalikan error yang menggagalkan seluruh proses registrasi
+		log.Printf("Pengguna berhasil dibuat tetapi email verifikasi gagal dikirim: %v", Senderr)
+		return nil
 	}
 
 	log.Printf("Email verifikasi berhasil dikirim ke: %s", user.Email)
@@ -142,7 +150,7 @@ func (s *userService) Register(ctx context.Context, req dto.UserRegisterRequest)
 	if err = s.userRepository.Create(ctx, user); err != nil {
 		return errors.New("gagal membuat user")
 	}
-
+	
 	return nil
 }
 
@@ -247,6 +255,7 @@ func (s *userService) RequestResetPassword(ctx context.Context, email string) er
 	emailData := mailer.EmailData{
 		To:      user.Email,
 		Subject: "Darah Connect : Reset Password!",
+		Template: "reset-password.html",
 		Data: struct {
 			Token string
 		}{
@@ -256,6 +265,7 @@ func (s *userService) RequestResetPassword(ctx context.Context, email string) er
 
 	// Send reset password email
 	if err := s.mailer.SendEmail("./templates/email/reset-password.html", emailData); err != nil {
+		log.Printf("Gagal mengirim email reset password: %v", err)
 		return errors.New("gagal mengirim reset password")
 	}
 
