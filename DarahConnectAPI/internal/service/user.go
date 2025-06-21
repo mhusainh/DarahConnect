@@ -3,8 +3,7 @@ package service
 import (
 	"context"
 	"errors"
-	"log"
-	"os"
+	"log"	
 	"time"
 
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/configs"
@@ -122,29 +121,11 @@ func (s *userService) Register(ctx context.Context, req dto.UserRegisterRequest)
 		},
 	}
 
-	// Create user in database
-	if err = s.userRepository.Create(ctx, user); err != nil {
-		return errors.New("gagal membuat user")
-	}
-
-	// Send verification email
-	// Coba beberapa kemungkinan path untuk template
-	workingDir, _ := os.Getwd()
-	log.Printf("Working directory: %s", workingDir)
-
 	// Gunakan path relatif terhadap root project
-	templatePath := "templates/email/verify-email.html"
-	log.Printf("Mencoba mengirim email verifikasi ke %s menggunakan template: %s", user.Email, templatePath)
-
+	templatePath := "./templates/email/verify-email.html"
 	if Senderr := s.mailer.SendEmail(templatePath, emailData); Senderr != nil {
-		// Log error untuk debugging
-		log.Printf("Gagal mengirim email verifikasi: %v", Senderr)
-		// Pengguna sudah dibuat, jadi kita tidak perlu mengembalikan error yang menggagalkan seluruh proses registrasi
-		log.Printf("Pengguna berhasil dibuat tetapi email verifikasi gagal dikirim: %v", Senderr)
-		return nil
+		return err
 	}
-
-	log.Printf("Email verifikasi berhasil dikirim ke: %s", user.Email)
 
 	// Create user in database
 	if err = s.userRepository.Create(ctx, user); err != nil {

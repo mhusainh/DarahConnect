@@ -16,6 +16,7 @@ type Config struct {
 	RedisConfig      RedisConfig      `envPrefix:"REDIS_" mapstructure:"REDIS"`
 	SMTPConfig       SMTPConfig       `envPrefix:"SMTP_" mapstructure:"SMTP"`
 	CloudinaryConfig CloudinaryConfig `envPrefix:"CLOUDINARY_" mapstructure:"CLOUDINARY"`
+	MidtransConfig   MidtransConfig   `envPrefix:"MIDTRANS_" mapstructure:"MIDTRANS"`
 }
 
 type RedisConfig struct {
@@ -29,11 +30,11 @@ type JWTConfig struct {
 }
 
 type SMTPConfig struct {
-	Username string `env:"SMTP_SENDER_EMAIL" mapstructure:"USERNAME"`
-	SenderEmail string `env:"SMTP_SENDER_EMAIL" mapstructure:"SENDER_EMAIL"`
-	APIKey string `env:"SMTP_API_KEY" mapstructure:"API_KEY"`
-	SecretKey string `env:"SMTP_SECRET_KEY" mapstructure:"SECRET_KEY"`
-	ProxyURL string `env:"SMTP_PROXY_URL" mapstructure:"PROXY_URL"` // URL proxy jika diperlukan
+	Username string `env:"SENDER_EMAIL" mapstructure:"SENDER_EMAIL"`
+	SenderEmail string `env:"SENDER_EMAIL" mapstructure:"SENDER_EMAIL"`
+	APIKey string `env:"API_KEY" mapstructure:"API_KEY"`
+	SecretKey string `env:"SECRET_KEY" mapstructure:"SECRET_KEY"`
+	ProxyURL string `env:"PROXY_URL" mapstructure:"PROXY_URL"` // URL proxy jika diperlukan
 }
 
 type PostgresConfig struct {
@@ -42,6 +43,12 @@ type PostgresConfig struct {
 	User     string `env:"USER" envDefault:"postgres" mapstructure:"USER"`
 	Password string `env:"PASSWORD" envDefault:"postgres" mapstructure:"PASSWORD"`
 	Database string `env:"DATABASE" envDefault:"postgres" mapstructure:"DATABASE"`
+}
+
+type MidtransConfig struct {
+	BaseURL   string `env:"BASE_URL"`
+	ClientKey string `env:"CLIENT_KEY"`
+	ServerKey string `env:"SERVER_KEY"`
 }
 
 type CloudinaryConfig struct {

@@ -24,21 +24,10 @@ type EmailData struct {
 	Template string // Nama template yang akan digunakan
 }
 func NewMailer(smtpCfg *configs.SMTPConfig) (*Mailer, error) {
-	// Validasi konfigurasi
-	if smtpCfg.SenderEmail == "" {
-		return nil, fmt.Errorf("SMTP_SENDER_EMAIL tidak boleh kosong")
-	}
-	if smtpCfg.APIKey == "" || smtpCfg.SecretKey == "" {
-		return nil, fmt.Errorf("SMTP_API_KEY dan SMTP_SECRET_KEY tidak boleh kosong")
-	}
-
 	// Inisialisasi client Mailjet
-	mailjetClient := mailjet.NewMailjetClient(smtpCfg.APIKey, smtpCfg.SecretKey)
-	log.Printf("API Key: %v", smtpCfg.APIKey)
-	log.Printf("Secret Key: %v", smtpCfg.SecretKey)
-	log.Printf("Username/Email: %v", smtpCfg.Username)
-	log.Printf("SenderEmail: %v", smtpCfg.SenderEmail)
-	
+	mailjetClient := mailjet.NewMailjetClient("08775d2600b7cb1496cd3008660a13e2", "58f9ed2703a140053f6018fb5606cae9")
+	log.Printf("key : %v", smtpCfg.APIKey)
+	log.Printf("key : %v", smtpCfg.SecretKey)
 	return &Mailer{
 		client:  mailjetClient,
 		smtpCfg: *smtpCfg,
@@ -103,17 +92,17 @@ func (m *Mailer) SendEmail(templatePath string, emailData EmailData) error {
 	messagesInfo := []mailjet.InfoMessagesV31{
 		{
 			From: &mailjet.RecipientV31{
-				Email: m.smtpCfg.SenderEmail,
+				Email: m.smtpCfg.Username,
 				Name:  "Darah Connect",
 			},
 			To: &mailjet.RecipientsV31{
 				mailjet.RecipientV31{
 					Email: emailData.To,
-					Name:  emailData.To,
+					Name:  "Pengguna",
 				},
 			},
 			Subject:  emailData.Subject,
-			TextPart: emailData.Subject,
+			TextPart: "Silakan gunakan email client yang mendukung HTML untuk melihat pesan ini.",
 			HTMLPart: emailBody.String(),
 		},
 	}
