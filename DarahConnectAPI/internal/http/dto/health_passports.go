@@ -4,7 +4,6 @@ import "time"
 
 type HealthPassportCreateRequest struct {
 	UserId         int64  `json:"user_id" validate:"required"`
-	PassportNumber string `json:"passport_number" validate:"required"` // Unique identifier for the health passport
 }
 
 type HealthPassportUpdateRequest struct {
