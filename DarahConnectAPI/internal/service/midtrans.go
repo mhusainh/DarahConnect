@@ -3,10 +3,10 @@ package service
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/repository"
 )
@@ -19,79 +19,63 @@ type midtransService struct {
 	donationsRepository repository.DonationsRepository
 }
 
+// NewMidtransService creates a new instance of midtransService
+func NewMidtransService(donationsRepository repository.DonationsRepository) midtrans {
+	return &midtransService{
+		donationsRepository: donationsRepository,
+	}
+}
+
 func (s *midtransService) WebHookTransaction(ctx echo.Context) error {
 	var input dto.DonationsCreate
 
 	if err := ctx.Bind(&input); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+		return ctx.JSON(http.StatusBadRequest, map[string]interface{}{
+			"status":  "error",
+			"message": "Invalid request payload",
+		})
 	}
 
-	orderID, err := strconv.ParseInt(input.OrderID, 10, 64)
+	// Parse transaction time
+	transactionTime, err := time.Parse("2006-01-02 15:04:05", input.Transaction_time)
 	if err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+		return ctx.JSON(http.StatusBadRequest, map[string]interface{}{
+			"status":  "error",
+			"message": "Invalid transaction time format",
+		})
 	}
-	fmt.Println("orderID : ", orderID)
-	transaction, err := h.transactionService.GetById(ctx.Request().Context(), orderID)
-	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	if input.Transaction_status != "settlement" && input.Transaction_status != "capture" {
+		return ctx.JSON(http.StatusBadRequest, map[string]interface{}{
+			"status":  "error",
+			"message": "Invalid transaction status",
+		})
 	}
-
-	user, err := h.userService.GetById(ctx.Request().Context(), transaction.UserID)
-	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
-	}
-
-	if input.TransactionStatus == "settlement" {
-		status := "paid"
-		transaction.Status = status
-		err = h.transactionService.Update(ctx.Request().Context(), orderID, status)
-		if err != nil {
-			return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
-		}
-		event, err := h.eventService.GetById(ctx.Request().Context(), transaction.EventID)
-		if err != nil {
-			return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
-		}
-		if transaction.Type == "tiket" {
-			notification := &dto.NotificationInput{
-				UserID:    event.UserID,
-				Message:   "Check your ticket on your email! ",
-				Is_Read:   false,
-				Create_at: time.Now(),
-			}
-			event.Quantity = event.Quantity - transaction.Quantity
-			event.Sold = event.Sold + transaction.Quantity
-
-			if err := h.eventService.UpdateSold(ctx.Request().Context(), event.ID, event.Sold); err != nil {
-				return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
-			}
-			if err := h.eventService.UpdateQuantity(ctx.Request().Context(), event.ID, event.Quantity); err != nil {
-				return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
-			}
-
-			if err := h.NotificationService.CreateNotification(ctx.Request().Context(), *notification); err != nil {
-				return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
-			}
-			if err := h.NotificationService.SendEmailTiket(ctx.Request().Context(), user, event, transaction); err != nil {
-				return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
-			}
-			fmt.Println("orderID : ", orderID)
-		} else {
-			notification := &dto.NotificationInput{
-				UserID:    event.UserID,
-				Message:   "Your submission waiting for admin approval! ",
-				Is_Read:   false,
-				Create_at: time.Now(),
-			}
-			if err := h.NotificationService.CreateNotification(ctx.Request().Context(), *notification); err != nil {
-				return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
-			}
-			err = h.eventService.UpdateStatus(ctx.Request().Context(), transaction.EventID, "pending")
-			if err != nil {
-				return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
-			}
-		}
+	// Create donation record
+	donation := &entity.Donation{
+		UserID:    input.UserID,
+		Amount:    input.Amount,
+		Status:    "success",
+		CreatedAt: transactionTime,
+		UpdatedAt: time.Now(),
 	}
 
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("Successfully Payment", nil))
+	// Save donation to database
+	if err := s.donationsRepository.Create(ctx.Request().Context(), donation); err != nil {
+		fmt.Printf("Failed to save donation: %v\n", err)
+		return ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"status":  "error",
+			"message": "Failed to process donation",
+		})
+	}
+
+	return ctx.JSON(http.StatusOK, map[string]interface{}{
+		"status":  "success",
+		"message": "Donation processed successfully",
+		"data": map[string]interface{}{
+			"id":     donation.ID,
+			"user_id": donation.UserID,
+			"amount":  donation.Amount,
+			"status":  donation.Status,
+		},
+	})
 }
