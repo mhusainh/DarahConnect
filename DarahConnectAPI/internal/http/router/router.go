@@ -16,7 +16,6 @@ var (
 
 func PublicRoutes(
 	userHandler handler.UserHandler,
-	notificationHandler handler.NotificationHandler,
 ) []route.Route {
 	return []route.Route{
 		// User Handler
@@ -51,14 +50,72 @@ func PublicRoutes(
 func PrivateRoutes(
 	userHandler handler.UserHandler,
 	notificationHandler handler.NotificationHandler,
+	healthPassportHandler handler.HealthPassportHandler,
 ) []route.Route {
 	return []route.Route{
+		// Health Passport Handler
+		// Role User
+		{
+			Method:  http.MethodGet,
+			Path:    "/health-passport",
+			Handler: healthPassportHandler.GetHealthPassportByUser,
+			Roles:   userOnly,
+		},
+		{
+			Method:  http.MethodPut,
+			Path:    "/health-passport",
+			Handler: healthPassportHandler.UpdateHealthPassportByUser,
+			Roles:   userOnly,
+		},
+		// Role Admin
+		{
+			Method:  http.MethodGet,
+			Path:    "/admin/health-passports",
+			Handler: healthPassportHandler.GetHealthPassports,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/admin/health-passport/:id",
+			Handler: healthPassportHandler.GetHealthPassport,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/admin/health-passport/user/:user_id",
+			Handler: healthPassportHandler.GetHealthPassportByUserId,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodPut,
+			Path:    "/admin/health-passport/:id",
+			Handler: healthPassportHandler.UpdateStatusHealthPassport,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodDelete,
+			Path:    "/admin/health-passport",
+			Handler: healthPassportHandler.DeleteHealthPassport,
+			Roles:   adminOnly,
+		},
 		// Notification Handler
 		// Role User
 		{
 			Method:  http.MethodGet,
 			Path:    "/notifications/user",
+			Handler: notificationHandler.GetNotificationsByUser,
+			Roles:   userOnly,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/notifications/user/:id",
 			Handler: notificationHandler.GetNotificationByUser,
+			Roles:   userOnly,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/notifications/user/count",
+			Handler: notificationHandler.GetUnreadNotificationCount,
 			Roles:   userOnly,
 		},
 		// Role admin

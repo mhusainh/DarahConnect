@@ -5,6 +5,7 @@ import "time"
 type Notification struct {
 	Id               int64     `json:"id"`
 	UserId           int64     `json:"user_id"`
+	User             User      `gorm:"foreignKey:UserId" json:"user"` // Add this line to embed the User entity
 	Title            string    `json:"title"`
 	Message          string    `json:"message"`
 	NotificationType string    `json:"notification_type"` // e.g., "alert", "reminder", "info"

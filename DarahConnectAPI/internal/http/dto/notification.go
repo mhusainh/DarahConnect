@@ -22,3 +22,14 @@ type NotificationByIdRequest struct {
 type NotificationByUserIdRequest struct {
 	UserId int64 `param:"user_id" validate:"required"`
 }
+
+type GetAllNotificationRequest struct {
+	Page      int64  `query:"page" `
+	Limit     int64  `query:"limit" `
+	Search    string `query:"search"`
+	Sort      string `query:"sort"`
+	Order     string `query:"order"`
+	StartDate string `query:"start_date"`
+	EndDate   string `query:"end_date"`
+	IsRead    *bool  `query:"is_read"`
+}

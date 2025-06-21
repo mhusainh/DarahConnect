@@ -23,20 +23,17 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clou
 
 	//repository
 	userRepository := repository.NewUserRepository(db)
-	notificationRepository := repository.NewNotificationRepository(db)
 	//end
 
 	//service
 	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg, mailer)
-	notificationService := service.NewNotificationService(notificationRepository)
 	//end
 
 	//handler
 	userHandler := handler.NewUserHandler(userService, cloudinaryService)
-	notificationHandler := handler.NewNotificationHandler(notificationService)
 	//end
 
-	return router.PublicRoutes(userHandler, notificationHandler)
+	return router.PublicRoutes(userHandler)
 }
 
 func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, cloudinaryService *cloudinary.Service, mailer *mailer.Mailer) []route.Route {
@@ -46,17 +43,20 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clo
 	//repository
 	userRepository := repository.NewUserRepository(db)
 	notificationRepository := repository.NewNotificationRepository(db)
+	healthPassportRepository := repository.NewHealthPassportRepository(db)
 	//end
 
 	//service
 	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg, mailer)
 	notificationService := service.NewNotificationService(notificationRepository)
+	healthPassportService := service.NewHealthPassportService(healthPassportRepository)
 	//end
 
 	//handler
 	userHandler := handler.NewUserHandler(userService, cloudinaryService)
-	notificationHandler := handler.NewNotificationHandler(notificationService)
+	notificationHandler := handler.NewNotificationHandler(notificationService,)
+	healthPassportHandler := handler.NewHealthPassportHandler(healthPassportService)
 	//end
 
-	return router.PrivateRoutes(userHandler, notificationHandler)
+	return router.PrivateRoutes(userHandler, notificationHandler, healthPassportHandler)
 }

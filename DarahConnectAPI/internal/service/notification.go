@@ -12,10 +12,10 @@ import (
 type NotificationService interface {
 	Create(ctx context.Context, req dto.NotificationCreateRequest) error
 	GetById(ctx context.Context, id int64) (*entity.Notification, error)
-	GetAll(ctx context.Context) ([]entity.Notification, error)
+	GetAll(ctx context.Context, req dto.GetAllNotificationRequest) ([]entity.Notification, int64, error)
 	Update(ctx context.Context, req dto.NotificationUpdateRequest, notification *entity.Notification) error
 	Delete(ctx context.Context, id int64) error
-	GetByUserId(ctx context.Context, userId int64) ([]entity.Notification, error)
+	GetByUserId(ctx context.Context, userId int64, req dto.GetAllNotificationRequest) ([]entity.Notification, int64, error)
 	GetUnreadCountByUserId(ctx context.Context, userId int64) (int64, error)
 }
 
@@ -28,12 +28,12 @@ func NewNotificationService(notificationRepository repository.NotificationReposi
 	return &notificationService{notificationRepository}
 }
 
-func (s *notificationService) GetAll(ctx context.Context) ([]entity.Notification, error) {
-	notifications, err := s.notificationRepository.GetAll(ctx)
+func (s *notificationService) GetAll(ctx context.Context, req dto.GetAllNotificationRequest) ([]entity.Notification, int64, error) {
+	notifications, total, err := s.notificationRepository.GetAll(ctx, req)
 	if err != nil {
-		return nil, errors.New("Gagal mendapatkan daftar notifikasi")
+		return nil, 0, errors.New("Gagal mendapatkan daftar notifikasi")
 	}
-	return notifications, nil
+	return notifications, total, nil
 }
 
 func (s *notificationService) GetById(ctx context.Context, id int64) (*entity.Notification, error) {
@@ -44,12 +44,12 @@ func (s *notificationService) GetById(ctx context.Context, id int64) (*entity.No
 	return notification, nil
 }
 
-func (s *notificationService) GetByUserId(ctx context.Context, userId int64) ([]entity.Notification, error) {
-	notification, err := s.notificationRepository.GetByUserId(ctx, userId)
+func (s *notificationService) GetByUserId(ctx context.Context, userId int64, req dto.GetAllNotificationRequest) ([]entity.Notification, int64, error) {
+	notifications, total, err := s.notificationRepository.GetByUserId(ctx, userId, req)
 	if err != nil {
-		return nil, errors.New("Notifikasi tidak ditemukan untuk pengguna ini")
+		return nil, 0, errors.New("Notifikasi tidak ditemukan untuk pengguna ini")
 	}
-	return notification, nil
+	return notifications, total, nil
 }
 
 func (s *notificationService) GetUnreadCountByUserId(ctx context.Context, userId int64) (int64, error) {
