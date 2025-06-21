@@ -36,7 +36,7 @@ func (s *bloodRequestService) Create(ctx context.Context, req *dto.BloodRequestC
 	bloodRequest.Quantity = req.Quantity
 	bloodRequest.UrgencyLevel = req.UrgencyLevel
 	bloodRequest.Diagnosis = req.Diagnosis
-	bloodRequest.Status = req.Status
+	bloodRequest.Status = "pending"
 	bloodRequest.ExpiryDate = req.ExpiryDate
 
 	if err := s.bloodRequestRepository.Create(ctx, bloodRequest); err != nil {

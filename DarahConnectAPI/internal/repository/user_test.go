@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/repository"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -60,14 +61,14 @@ func (s *UserTestSuite) TestFindAll() {
 	s.Run("failed to get all users", func() {
 		s.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "public"."users"`)).
 			WillReturnError(errors.New("error"))
-		result, err := s.repo.GetAll(context.Background())
+		result, _, err := s.repo.GetAll(context.Background(), dto.GetAllUserRequest{})
 		s.NotNil(err)
 		s.Nil(result)
 	})
 	s.Run("success get all users", func() {
 		s.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "public"."users"`)).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
-		result, err := s.repo.GetAll(context.Background())
+		result, _, err := s.repo.GetAll(context.Background(), dto.GetAllUserRequest{})
 		s.Nil(err)
 		s.NotNil(result)
 	})

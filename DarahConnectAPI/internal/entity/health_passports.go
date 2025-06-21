@@ -5,6 +5,7 @@ import "time"
 type HealthPassport struct {
 	Id             int64     `json:"id"`
 	UserId         int64     `json:"user_id"`
+	User           User      `gorm:"foreignKey:UserId" json:"user"` // Add this line to embed the User entity
 	PassportNumber string    `json:"passport_number"` // Unique identifier for the health passport
 	ExpiryDate     time.Time `json:"expiry_date"`     // Expiry date of the health passport
 	Status         string    `json:"status"`          // e.g., "active", "expired", "revoked"

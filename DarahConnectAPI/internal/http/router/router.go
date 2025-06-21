@@ -18,6 +18,7 @@ func PublicRoutes(
 	userHandler handler.UserHandler,
 ) []route.Route {
 	return []route.Route{
+		// User Handler
 		{
 			Method:  http.MethodPost,
 			Path:    "/login",
@@ -48,8 +49,114 @@ func PublicRoutes(
 
 func PrivateRoutes(
 	userHandler handler.UserHandler,
+	notificationHandler handler.NotificationHandler,
+	healthPassportHandler handler.HealthPassportHandler,
 ) []route.Route {
 	return []route.Route{
+		// Health Passport Handler
+		// Role User
+		{
+			Method:  http.MethodGet,
+			Path:    "/health-passport",
+			Handler: healthPassportHandler.GetHealthPassportByUser,
+			Roles:   userOnly,
+		},
+		{
+			Method:  http.MethodPut,
+			Path:    "/health-passport",
+			Handler: healthPassportHandler.UpdateHealthPassportByUser,
+			Roles:   userOnly,
+		},
+		// Role Admin
+		{
+			Method:  http.MethodGet,
+			Path:    "/admin/health-passports",
+			Handler: healthPassportHandler.GetHealthPassports,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/admin/health-passport/:id",
+			Handler: healthPassportHandler.GetHealthPassport,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/admin/health-passport/user/:user_id",
+			Handler: healthPassportHandler.GetHealthPassportByUserId,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodPut,
+			Path:    "/admin/health-passport/:id",
+			Handler: healthPassportHandler.UpdateStatusHealthPassport,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodDelete,
+			Path:    "/admin/health-passport",
+			Handler: healthPassportHandler.DeleteHealthPassport,
+			Roles:   adminOnly,
+		},
+		// Notification Handler
+		// Role User
+		{
+			Method:  http.MethodGet,
+			Path:    "/notifications/user",
+			Handler: notificationHandler.GetNotificationsByUser,
+			Roles:   userOnly,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/notifications/user/:id",
+			Handler: notificationHandler.GetNotificationByUser,
+			Roles:   userOnly,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/notifications/user/count",
+			Handler: notificationHandler.GetUnreadNotificationCount,
+			Roles:   userOnly,
+		},
+		// Role admin
+		{
+			Method:  http.MethodGet,
+			Path:    "/admin/notifications",
+			Handler: notificationHandler.GetNotifications,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/admin/notification",
+			Handler: notificationHandler.GetNotification,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/admin/notifications/user/:user_id",
+			Handler: notificationHandler.GetNotificationByUserId,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodPost,
+			Path:    "/admin/notification",
+			Handler: notificationHandler.CreateNotification,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodPut,
+			Path:    "/admin/notification/:id",
+			Handler: notificationHandler.UpdateNotification,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodDelete,
+			Path:    "/admin/notification/:id",
+			Handler: notificationHandler.DeleteNotification,
+			Roles:   adminOnly,
+		},
+
+		// User Handler
 		{
 			Method:  http.MethodGet,
 			Path:    "/users/profile",
@@ -70,19 +177,19 @@ func PrivateRoutes(
 		},
 		{
 			Method:  http.MethodGet,
-			Path:    "/users",
+			Path:    "/admin/users",
 			Handler: userHandler.GetUsers,
 			Roles:   adminOnly,
 		},
 		{
 			Method:  http.MethodGet,
-			Path:    "/users/:id",
+			Path:    "/admin/users/:id",
 			Handler: userHandler.GetUser,
 			Roles:   adminOnly,
 		},
 		{
 			Method:  http.MethodDelete,
-			Path:    "/users/:id",
+			Path:    "/admin/users/:id",
 			Handler: userHandler.DeleteUser,
 			Roles:   adminOnly,
 		},

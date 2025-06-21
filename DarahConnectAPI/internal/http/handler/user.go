@@ -23,12 +23,17 @@ func NewUserHandler(userService service.UserService, cloudinaryService *cloudina
 }
 
 func (h *UserHandler) GetUsers(ctx echo.Context) error {
-	users, err := h.userService.GetAll(ctx.Request().Context())
+	var req dto.GetAllUserRequest
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+
+	users, total, err := h.userService.GetAll(ctx.Request().Context(), dto.GetAllUserRequest{})
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError,
 			response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully fetch all users", users))
+	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("successfully showing all users", users, req.Page, req.Limit, total))
 }
 
 func (h *UserHandler) GetUser(ctx echo.Context) error {

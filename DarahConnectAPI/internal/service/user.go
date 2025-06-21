@@ -20,7 +20,7 @@ import (
 )
 
 type UserService interface {
-	GetAll(ctx context.Context) ([]entity.User, error)
+	GetAll(ctx context.Context, req dto.GetAllUserRequest) ([]entity.User, int64, error)
 	GetById(ctx context.Context, id int64) (*entity.User, error)
 	Login(ctx context.Context, email, password string) (string, error)
 	Register(ctx context.Context, req dto.UserRegisterRequest) error
@@ -135,8 +135,12 @@ func (s *userService) Register(ctx context.Context, req dto.UserRegisterRequest)
 	return nil
 }
 
-func (s *userService) GetAll(ctx context.Context) ([]entity.User, error) {
-	return s.userRepository.GetAll(ctx)
+func (s *userService) GetAll(ctx context.Context, req dto.GetAllUserRequest) ([]entity.User, int64, error) {
+	users, total, err := s.userRepository.GetAll(ctx, req)
+	if err != nil {
+		return nil, 0, errors.New("gagal mendapatkan data user")
+	}
+	return users, total, nil
 }
 
 func (s *userService) GetById(ctx context.Context, id int64) (*entity.User, error) {

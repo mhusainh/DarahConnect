@@ -42,15 +42,21 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clo
 
 	//repository
 	userRepository := repository.NewUserRepository(db)
+	notificationRepository := repository.NewNotificationRepository(db)
+	healthPassportRepository := repository.NewHealthPassportRepository(db)
 	//end
 
 	//service
 	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg, mailer)
+	notificationService := service.NewNotificationService(notificationRepository)
+	healthPassportService := service.NewHealthPassportService(healthPassportRepository)
 	//end
 
 	//handler
 	userHandler := handler.NewUserHandler(userService, cloudinaryService)
+	notificationHandler := handler.NewNotificationHandler(notificationService,)
+	healthPassportHandler := handler.NewHealthPassportHandler(healthPassportService)
 	//end
 
-	return router.PrivateRoutes(userHandler)
+	return router.PrivateRoutes(userHandler, notificationHandler, healthPassportHandler)
 }

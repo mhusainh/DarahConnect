@@ -12,8 +12,8 @@ import (
 type HospitalService interface {
 	Create(ctx context.Context, req dto.HospitalCreateRequest) error
 	GetById(ctx context.Context, id int64) (*entity.Hospital, error)
-	GetAll(ctx context.Context) ([]entity.Hospital, error)
-	Update(ctx context.Context, req dto.HospitalUpdateRequest) error
+	GetAll(ctx context.Context, req dto.GetAllHospitalRequest) ([]entity.Hospital, int64, error)
+	Update(ctx context.Context, req dto.HospitalUpdateRequest, hospital *entity.Hospital) error
 	Delete(ctx context.Context, id int64) error
 }
 
@@ -25,12 +25,12 @@ func NewHospitalService(hospitalRepository repository.HospitalRepository) Hospit
 	return &hospitalService{hospitalRepository}
 }
 
-func (s *hospitalService) GetAll(ctx context.Context) ([]entity.Hospital, error) {
-	hospitals, err := s.hospitalRepository.GetAll(ctx)
+func (s *hospitalService) GetAll(ctx context.Context, req dto.GetAllHospitalRequest) ([]entity.Hospital, int64, error) {
+	hospitals, total, err := s.hospitalRepository.GetAll(ctx, dto.GetAllHospitalRequest{})
 	if err != nil {
-		return nil, errors.New("Gagal mendapatkan daftar rumah sakit")
+		return nil, 0, errors.New("Gagal mendapatkan daftar rumah sakit")
 	}
-	return hospitals, nil
+	return hospitals, total, nil
 }
 
 func (s *hospitalService) GetById(ctx context.Context, id int64) (*entity.Hospital, error) {
@@ -56,12 +56,7 @@ func (s *hospitalService) Create(ctx context.Context, req dto.HospitalCreateRequ
 	return nil
 }
 
-func (s *hospitalService) Update(ctx context.Context, req dto.HospitalUpdateRequest) error {
-	hospital, err := s.hospitalRepository.GetById(ctx, req.Id)
-	if err != nil {
-		return errors.New("Rumah sakit tidak ditemukan")
-	}
-
+func (s *hospitalService) Update(ctx context.Context, req dto.HospitalUpdateRequest, hospital *entity.Hospital) error {
 	if req.Name != "" {
 		hospital.Name = req.Name
 	}

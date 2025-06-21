@@ -34,7 +34,7 @@ func (s *bloodDonationService) Create(ctx context.Context, req *dto.BloodDonatio
 	bloodDonation.RegistrationId = req.RegistrationId
 	bloodDonation.DonationDate = req.DonationDate
 	bloodDonation.BloodType = req.BloodType
-	bloodDonation.Status = "pending"
+	bloodDonation.Status = "completed"
 
 	if err := s.bloodDonationRepository.Create(ctx, bloodDonation); err != nil {
 		return errors.New("Gagal membuat donasi darah")

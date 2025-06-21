@@ -14,8 +14,9 @@ import (
 type HealthPassportService interface {
 	Create(ctx context.Context, req dto.HealthPassportCreateRequest) error
 	GetById(ctx context.Context, id int64) (*entity.HealthPassport, error)
-	GetAll(ctx context.Context) ([]entity.HealthPassport, error)
-	Update(ctx context.Context, req dto.HealthPassportUpdateRequest) error
+	GetAll(ctx context.Context, req dto.GetAllHealthPassportRequest) ([]entity.HealthPassport, int64, error)
+	GetByUserId(ctx context.Context, userId int64) (*entity.HealthPassport, error)
+	Update(ctx context.Context, req dto.HealthPassportUpdateRequest, healthPassport *entity.HealthPassport) error
 	Delete(ctx context.Context, id int64) error
 }
 
@@ -41,13 +42,13 @@ func (s *healthPassportService) Create(ctx context.Context, req dto.HealthPasspo
 	return nil
 }
 
-func (s *healthPassportService) GetAll(ctx context.Context) ([]entity.HealthPassport, error) {
+func (s *healthPassportService) GetAll(ctx context.Context, req dto.GetAllHealthPassportRequest) ([]entity.HealthPassport, int64, error) {
 
-	healthPassports, err := s.healthPassportRepository.GetAll(ctx)
+	healthPassports, total, err := s.healthPassportRepository.GetAll(ctx, req)
 	if err != nil {
-		return nil, errors.New("Gagal mendapatkan daftar riwayat kesehatan")
+		return nil, 0, errors.New("Gagal mendapatkan daftar riwayat kesehatan")
 	}
-	return healthPassports, nil
+	return healthPassports, total, nil
 }
 
 func (s *healthPassportService) GetById(ctx context.Context, id int64) (*entity.HealthPassport, error) {
@@ -58,12 +59,15 @@ func (s *healthPassportService) GetById(ctx context.Context, id int64) (*entity.
 	return healthPassport, nil
 }
 
-func (s *healthPassportService) Update(ctx context.Context, req dto.HealthPassportUpdateRequest) error {
-	healthPassport, err := s.healthPassportRepository.GetById(ctx, req.Id)
+func (s *healthPassportService) GetByUserId(ctx context.Context, userId int64) (*entity.HealthPassport, error) {
+	healthPassports, err := s.healthPassportRepository.GetByUserId(ctx, userId)
 	if err != nil {
-		return errors.New("Riwayat kesehatan tidak ditemukan")
+		return nil, errors.New("Gagal mendapatkan daftar riwayat kesehatan")
 	}
+	return healthPassports, nil
+}
 
+func (s *healthPassportService) Update(ctx context.Context, req dto.HealthPassportUpdateRequest, healthPassport *entity.HealthPassport) error {
 	if req.PassportNumber != "" {
 		healthPassport.PassportNumber = req.PassportNumber
 	}

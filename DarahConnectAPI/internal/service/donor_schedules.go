@@ -10,10 +10,11 @@ import (
 )
 
 type DonorScheduleService interface {
-	GetAll(ctx context.Context) ([]entity.DonorSchedule, error)
+	GetAll(ctx context.Context, req dto.GetAllDonorScheduleRequest) ([]entity.DonorSchedule, int64, error)
 	GetById(ctx context.Context, id int64) (*entity.DonorSchedule, error)
+	GetByHospitalId(ctx context.Context, hospitalId int64, req dto.GetAllDonorScheduleRequest) ([]entity.DonorSchedule, int64, error)
 	Create(ctx context.Context, req dto.DonorScheduleCreateRequest) error
-	Update(ctx context.Context, req dto.DonorScheduleUpdateRequest) error
+	Update(ctx context.Context, req dto.DonorScheduleUpdateRequest, donorSchedule *entity.DonorSchedule) error
 	Delete(ctx context.Context, id int64) error
 }
 
@@ -27,12 +28,12 @@ func NewDonorScheduleService(donorScheduleRepository repository.DonorScheduleRep
 	}
 }
 
-func (s *donorScheduleService) GetAll(ctx context.Context) ([]entity.DonorSchedule, error) {
-	donorSchedules, err := s.donorScheduleRepository.GetAll(ctx)
+func (s *donorScheduleService) GetAll(ctx context.Context, req dto.GetAllDonorScheduleRequest) ([]entity.DonorSchedule, int64, error) {
+	donorSchedules, total, err := s.donorScheduleRepository.GetAll(ctx, req)
 	if err != nil {
-		return nil, errors.New("Gagal mendapatkan jadwal donor")
+		return nil, 0, errors.New("Gagal mendapatkan jadwal donor")
 	}
-	return donorSchedules, nil
+	return donorSchedules, total, nil
 }
 
 func (s *donorScheduleService) GetById(ctx context.Context, id int64) (*entity.DonorSchedule, error) {
@@ -41,6 +42,14 @@ func (s *donorScheduleService) GetById(ctx context.Context, id int64) (*entity.D
 		return nil, errors.New("Jadwal donor tidak ditemukan")
 	}
 	return donorSchedule, nil
+}
+
+func (s *donorScheduleService) GetByHospitalId(ctx context.Context, hospitalId int64, req dto.GetAllDonorScheduleRequest) ([]entity.DonorSchedule, int64, error) {
+	donorSchedules, total, err := s.donorScheduleRepository.GetByHospitalId(ctx, hospitalId, req)
+	if err != nil {
+		return nil, 0, errors.New("Gagal mendapatkan jadwal donor")
+	}
+	return donorSchedules, total, nil
 }
 
 func (s *donorScheduleService) Create(ctx context.Context, req dto.DonorScheduleCreateRequest) error {
@@ -53,7 +62,7 @@ func (s *donorScheduleService) Create(ctx context.Context, req dto.DonorSchedule
 	donorSchedule.SlotsAvailable = req.SlotsAvailable
 	donorSchedule.SlotsBooked = req.SlotsBooked
 	donorSchedule.Description = req.Description
-	donorSchedule.Status = "available"
+	donorSchedule.Status = "upcoming"
 
 	err := s.donorScheduleRepository.Create(ctx, donorSchedule)
 	if err != nil {
@@ -62,12 +71,7 @@ func (s *donorScheduleService) Create(ctx context.Context, req dto.DonorSchedule
 	return nil
 }
 
-func (s *donorScheduleService) Update(ctx context.Context, req dto.DonorScheduleUpdateRequest) error {
-	donorSchedule, err := s.donorScheduleRepository.GetById(ctx, req.Id)
-	if err != nil {
-		return errors.New("Jadwal donor tidak ditemukan")
-	}
-
+func (s *donorScheduleService) Update(ctx context.Context, req dto.DonorScheduleUpdateRequest, donorSchedule *entity.DonorSchedule) error {
 	if req.EventName != "" {
 		donorSchedule.EventName = req.EventName
 	}

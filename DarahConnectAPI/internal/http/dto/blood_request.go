@@ -10,7 +10,6 @@ type BloodRequestCreateRequest struct {
 	Quantity     int       `json:"quantity" validate:"required"`
 	UrgencyLevel string    `json:"urgency_level" validate:"required"` // Unique identifier for the health passport
 	Diagnosis    string    `json:"diagnosis" validate:"required"`     // Unique identifier for the health passport
-	Status       string    `json:"status" validate:"required"`        // Unique identifier for the health passport
 	ExpiryDate   time.Time `json:"expiry_date" validate:"required"`
 }
 

@@ -12,7 +12,7 @@ type DonorSchedule struct {
 	SlotsAvailable int       `json:"slots_available"`
 	SlotsBooked    int       `json:"slots_booked"`
 	Description    string    `json:"description"`
-	Status         string    `json:"status"`
+	Status         string    `json:"status"`	//'Upcoming', 'Ongoing', 'Completed', 'Cancelled'
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
 }

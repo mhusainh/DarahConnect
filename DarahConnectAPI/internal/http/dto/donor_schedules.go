@@ -24,3 +24,24 @@ type DonorScheduleUpdateRequest struct {
 	Description    string    `json:"description"`
 	Status         string    `json:"status"`
 }
+
+type DonorScheduleByIdRequest struct {
+	Id int64 `param:"id" validate:"required"`
+}
+
+type DonorScheduleByHospitalIdRequest struct {
+	HospitalId int64 `param:"hospital_id" validate:"required"`
+}
+
+type GetAllDonorScheduleRequest struct {
+	Page           int64  `query:"page"`
+	Limit          int64  `query:"limit"`
+	Search         string `query:"search"`
+	Sort           string `query:"sort"`
+	Order          string `query:"order"`
+	EventDate      string `query:"event_date"`
+	StartTime      string `query:"start_time"`
+	EndTime        string `query:"end_time"`
+	SlotsAvailable *bool  `query:"slots_available"`
+	Status         string `query:"status"`
+}
