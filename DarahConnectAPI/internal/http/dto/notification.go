@@ -15,6 +15,10 @@ type NotificationUpdateRequest struct {
 	IsRead           bool   `json:"is_read"`           // Indicates if the notification has been read
 }
 
-type GetNotificationByIdRequest struct {
+type NotificationByIdRequest struct {
 	Id int64 `param:"id" validate:"required"`
+}
+
+type NotificationByUserIdRequest struct {
+	UserId int64 `param:"user_id" validate:"required"`
 }

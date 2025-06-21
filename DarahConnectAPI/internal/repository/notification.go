@@ -15,7 +15,7 @@ type NotificationRepository interface {
 	GetAll(ctx context.Context) ([]entity.Notification, error)
 	Update(ctx context.Context, notification *entity.Notification) error
 	Delete(ctx context.Context, notification *entity.Notification) error
-	GetByUserId(ctx context.Context, userId int64) (*entity.Notification, error)
+	GetByUserId(ctx context.Context, userId int64) ([]entity.Notification, error)
 	GetUnreadCountByUserId(ctx context.Context, userId int64) (int64, error)
 }
 
@@ -55,8 +55,8 @@ func (r *notificationRepository) Delete(ctx context.Context, notification *entit
 	return r.db.WithContext(ctx).Delete(notification).Error
 }
 
-func (r *notificationRepository) GetByUserId(ctx context.Context, userId int64) (*entity.Notification, error) {
-	result := new(entity.Notification)
+func (r *notificationRepository) GetByUserId(ctx context.Context, userId int64) ([]entity.Notification, error) {
+	result := make([]entity.Notification, 0)
 	if err := r.db.WithContext(ctx).Where("user_id = ?", userId).Find(&result).Error; err != nil {
 		return nil, err
 	}

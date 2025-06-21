@@ -23,17 +23,20 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clou
 
 	//repository
 	userRepository := repository.NewUserRepository(db)
+	notificationRepository := repository.NewNotificationRepository(db)
 	//end
 
 	//service
 	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg, mailer)
+	notificationService := service.NewNotificationService(notificationRepository)
 	//end
 
 	//handler
 	userHandler := handler.NewUserHandler(userService, cloudinaryService)
+	notificationHandler := handler.NewNotificationHandler(notificationService)
 	//end
 
-	return router.PublicRoutes(userHandler)
+	return router.PublicRoutes(userHandler, notificationHandler)
 }
 
 func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, cloudinaryService *cloudinary.Service, mailer *mailer.Mailer) []route.Route {
@@ -42,15 +45,18 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clo
 
 	//repository
 	userRepository := repository.NewUserRepository(db)
+	notificationRepository := repository.NewNotificationRepository(db)
 	//end
 
 	//service
 	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg, mailer)
+	notificationService := service.NewNotificationService(notificationRepository)
 	//end
 
 	//handler
 	userHandler := handler.NewUserHandler(userService, cloudinaryService)
+	notificationHandler := handler.NewNotificationHandler(notificationService)
 	//end
 
-	return router.PrivateRoutes(userHandler)
+	return router.PrivateRoutes(userHandler, notificationHandler)
 }

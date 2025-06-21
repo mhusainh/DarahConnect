@@ -13,9 +13,9 @@ type NotificationService interface {
 	Create(ctx context.Context, req dto.NotificationCreateRequest) error
 	GetById(ctx context.Context, id int64) (*entity.Notification, error)
 	GetAll(ctx context.Context) ([]entity.Notification, error)
-	Update(ctx context.Context, req dto.NotificationUpdateRequest) error
+	Update(ctx context.Context, req dto.NotificationUpdateRequest, notification *entity.Notification) error
 	Delete(ctx context.Context, id int64) error
-	GetByUserId(ctx context.Context, userId int64) (*entity.Notification, error)
+	GetByUserId(ctx context.Context, userId int64) ([]entity.Notification, error)
 	GetUnreadCountByUserId(ctx context.Context, userId int64) (int64, error)
 }
 
@@ -44,7 +44,7 @@ func (s *notificationService) GetById(ctx context.Context, id int64) (*entity.No
 	return notification, nil
 }
 
-func (s *notificationService) GetByUserId(ctx context.Context, userId int64) (*entity.Notification, error) {
+func (s *notificationService) GetByUserId(ctx context.Context, userId int64) ([]entity.Notification, error) {
 	notification, err := s.notificationRepository.GetByUserId(ctx, userId)
 	if err != nil {
 		return nil, errors.New("Notifikasi tidak ditemukan untuk pengguna ini")
@@ -74,12 +74,7 @@ func (s *notificationService) Create(ctx context.Context, req dto.NotificationCr
 	return nil
 }
 
-func (s *notificationService) Update(ctx context.Context, req dto.NotificationUpdateRequest) error {
-	notification, err := s.notificationRepository.GetById(ctx, req.Id)
-	if err != nil {
-		return errors.New("Notifikasi tidak ditemukan")
-	}
-
+func (s *notificationService) Update(ctx context.Context, req dto.NotificationUpdateRequest, notification *entity.Notification) error {
 	if req.Title != "" {
 		notification.Title = req.Title
 	}
