@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"strings"
+
 
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
@@ -34,9 +36,10 @@ func (r *healthPassportRepository) applyFilters(query *gorm.DB, req dto.GetAllHe
 
 	// Filter berdasarkan Search (pada judul atau pesan)
 	if req.Search != "" {
+		search := strings.ToLower(req.Search)
 		query = query.Joins("LEFT JOIN users ON users.id = health_passports.user_id").
 			Where("LOWER(health_passports.passport_number) LIKE ? OR LOWER(users.name) LIKE ?",
-				"%"+req.Search+"%", "%"+req.Search+"%")
+				"%"+search+"%", "%"+search+"%")
 	}
 
 	// Set default values jika tidak ada

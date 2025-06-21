@@ -21,7 +21,7 @@ type UserRegisterRequest struct {
 }
 
 type UpdateUserRequest struct {
-	Id        int64 `param:"id"`
+	Id        int64  `param:"id"`
 	Name      string `json:"name" form:"name"`
 	Gender    string `json:"gender" form:"gender"`
 	Email     string `json:"email" form:"email"`
@@ -65,4 +65,13 @@ type RequestResetPassword struct {
 
 type VerifyEmailRequest struct {
 	Token string `param:"token" validate:"required"`
+}
+
+type GetAllUserRequest struct {
+	Page      int64  `query:"page" `
+	Limit     int64  `query:"limit" `
+	Search    string `query:"search"`
+	Sort      string `query:"sort"`
+	Order     string `query:"order"`
+	BloodType string `query:"blood_type"`
 }

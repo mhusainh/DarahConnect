@@ -2,14 +2,17 @@ package repository
 
 import (
 	"context"
+	"strings"
+
 
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
 
 	"gorm.io/gorm"
 )
 
 type UserRepository interface {
-	GetAll(ctx context.Context) ([]entity.User, error)
+	GetAll(ctx context.Context, req dto.GetAllUserRequest) ([]entity.User, int64, error)
 	GetById(ctx context.Context, id int64) (*entity.User, error)
 	GetByEmail(ctx context.Context, email string) (*entity.User, error)
 	Create(ctx context.Context, user *entity.User) error
@@ -27,12 +30,68 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 	return &userRepository{db}
 }
 
-func (r *userRepository) GetAll(ctx context.Context) ([]entity.User, error) {
-	result := make([]entity.User, 0)
-	if err := r.db.WithContext(ctx).Find(&result).Error; err != nil {
-		return nil, err
+// applyFilters menerapkan filter, sorting, dan pagination ke query GORM
+func (r *userRepository) applyFilters(query *gorm.DB, req dto.GetAllUserRequest) (*gorm.DB, dto.GetAllUserRequest) {
+	// Filter berdasarkan BloodType
+	if req.BloodType != "" {
+		query = query.Where("LOWER(blood_type) = ?", req.BloodType)
 	}
-	return result, nil
+	// Filter berdasarkan Search (pada judul atau pesan)
+	if req.Search != "" {
+		search := strings.ToLower(req.Search)
+		query = query.Where("LOWER(name) LIKE ?", "%"+search+"%").
+			Or("LOWER(gender) LIKE ?", "%"+search+"%").
+			Or("LOWER(email) LIKE ?", "%"+search+"%").
+			Or("LOWER(phone) LIKE ?", "%"+search+"%").
+			Or("LOWER(birth_date) LIKE ?", "%"+search+"%").
+			Or("LOWER(address) LIKE ?", "%"+search+"%")
+	}
+
+	// Set default values jika tidak ada
+	if req.Page <= 0 {
+		req.Page = 1
+	}
+
+	if req.Limit <= 0 {
+		req.Limit = 10
+	}
+
+	// Sorting
+	sortBy := "created_at"
+	if req.Sort != "" {
+		sortBy = req.Sort
+	}
+
+	orderBy := "desc"
+	if req.Order != "" {
+		orderBy = req.Order
+	}
+
+	query = query.Order(sortBy + " " + orderBy)
+
+	return query, req
+}
+
+func (r *userRepository) GetAll(ctx context.Context, req dto.GetAllUserRequest) ([]entity.User, int64, error) {
+	var users []entity.User
+	var total int64
+
+	// Hitung total item sebelum pagination
+	dataQuery := r.db.WithContext(ctx).Model(&entity.User{})
+	dataQuery, req = r.applyFilters(dataQuery, req)
+	if err := dataQuery.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Pagination
+	offset := (req.Page - 1) * req.Limit
+	dataQuery = dataQuery.Limit(int(req.Limit)).Offset(int(offset))
+
+	if err := dataQuery.Find(&users).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return users, total, nil
 }
 
 func (r *userRepository) GetById(ctx context.Context, id int64) (*entity.User, error) {

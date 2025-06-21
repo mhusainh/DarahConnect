@@ -26,3 +26,11 @@ type HospitalDeleteRequest struct {
 type HospitalGetByIdRequest struct {
 	Id int64 `param:"id" validate:"required"`
 }
+
+type GetAllHospitalRequest struct {
+	Page      int64  `query:"page" `
+	Limit     int64  `query:"limit" `
+	Search    string `query:"search"`
+	Sort      string `query:"sort"`
+	Order     string `query:"order"`
+}

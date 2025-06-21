@@ -37,7 +37,7 @@ func (h *NotificationHandler) GetNotifications(ctx echo.Context) error {
 			response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 	return ctx.JSON(http.StatusOK, 
-		response.SuccessResponseWithPagi("successfully showing all notifications", notifications, req.Page, req.Limit, total,))
+		response.SuccessResponseWithPagi("successfully showing all notifications", notifications, req.Page, req.Limit, total))
 }
 
 func (h *NotificationHandler) GetNotification(ctx echo.Context) error {

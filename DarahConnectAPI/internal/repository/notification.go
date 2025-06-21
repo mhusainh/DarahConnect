@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"time"
+	"strings"
 
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
@@ -41,9 +42,10 @@ func (r *notificationRepository) applyFilters(query *gorm.DB, req dto.GetAllNoti
 
 	// Filter berdasarkan Search (pada judul atau pesan)
 	if req.Search != "" {
+		search := strings.ToLower(req.Search)
 		query = query.Joins("LEFT JOIN users ON users.id = notifications.user_id").
 			Where("LOWER(notifications.title) LIKE ? OR LOWER(notifications.notification_type) LIKE ? OR LOWER(users.name) LIKE ?",
-				"%"+req.Search+"%", "%"+req.Search+"%", "%"+req.Search+"%")
+				"%"+search+"%", "%"+search+"%", "%"+search+"%")
 	}
 
 	// Filter berdasarkan tanggal
