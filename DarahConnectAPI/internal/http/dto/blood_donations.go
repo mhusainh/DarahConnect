@@ -16,3 +16,19 @@ type BloodDonationUpdateRequest struct {
 	BloodType    string    `json:"blood_type"` // e.g., "A+", "O-", etc.
 	Status       string    `json:"status"`     //'Completed', 'Rejected', 'Deferred'
 }
+
+type BloodDonationByIdRequest struct {
+	Id int64 `param:"id" validate:"required"`
+}
+
+type GetAllBloodDonationRequest struct {
+	Page      int64     `query:"page"`
+	Limit     int64     `query:"limit"`
+	Search    string    `query:"search"`
+	Sort      string    `query:"sort"`
+	Order     string    `query:"order"`
+	Status    string    `query:"status"`
+	StartDate string `query:"start_date"`
+	EndDate   string `query:"end_date"`
+	BloodType string    `query:"blood_type"`
+}

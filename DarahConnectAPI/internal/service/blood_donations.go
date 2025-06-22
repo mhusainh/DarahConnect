@@ -10,10 +10,11 @@ import (
 )
 
 type BloodDonationService interface {
-	Create(ctx context.Context, req *dto.BloodDonationCreateRequest) error
-	GetAll(ctx context.Context) ([]entity.BloodDonation, error)
+	Create(ctx context.Context, req dto.BloodDonationCreateRequest) error
+	GetAll(ctx context.Context, req dto.GetAllBloodDonationRequest) ([]entity.BloodDonation, int64, error)
+	GetByUserId(ctx context.Context, userId int64, req dto.GetAllBloodDonationRequest) ([]entity.BloodDonation, int64, error)
 	GetById(ctx context.Context, id int64) (*entity.BloodDonation, error)
-	Update(ctx context.Context, req *dto.BloodDonationUpdateRequest) error
+	Update(ctx context.Context, req dto.BloodDonationUpdateRequest) error
 	Delete(ctx context.Context, id int64) error
 }
 
@@ -27,14 +28,14 @@ func NewBloodDonationService(bloodDonationRepository repository.BloodDonationRep
 	}
 }
 
-func (s *bloodDonationService) Create(ctx context.Context, req *dto.BloodDonationCreateRequest) error {
+func (s *bloodDonationService) Create(ctx context.Context, req dto.BloodDonationCreateRequest) error {
 	bloodDonation := new(entity.BloodDonation)
 	bloodDonation.UserId = req.UserId
 	bloodDonation.HospitalId = req.HospitalId
 	bloodDonation.RegistrationId = req.RegistrationId
 	bloodDonation.DonationDate = req.DonationDate
 	bloodDonation.BloodType = req.BloodType
-	bloodDonation.Status = "completed"
+	bloodDonation.Status = "pending"
 
 	if err := s.bloodDonationRepository.Create(ctx, bloodDonation); err != nil {
 		return errors.New("Gagal membuat donasi darah")
@@ -43,13 +44,22 @@ func (s *bloodDonationService) Create(ctx context.Context, req *dto.BloodDonatio
 	return nil
 }
 
-func (s *bloodDonationService) GetAll(ctx context.Context) ([]entity.BloodDonation, error) {
-	bloodDonations, err := s.bloodDonationRepository.GetAll(ctx)
+func (s *bloodDonationService) GetAll(ctx context.Context, req dto.GetAllBloodDonationRequest) ([]entity.BloodDonation, int64, error) {
+	bloodDonations, total, err := s.bloodDonationRepository.GetAll(ctx, req)
 	if err != nil {
-		return nil, errors.New("Gagal mengambil donasi darah")
+		return nil, 0, errors.New("Gagal mengambil donasi darah")
 	}
 
-	return bloodDonations, nil
+	return bloodDonations, total, nil
+}
+
+func (s *bloodDonationService) GetByUserId(ctx context.Context, userId int64, req dto.GetAllBloodDonationRequest) ([]entity.BloodDonation, int64, error) {
+	bloodDonations, total, err := s.bloodDonationRepository.GetByUserId(ctx, userId, req)
+	if err != nil {
+		return nil, 0, errors.New("Gagal mengambil donasi darah")
+	}
+
+	return bloodDonations, total, nil
 }
 
 func (s *bloodDonationService) GetById(ctx context.Context, id int64) (*entity.BloodDonation, error) {
@@ -61,7 +71,7 @@ func (s *bloodDonationService) GetById(ctx context.Context, id int64) (*entity.B
 	return bloodDonation, nil
 }
 
-func (s *bloodDonationService) Update(ctx context.Context, req *dto.BloodDonationUpdateRequest) error {
+func (s *bloodDonationService) Update(ctx context.Context, req dto.BloodDonationUpdateRequest) error {
 	bloodDonation, err := s.bloodDonationRepository.GetById(ctx, req.Id)
 	if err != nil {
 		return errors.New("Gagal mengambil donasi darah")
