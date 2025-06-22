@@ -119,9 +119,32 @@ func (h *BloodRequestHandler) UpdateBloodRequest(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
 
+	// Retrieve user claims from the JWT token
+	claims, ok := ctx.Get("user").(*jwt.Token)
+	if !ok {
+		return ctx.JSON(http.StatusInternalServerError, "unable to get user claims")
+	}
+
+	// Extract user information from claims
+	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
+	if !ok {
+		return ctx.JSON(http.StatusInternalServerError, "unable to get user information from claims")
+	}
+
 	bloodRequest, err := h.bloodRequestService.GetById(ctx.Request().Context(), req.Id)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+	if claimsData.Role == "user" {
+		if claimsData.Id != bloodRequest.UserId {
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "You are not authorized to update this request"))
+		}
+		if bloodRequest.Status == "completed" || bloodRequest.Status == "verified" {
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Permintaan Sudah tidak bisa diupdate"))
+		}
+		if req.Status != "canceled" {
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Kamu hanya bisa membatalkan permintaan"))
+		}
 	}
 
 	if err := h.bloodRequestService.UpdateBloodRequest(ctx.Request().Context(), req, bloodRequest); err != nil {
@@ -184,7 +207,7 @@ func (h *BloodRequestHandler) DeleteBloodRequest(ctx echo.Context) error {
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-	
+
 	if claimsData.Id != bloodRequest.UserId {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "campaign tidak dapat dihapus"))
 	}
