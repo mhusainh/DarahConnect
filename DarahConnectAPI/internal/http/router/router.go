@@ -16,6 +16,7 @@ var (
 
 func PublicRoutes(
 	userHandler handler.UserHandler,
+	bloodRequestHandler handler.BloodRequestHandler,
 ) []route.Route {
 	return []route.Route{
 		// User Handler
@@ -36,14 +37,25 @@ func PublicRoutes(
 		},
 		{
 			Method:  http.MethodPost,
-			Path:    "/reset-password/:token",
+			Path:    "/reset-password",
 			Handler: userHandler.ResetPassword,
 		},
 		{
 			Method:  http.MethodGet,
-			Path:    "/verify-email/:token",
+			Path:    "/verify-email",
 			Handler: userHandler.VerifyEmail,
 		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/campaign",
+			Handler: bloodRequestHandler.GetBloodRequests,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/campaign/:id",
+			Handler: bloodRequestHandler.GetBloodRequest,
+		},
+
 	}
 }
 
@@ -51,10 +63,16 @@ func PrivateRoutes(
 	userHandler handler.UserHandler,
 	notificationHandler handler.NotificationHandler,
 	healthPassportHandler handler.HealthPassportHandler,
+	bloodRequestHandler handler.BloodRequestHandler,
+	donorRegistrationHandler handler.DonorRegistrationHandler,
+	donorScheduleHandler handler.DonorScheduleHandler,
+	hospitalHandler handler.HospitalHandler,
 ) []route.Route {
 	return []route.Route{
-		// Health Passport Handler
-		// Role User
+		// =============================================
+		// USER ONLY ROUTES
+		// =============================================
+		// Health Passport - User Only
 		{
 			Method:  http.MethodGet,
 			Path:    "/health-passport",
@@ -67,39 +85,7 @@ func PrivateRoutes(
 			Handler: healthPassportHandler.UpdateHealthPassportByUser,
 			Roles:   userOnly,
 		},
-		// Role Admin
-		{
-			Method:  http.MethodGet,
-			Path:    "/admin/health-passports",
-			Handler: healthPassportHandler.GetHealthPassports,
-			Roles:   adminOnly,
-		},
-		{
-			Method:  http.MethodGet,
-			Path:    "/admin/health-passport/:id",
-			Handler: healthPassportHandler.GetHealthPassport,
-			Roles:   adminOnly,
-		},
-		{
-			Method:  http.MethodGet,
-			Path:    "/admin/health-passport/user/:user_id",
-			Handler: healthPassportHandler.GetHealthPassportByUserId,
-			Roles:   adminOnly,
-		},
-		{
-			Method:  http.MethodPut,
-			Path:    "/admin/health-passport/:id",
-			Handler: healthPassportHandler.UpdateStatusHealthPassport,
-			Roles:   adminOnly,
-		},
-		{
-			Method:  http.MethodDelete,
-			Path:    "/admin/health-passport",
-			Handler: healthPassportHandler.DeleteHealthPassport,
-			Roles:   adminOnly,
-		},
-		// Notification Handler
-		// Role User
+		// Notification - User Only
 		{
 			Method:  http.MethodGet,
 			Path:    "/notifications/user",
@@ -118,7 +104,86 @@ func PrivateRoutes(
 			Handler: notificationHandler.GetUnreadNotificationCount,
 			Roles:   userOnly,
 		},
-		// Role admin
+		// Donor Registration - User Only
+		{
+			Method:  http.MethodPost,
+			Path:    "/admin/users/:id",
+			Handler: donorRegistrationHandler.CreateDonorRegistration,
+			Roles:   userOnly,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/schedules/",
+			Handler: donorScheduleHandler.GetDonorSchedules,
+			Roles:   userOnly,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/schedule/:id",
+			Handler: donorScheduleHandler.GetDonorSchedule,
+			Roles:   userOnly,
+		},
+		{
+			Method:  http.MethodPost,
+			Path:    "/schedule/",
+			Handler: donorScheduleHandler.CreateDonorSchedule,
+			Roles:   userOnly,
+		},
+		{
+			Method:  http.MethodPut,
+			Path:    "/schedule/:id",
+			Handler: donorScheduleHandler.UpdateDonorSchedule,
+			Roles:   userOnly,
+		},
+		{
+			Method:  http.MethodDelete,
+			Path:    "/schedule/:id",
+			Handler: donorScheduleHandler.DeleteDonorSchedule,
+			Roles:   userOnly,
+		},
+
+		// =============================================
+		// ADMIN ONLY ROUTES
+		// =============================================
+		// Health Passport - Admin Only
+		{
+			Method:  http.MethodGet,
+			Path:    "/admin/health-passports",
+			Handler: healthPassportHandler.GetHealthPassports,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/admin/health-passport/:id",
+			Handler: healthPassportHandler.GetHealthPassport,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodPut,
+			Path:    "/admin/health-passport/:id",
+			Handler: healthPassportHandler.UpdateStatusHealthPassport,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodDelete,
+			Path:    "/admin/health-passport",
+			Handler: healthPassportHandler.DeleteHealthPassport,
+			Roles:   adminOnly,
+		},
+		// Blood Request/Campaign - Admin Only
+		{
+			Method:  http.MethodPut,
+			Path:    "/admin/campaign/:id",
+			Handler: bloodRequestHandler.UpdateBloodRequest,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodDelete,
+			Path:    "/admin/campaign/:id",
+			Handler: bloodRequestHandler.DeleteBloodRequest,
+			Roles:   adminOnly,
+		},
+		// Notification - Admin Only
 		{
 			Method:  http.MethodGet,
 			Path:    "/admin/notifications",
@@ -143,20 +208,36 @@ func PrivateRoutes(
 			Handler: notificationHandler.CreateNotification,
 			Roles:   adminOnly,
 		},
+		// User Management - Admin Only
 		{
-			Method:  http.MethodPut,
-			Path:    "/admin/notification/:id",
-			Handler: notificationHandler.UpdateNotification,
+			Method:  http.MethodGet,
+			Path:    "/admin/users",
+			Handler: userHandler.GetUsers,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/admin/users/:id",
+			Handler: userHandler.GetUser,
 			Roles:   adminOnly,
 		},
 		{
 			Method:  http.MethodDelete,
-			Path:    "/admin/notification/:id",
-			Handler: notificationHandler.DeleteNotification,
+			Path:    "/admin/users/:id",
+			Handler: userHandler.DeleteUser,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodDelete,
+			Path:    "/donor-registration/",
+			Handler: donorRegistrationHandler.DeleteDonorRegistration,
 			Roles:   adminOnly,
 		},
 
-		// User Handler
+		// =============================================
+		// ALL ROLES ROUTES (Admin & User)
+		// =============================================
+		// User Profile - All Roles
 		{
 			Method:  http.MethodGet,
 			Path:    "/users/profile",
@@ -175,23 +256,36 @@ func PrivateRoutes(
 			Handler: userHandler.UpdateUser,
 			Roles:   allRoles,
 		},
+		// Donor Registration - All Roles
 		{
 			Method:  http.MethodGet,
-			Path:    "/admin/users",
-			Handler: userHandler.GetUsers,
-			Roles:   adminOnly,
+			Path:    "/donor-registrations",
+			Handler: donorRegistrationHandler.GetDonorRegistrations,
+			Roles:   allRoles,
 		},
 		{
 			Method:  http.MethodGet,
-			Path:    "/admin/users/:id",
-			Handler: userHandler.GetUser,
-			Roles:   adminOnly,
+			Path:    "/donor-registration/:id",
+			Handler: donorRegistrationHandler.GetDonorRegistration,
+			Roles:   allRoles,
 		},
 		{
-			Method:  http.MethodDelete,
-			Path:    "/admin/users/:id",
-			Handler: userHandler.DeleteUser,
-			Roles:   adminOnly,
+			Method:  http.MethodPut,
+			Path:    "/donor-registration/",
+			Handler: donorRegistrationHandler.UpdateDonorRegistration,
+			Roles:   allRoles,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/hospital/",
+			Handler: hospitalHandler.GetAll,
+			Roles:   allRoles,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/hospital/:id",
+			Handler: hospitalHandler.GetById,
+			Roles:   allRoles,
 		},
 	}
 }
