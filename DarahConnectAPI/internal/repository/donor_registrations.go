@@ -33,23 +33,10 @@ func (r *donorRegistrationRepository) applyFilters(query *gorm.DB, req dto.GetAl
 		query = query.Where("LOWER(status) = ?", req.Status)
 	}
 
-	// Filter berdasarkan tanggal event
-	if req.StartDate != "" && req.EndDate != "" {
-		query = query.Joins("LEFT JOIN donor_schedules ON donor_schedules.id = donor_registrations.schedule_id").
-			Where("donor_schedules.event_date BETWEEN ? AND ?", req.StartDate, req.EndDate)
-	}
-
 	// Filter berdasarkan Search (pada nama user, catatan registrasi, atau nama event)
 	if req.Search != "" {
 		search := strings.ToLower(req.Search)
-		query = query.Joins("LEFT JOIN users ON users.id = donor_registrations.user_id")
-		
-		// Jika belum ada JOIN dengan donor_schedules (karena tidak ada filter tanggal)
-		if req.StartDate == "" && req.EndDate == "" {
-			query = query.Joins("LEFT JOIN donor_schedules ON donor_schedules.id = donor_registrations.schedule_id")
-		}
-		
-		query = query.Where("LOWER(users.name) LIKE ? OR LOWER(donor_registrations.notes) LIKE ? OR LOWER(donor_schedules.event_name) LIKE ?",
+		query = query.Joins("LEFT JOIN users ON users.id = donor_registrations.user_id").Where("LOWER(users.name) LIKE ? OR LOWER(donor_registrations.notes) LIKE ?",
 				"%"+search+"%", "%"+search+"%", "%"+search+"%")
 	}
 
@@ -95,7 +82,7 @@ func (r *donorRegistrationRepository) GetAll(ctx context.Context, req dto.GetAll
 	var total int64
 
 	// Hitung total item sebelum pagination
-	dataQuery := r.db.WithContext(ctx).Model(&entity.DonorRegistration{}).Preload("User").Preload("Schedule")
+	dataQuery := r.db.WithContext(ctx).Model(&entity.DonorRegistration{}).Preload("User")
 	dataQuery, req = r.applyFilters(dataQuery, req)
 	if err := dataQuery.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -116,7 +103,7 @@ func (r *donorRegistrationRepository) GetAllByUserId(ctx context.Context, userId
 	var donorRegistration []entity.DonorRegistration
 	var total int64
 
-	dataQuery := r.db.WithContext(ctx).Model(&entity.DonorRegistration{}).Where("user_id = ?", userId).Preload("User").Preload("Schedule")
+	dataQuery := r.db.WithContext(ctx).Model(&entity.DonorRegistration{}).Where("user_id = ?", userId).Preload("User")
 	dataQuery, req = r.applyFilters(dataQuery, req)
 	if err := dataQuery.Count(&total).Error; err != nil {
 		return nil, 0, err
@@ -137,7 +124,7 @@ func (r *donorRegistrationRepository) GetAllByScheduleId(ctx context.Context, sc
 	var donorRegistration []entity.DonorRegistration
 	var total int64
 
-	dataQuery := r.db.WithContext(ctx).Model(&entity.DonorRegistration{}).Where("schedule_id = ?", scheduleId).Preload("User").Preload("Schedule")
+	dataQuery := r.db.WithContext(ctx).Model(&entity.DonorRegistration{}).Where("schedule_id = ?", scheduleId).Preload("User")
 	dataQuery, req = r.applyFilters(dataQuery, req)
 	if err := dataQuery.Count(&total).Error; err != nil {
 		return nil, 0, err

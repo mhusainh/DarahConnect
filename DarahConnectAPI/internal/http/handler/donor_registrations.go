@@ -2,10 +2,12 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/response"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/timezone"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/token"
 
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
@@ -14,11 +16,16 @@ import (
 
 type DonorRegistrationHandler struct {
 	donorRegistrationService service.DonorRegistrationService
+	healthPassportService    service.HealthPassportService
 }
 
-func NewDonorRegistrationHandler(donorRegistrationService service.DonorRegistrationService) DonorRegistrationHandler {
+func NewDonorRegistrationHandler(
+	donorRegistrationService service.DonorRegistrationService,
+	healthPassportService service.HealthPassportService,
+) DonorRegistrationHandler {
 	return DonorRegistrationHandler{
 		donorRegistrationService,
+		healthPassportService,
 	}
 }
 
@@ -66,30 +73,12 @@ func (h *DonorRegistrationHandler) GetDonorRegistrationsByUserId(ctx echo.Contex
 	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("successfully showing all donor registrations", donorRegistrations, req.Page, req.Limit, total))
 }
 
-func (h *DonorRegistrationHandler) GetDonorRegistrationsByScheduleId(ctx echo.Context) error {
-	var req dto.GetAllDonorRegistrationRequest
-	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
-	}
-
-	var scheduleId dto.DonorRegistrationByScheduleIdRequest
-	if err := ctx.Bind(&scheduleId); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
-	}
-
-	donorRegistrations, total, err := h.donorRegistrationService.GetAllByScheduleId(ctx.Request().Context(), scheduleId.ScheduleId, req)
-	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
-	}
-	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("successfully showing all donor registrations", donorRegistrations, req.Page, req.Limit, total))
-}
-
 func (h *DonorRegistrationHandler) CreateDonorRegistration(ctx echo.Context) error {
 	var req dto.DonorRegistrationCreateRequest
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
-	
+
 	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user claims"))
@@ -102,11 +91,18 @@ func (h *DonorRegistrationHandler) CreateDonorRegistration(ctx echo.Context) err
 	}
 
 	req.UserId = claimsData.Id
-	
-	if err := h.donorRegistrationService.Create(ctx.Request().Context(), req); err != nil {
+	healthPassport, err := h.healthPassportService.GetByUserId(ctx.Request().Context(), req.UserId)
+	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 
+	if time.Now().In(timezone.JakartaLocation).After(healthPassport.ExpiryDate) {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "health passport sudah expired"))
+	}
+
+	if err := h.donorRegistrationService.Create(ctx.Request().Context(), req); err != nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
 	return ctx.JSON(http.StatusCreated, response.SuccessResponse("successfully creating donor registration", nil))
 }
 

@@ -14,11 +14,16 @@ import (
 
 type BloodRequestHandler struct {
 	bloodRequestService service.BloodRequestService
+	notificationService service.NotificationService
 }
 
-func NewBloodRequestHandler(bloodRequestService service.BloodRequestService) BloodRequestHandler {
+func NewBloodRequestHandler(
+	bloodRequestService service.BloodRequestService,
+	notificationService service.NotificationService,
+	) BloodRequestHandler {
 	return BloodRequestHandler{
-		bloodRequestService: bloodRequestService,
+		bloodRequestService,
+		notificationService,
 	}
 }
 
@@ -170,9 +175,12 @@ func (h *BloodRequestHandler) UpdateCampaign(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully updating campaign", bloodRequest))
 }
 
-func (h *BloodRequestHandler) ApproveBloodRequest(ctx echo.Context) error {
+func (h *BloodRequestHandler) StatusBloodRequest(ctx echo.Context) error {
 	var req dto.BloodRequestUpdateRequest
-	req.Status = "verified"
+	var notif dto.NotificationCreateRequest
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
 
 	bloodRequest, err := h.bloodRequestService.GetById(ctx.Request().Context(), req.Id)
 	if err != nil {
@@ -180,6 +188,14 @@ func (h *BloodRequestHandler) ApproveBloodRequest(ctx echo.Context) error {
 	}
 
 	if err := h.bloodRequestService.UpdateBloodRequest(ctx.Request().Context(), req, bloodRequest); err != nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+
+	notif.UserId = bloodRequest.UserId
+	notif.Title = "Permintaan Darah"
+	notif.Message = "Permintaan darah anda telah di" + req.Status
+	notif.NotificationType = "info"
+	if err := h.notificationService.Create(ctx.Request().Context(), notif); err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully creating blood request", nil))

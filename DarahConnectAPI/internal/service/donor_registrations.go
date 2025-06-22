@@ -13,7 +13,6 @@ type DonorRegistrationService interface {
 	Create(ctx context.Context, req dto.DonorRegistrationCreateRequest) error
 	GetAll(ctx context.Context, req dto.GetAllDonorRegistrationRequest) ([]entity.DonorRegistration, int64, error)
 	GetAllByUserId(ctx context.Context, userId int64, req dto.GetAllDonorRegistrationRequest) ([]entity.DonorRegistration, int64, error)
-	GetAllByScheduleId(ctx context.Context, scheduleId int64, req dto.GetAllDonorRegistrationRequest) ([]entity.DonorRegistration, int64, error)
 	GetById(ctx context.Context, id int64) (*entity.DonorRegistration, error)
 	Update(ctx context.Context, req dto.DonorRegistrationUpdateRequest, donorRegistration *entity.DonorRegistration) error
 	Delete(ctx context.Context, id int64) error
@@ -32,7 +31,7 @@ func NewDonorRegistrationService(donorRegistrationRepository repository.DonorReg
 func (s *donorRegistrationService) Create(ctx context.Context, req dto.DonorRegistrationCreateRequest) error {
 	donorRegistration := new(entity.DonorRegistration)
 	donorRegistration.UserId = req.UserId
-	donorRegistration.ScheduleId = req.ScheduleId
+	donorRegistration.RequestId = req.RequestId
 	donorRegistration.Status = "registered"
 	donorRegistration.Notes = req.Notes
 	
@@ -53,15 +52,6 @@ func (s *donorRegistrationService) GetAll(ctx context.Context, req dto.GetAllDon
 
 func (s *donorRegistrationService) GetAllByUserId(ctx context.Context, userId int64, req dto.GetAllDonorRegistrationRequest) ([]entity.DonorRegistration, int64 ,error) {
 	donorRegistrations, total, err := s.donorRegistrationRepository.GetAllByUserId(ctx, userId, req)
-	if err != nil {
-		return nil, 0, errors.New("Gagal mendapatkan daftar pendaftaran donor")
-	}
-
-	return donorRegistrations, total, nil
-}
-
-func (s *donorRegistrationService) GetAllByScheduleId(ctx context.Context, scheduleId int64, req dto.GetAllDonorRegistrationRequest) ([]entity.DonorRegistration, int64 ,error) {
-	donorRegistrations, total, err := s.donorRegistrationRepository.GetAllByScheduleId(ctx, scheduleId, req)
 	if err != nil {
 		return nil, 0, errors.New("Gagal mendapatkan daftar pendaftaran donor")
 	}
