@@ -1,18 +1,17 @@
 package service
 
 import (
-	"fmt"
-	"net/http"
+	"context"
+	"errors"
 	"time"
 
-	"github.com/labstack/echo/v4"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/repository"
 )
 
-type midtrans interface {
-	WebHookTransaction(ctx echo.Context) error
+type MidtransService interface {
+	WebHookTransaction(ctx context.Context, input *dto.DonationsCreate) error
 }
 
 type midtransService struct {
@@ -20,62 +19,38 @@ type midtransService struct {
 }
 
 // NewMidtransService creates a new instance of midtransService
-func NewMidtransService(donationsRepository repository.DonationsRepository) midtrans {
+func NewMidtransService(donationsRepository repository.DonationsRepository) MidtransService {
 	return &midtransService{
 		donationsRepository: donationsRepository,
 	}
 }
 
-func (s *midtransService) WebHookTransaction(ctx echo.Context) error {
-	var input dto.DonationsCreate
+func (s *midtransService) WebHookTransaction(ctx context.Context, input *dto.DonationsCreate) error {
+	donation := new(entity.Donation)
 
-	if err := ctx.Bind(&input); err != nil {
-		return ctx.JSON(http.StatusBadRequest, map[string]interface{}{
-			"status":  "error",
-			"message": "Invalid request payload",
-		})
-	}
-
+	donation.UserId = input.UserID
+	donation.Amount = input.Amount
+	donation.Status = input.Transaction_status
+	donation.CreatedAt = time.Now()
+	donation.UpdatedAt = time.Now()
+	
 	// Parse transaction time
 	transactionTime, err := time.Parse("2006-01-02 15:04:05", input.Transaction_time)
 	if err != nil {
-		return ctx.JSON(http.StatusBadRequest, map[string]interface{}{
-			"status":  "error",
-			"message": "Invalid transaction time format",
-		})
+		return errors.New("Invalid transaction time format")
 	}
+	donation.TransactionTime = transactionTime
+
+	// Validate transaction status
 	if input.Transaction_status != "settlement" && input.Transaction_status != "capture" {
-		return ctx.JSON(http.StatusBadRequest, map[string]interface{}{
-			"status":  "error",
-			"message": "Invalid transaction status",
-		})
-	}
-	// Create donation record
-	donation := &entity.Donation{
-		UserID:    input.UserID,
-		Amount:    input.Amount,
-		Status:    "success",
-		CreatedAt: transactionTime,
-		UpdatedAt: time.Now(),
-	}
-
+		return errors.New("Invalid transaction status")
+	} 
+	donation.Status = "success"
+	
 	// Save donation to database
-	if err := s.donationsRepository.Create(ctx.Request().Context(), donation); err != nil {
-		fmt.Printf("Failed to save donation: %v\n", err)
-		return ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"status":  "error",
-			"message": "Failed to process donation",
-		})
+	if err := s.donationsRepository.Create(ctx, donation); err != nil {
+		return errors.New("Failed to process donation")
 	}
 
-	return ctx.JSON(http.StatusOK, map[string]interface{}{
-		"status":  "success",
-		"message": "Donation processed successfully",
-		"data": map[string]interface{}{
-			"id":     donation.ID,
-			"user_id": donation.UserID,
-			"amount":  donation.Amount,
-			"status":  donation.Status,
-		},
-	})
+	return nil
 }

@@ -3,8 +3,10 @@ package handler
 import (
 	"net/http"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/response"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/token"
 
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/service"
@@ -87,7 +89,20 @@ func (h *DonorRegistrationHandler) CreateDonorRegistration(ctx echo.Context) err
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
+	
+	claims, ok := ctx.Get("user").(*jwt.Token)
+	if !ok {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user claims"))
+	}
 
+	// Extract user information from claims
+	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
+	if !ok {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user information from claims"))
+	}
+
+	req.UserId = claimsData.Id
+	
 	if err := h.donorRegistrationService.Create(ctx.Request().Context(), req); err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}

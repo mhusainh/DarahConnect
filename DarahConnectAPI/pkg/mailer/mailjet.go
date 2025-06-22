@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"html/template"
 	"log"
-	"os"	
+	"os"
+	"errors"	
 	mailjet "github.com/mailjet/mailjet-apiv3-go"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/configs"
 )
@@ -37,11 +38,8 @@ func (m *Mailer) SendEmail(templatePath string, emailData EmailData) error {
 	// Dapatkan direktori kerja saat ini untuk logging
 	cwd, err := os.Getwd()
 	if err != nil {
-		log.Printf("Gagal mendapatkan direktori kerja: %v", err)
-		cwd = "."
-	} else {
-		log.Printf("Direktori kerja saat ini: %s", cwd)
-	}
+		return err
+	} 
 
 	// Coba beberapa path alternatif untuk template
 	templatePaths := []string{
@@ -61,31 +59,24 @@ func (m *Mailer) SendEmail(templatePath string, emailData EmailData) error {
 			var errParse error
 			tmpl, errParse = template.ParseFiles(path)
 			if errParse == nil {
-				log.Printf("Template ditemukan dan berhasil dibaca dari: %s", path)
-				templateContent, errRead := os.ReadFile(path)
+				_, errRead := os.ReadFile(path)
 				if errRead != nil {
-					log.Printf("Peringatan: Gagal membaca konten template untuk logging: %v", errRead)
-				} else {
-					log.Printf("Ukuran template: %d bytes", len(templateContent))
-				}
+					return errors.New(fmt.Sprintf("Peringatan: Gagal membaca konten template untuk logging: %v", errRead))
+				} 
 				templateFound = true
 				break
-			} else {
-				log.Printf("Gagal mem-parse template %s: %v", path, errParse)
-			}
-		} else {
-			log.Printf("Template tidak ditemukan di %s: %v", path, errPath)
+			} 
 		}
 	}
 
 	if !templateFound {
-		return fmt.Errorf("template tidak ditemukan di path manapun")
+		return errors.New("template tidak ditemukan di path manapun")
 	}
 
 	// Eksekusi template dengan data
 	var emailBody bytes.Buffer
 	if errExecute := tmpl.Execute(&emailBody, emailData.Data); errExecute != nil {
-		return fmt.Errorf("gagal mengeksekusi template: %v", errExecute)
+		return errors.New(fmt.Sprintf("gagal mengeksekusi template: %v", errExecute))
 	}
 
 	// Siapkan pesan Mailjet menggunakan struktur MessagesV31 dan InfoMessagesV31
@@ -98,10 +89,9 @@ func (m *Mailer) SendEmail(templatePath string, emailData EmailData) error {
 			To: &mailjet.RecipientsV31{
 				mailjet.RecipientV31{
 					Email: emailData.To,
-					Name:  "Pengguna",
 				},
 			},
-			Subject:  emailData.Subject,
+			Subject:  "Reset Password",
 			TextPart: "Silakan gunakan email client yang mendukung HTML untuk melihat pesan ini.",
 			HTMLPart: emailBody.String(),
 		},
@@ -109,11 +99,9 @@ func (m *Mailer) SendEmail(templatePath string, emailData EmailData) error {
 
 	messages := mailjet.MessagesV31{Info: messagesInfo}
 	// Kirim email menggunakan SendMailV31
-	log.Printf("Mengirim email ke: %s dengan subjek: %s", emailData.To, emailData.Subject)
 	res, err := m.client.SendMailV31(&messages)
 	if err != nil {
-		log.Printf("Error mengirim email: %v", err)
-		return fmt.Errorf("gagal mengirim email: %v", err)
+		return err
 	}
 	fmt.Printf("Data: %+v\n", res)
 
