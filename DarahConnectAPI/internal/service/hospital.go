@@ -10,7 +10,7 @@ import (
 )
 
 type HospitalService interface {
-	Create(ctx context.Context, req dto.HospitalCreateRequest) error
+	Create(ctx context.Context, req dto.HospitalCreateRequest) (*entity.Hospital, error)
 	GetById(ctx context.Context, id int64) (*entity.Hospital, error)
 	GetAll(ctx context.Context, req dto.GetAllHospitalRequest) ([]entity.Hospital, int64, error)
 	Update(ctx context.Context, req dto.HospitalUpdateRequest, hospital *entity.Hospital) error
@@ -41,7 +41,7 @@ func (s *hospitalService) GetById(ctx context.Context, id int64) (*entity.Hospit
 	return hospital, nil
 }
 
-func (s *hospitalService) Create(ctx context.Context, req dto.HospitalCreateRequest) error {
+func (s *hospitalService) Create(ctx context.Context, req dto.HospitalCreateRequest) (*entity.Hospital, error) {
 	hospital := new(entity.Hospital)
 	hospital.Name = req.Name
 	hospital.Address = req.Address
@@ -51,9 +51,9 @@ func (s *hospitalService) Create(ctx context.Context, req dto.HospitalCreateRequ
 	hospital.Longitude = req.Longitude
 
 	if err := s.hospitalRepository.Create(ctx, hospital); err != nil {
-		return errors.New("gagal membuat rumah sakit" + err.Error())
+		return nil, errors.New("gagal membuat rumah sakit" + err.Error())
 	}
-	return nil
+	return hospital, nil
 }
 
 func (s *hospitalService) Update(ctx context.Context, req dto.HospitalUpdateRequest, hospital *entity.Hospital) error {

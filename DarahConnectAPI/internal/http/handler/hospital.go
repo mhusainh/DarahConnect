@@ -31,6 +31,19 @@ func (h *HospitalHandler) GetAll(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("successfully fetch all hospitals", hospitals, req.Page, req.Limit, total))
 }
 
+func (h *HospitalHandler) Create(ctx echo.Context) error {
+	var req dto.HospitalCreateRequest
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+
+	hospital, err := h.hospitalHandler.Create(ctx.Request().Context(), req)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully create hospital", hospital))
+}
+
 func (h *HospitalHandler) GetById(ctx echo.Context) error {
 	var req dto.HospitalGetByIdRequest
 	if err := ctx.Bind(&req); err != nil {

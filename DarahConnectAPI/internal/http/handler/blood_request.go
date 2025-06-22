@@ -22,6 +22,58 @@ func NewBloodRequestHandler(bloodRequestService service.BloodRequestService) Blo
 	}
 }
 
+func (h *BloodRequestHandler) CreateBloodRequest(ctx echo.Context) error {
+	var req dto.BloodRequestCreateRequest
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+
+	// Retrieve user claims from the JWT token
+	claims, ok := ctx.Get("user").(*jwt.Token)
+	if !ok {
+		return ctx.JSON(http.StatusInternalServerError, "unable to get user claims")
+	}
+
+	// Extract user information from claims
+	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
+	if !ok {
+		return ctx.JSON(http.StatusInternalServerError, "unable to get user information from claims")
+	}
+
+	req.UserId = claimsData.Id
+
+	if err := h.bloodRequestService.CreateBloodRequest(ctx.Request().Context(), req); err != nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully create blood request", nil))
+}
+
+func (h *BloodRequestHandler) CreateCampaign(ctx echo.Context) error {
+	var req dto.CampaignCreateRequest
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+
+	// Retrieve user claims from the JWT token
+	claims, ok := ctx.Get("user").(*jwt.Token)
+	if !ok {
+		return ctx.JSON(http.StatusInternalServerError, "unable to get user claims")
+	}
+
+	// Extract user information from claims
+	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
+	if !ok {
+		return ctx.JSON(http.StatusInternalServerError, "unable to get user information from claims")
+	}
+
+	req.UserId = claimsData.Id
+
+	if err := h.bloodRequestService.CreateCampaign(ctx.Request().Context(), req); err != nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully create campaign", nil))
+}
+
 func (h *BloodRequestHandler) GetBloodRequests(ctx echo.Context) error {
 	var req dto.GetAllBloodRequestRequest
 	if err := ctx.Bind(&req); err != nil {
