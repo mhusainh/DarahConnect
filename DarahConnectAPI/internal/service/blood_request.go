@@ -10,12 +10,13 @@ import (
 )
 
 type BloodRequestService interface {
-	Create(ctx context.Context, req dto.BloodRequestCreateRequest) error
-	GetAll(ctx context.Context, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error)
-	GetAllByUserId(ctx context.Context, userId int64, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error)
-	GetAllByHospitalId(ctx context.Context, hospitalId int64, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error)
+	CreateBloodRequest(ctx context.Context, req dto.BloodRequestCreateRequest) error
+	CreateCampaign(ctx context.Context, req dto.CampaignCreateRequest) error
+	GetAllBloodRequest(ctx context.Context, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error)
+	GetAllCampaign(ctx context.Context, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error)
 	GetById(ctx context.Context, id int64) (*entity.BloodRequest, error)
-	Update(ctx context.Context, req dto.BloodRequestUpdateRequest, bloodRequest *entity.BloodRequest) error
+	UpdateCampaign(ctx context.Context, req dto.CampaignUpdateRequest, bloodRequest *entity.BloodRequest) error
+	UpdateBloodRequest(ctx context.Context, req dto.BloodRequestUpdateRequest, bloodRequest *entity.BloodRequest) error
 	Delete(ctx context.Context, id int64) error
 }
 
@@ -29,17 +30,18 @@ func NewBloodRequestService(bloodRequestRepository repository.BloodRequestReposi
 	}
 }
 
-func (s *bloodRequestService) Create(ctx context.Context, req dto.BloodRequestCreateRequest) error {
+func (s *bloodRequestService) CreateBloodRequest(ctx context.Context, req dto.BloodRequestCreateRequest) error {
 	bloodRequest := new(entity.BloodRequest)
 	bloodRequest.UserId = req.UserId
 	bloodRequest.HospitalId = req.HospitalId
-	bloodRequest.PatientName = req.PatientName
+	bloodRequest.EventName = req.EventName
 	bloodRequest.BloodType = req.BloodType
 	bloodRequest.Quantity = req.Quantity
 	bloodRequest.UrgencyLevel = req.UrgencyLevel
 	bloodRequest.Diagnosis = req.Diagnosis
 	bloodRequest.Status = "pending"
-	bloodRequest.ExpiryDate = req.ExpiryDate
+	bloodRequest.EventDate = req.EventDate
+	bloodRequest.EventType = "blood_request"
 
 	if err := s.bloodRequestRepository.Create(ctx, bloodRequest); err != nil {
 		return errors.New("Gagal membuat permintaan darah")
@@ -48,8 +50,27 @@ func (s *bloodRequestService) Create(ctx context.Context, req dto.BloodRequestCr
 	return nil
 }
 
-func (s *bloodRequestService) GetAll(ctx context.Context, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error) {
-	bloodRequests, total, err := s.bloodRequestRepository.GetAll(ctx, req)
+func (s *bloodRequestService) CreateCampaign(ctx context.Context, req dto.CampaignCreateRequest) error {
+	bloodRequest := new(entity.BloodRequest)
+	bloodRequest.UserId = req.UserId
+	bloodRequest.HospitalId = req.HospitalId
+	bloodRequest.EventName = req.EventName
+	bloodRequest.StartTime = req.StartTime
+	bloodRequest.EndTime = req.EndTime
+	bloodRequest.SlotsAvailable = req.SlotsAvailable
+	bloodRequest.SlotsBooked = req.SlotsBooked
+	bloodRequest.EventDate = req.EventDate
+	bloodRequest.EventType = "campaign"
+
+	if err := s.bloodRequestRepository.Create(ctx, bloodRequest); err != nil {
+		return errors.New("Gagal membuat permintaan darah")
+	}
+
+	return nil
+}
+
+func (s *bloodRequestService) GetAllBloodRequest(ctx context.Context, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error) {
+	bloodRequests, total, err := s.bloodRequestRepository.GetAllBloodRequest(ctx, req)
 	if err != nil {
 		return nil, 0, errors.New("Gagal mendapatkan permintaan darah")
 	}
@@ -57,17 +78,8 @@ func (s *bloodRequestService) GetAll(ctx context.Context, req dto.GetAllBloodReq
 	return bloodRequests, total, nil
 }
 
-func (s *bloodRequestService) GetAllByUserId(ctx context.Context, userId int64, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error) {
-	bloodRequests, total, err := s.bloodRequestRepository.GetByUserId(ctx, userId, req)
-	if err != nil {
-		return nil, 0, errors.New("Gagal mendapatkan permintaan darah")
-	}
-
-	return bloodRequests, total, nil
-}
-
-func (s *bloodRequestService) GetAllByHospitalId(ctx context.Context, hospitalId int64, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error) {
-	bloodRequests, total, err := s.bloodRequestRepository.GetByHospitalId(ctx, hospitalId, req)
+func (s *bloodRequestService) GetAllCampaign(ctx context.Context, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error) {
+	bloodRequests, total, err := s.bloodRequestRepository.GetAllCampaign(ctx, req)
 	if err != nil {
 		return nil, 0, errors.New("Gagal mendapatkan permintaan darah")
 	}
@@ -84,9 +96,9 @@ func (s *bloodRequestService) GetById(ctx context.Context, id int64) (*entity.Bl
 	return bloodRequest, nil
 }
 
-func (s *bloodRequestService) Update(ctx context.Context, req dto.BloodRequestUpdateRequest, bloodRequest *entity.BloodRequest) error {
-	if req.PatientName != "" {
-		bloodRequest.PatientName = req.PatientName
+func (s *bloodRequestService) UpdateBloodRequest(ctx context.Context, req dto.BloodRequestUpdateRequest, bloodRequest *entity.BloodRequest) error {
+	if req.EventName != "" {
+		bloodRequest.EventName = req.EventName
 	}
 	if req.BloodType != "" {
 		bloodRequest.BloodType = req.BloodType
@@ -103,9 +115,32 @@ func (s *bloodRequestService) Update(ctx context.Context, req dto.BloodRequestUp
 	if req.Status != "" {
 		bloodRequest.Status = req.Status
 	}
-	if !req.ExpiryDate.IsZero() {
-		bloodRequest.ExpiryDate = req.ExpiryDate
+	if !req.EventDate.IsZero() {
+		bloodRequest.EventDate = req.EventDate
 	}
+
+	if err := s.bloodRequestRepository.Update(ctx, bloodRequest); err != nil {
+		return errors.New("Gagal mengupdate permintaan darah")
+	}
+
+	return nil
+}
+
+func (s *bloodRequestService) UpdateCampaign(ctx context.Context, req dto.CampaignUpdateRequest, bloodRequest *entity.BloodRequest) error {
+	if req.EventName != "" {
+		bloodRequest.EventName = req.EventName
+	}
+	if !req.StartTime.IsZero() {
+		bloodRequest.StartTime = req.StartTime
+	}
+	if !req.EndTime.IsZero() {
+		bloodRequest.EndTime = req.EndTime
+	}
+	if !req.EventDate.IsZero() {
+		bloodRequest.EventDate = req.EventDate
+	}
+	bloodRequest.SlotsAvailable = req.SlotsAvailable
+	bloodRequest.SlotsBooked = req.SlotsBooked
 
 	if err := s.bloodRequestRepository.Update(ctx, bloodRequest); err != nil {
 		return errors.New("Gagal mengupdate permintaan darah")

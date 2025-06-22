@@ -50,22 +50,6 @@ func (h *HealthPassportHandler) GetHealthPassport(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully showing health passport", healthPassport))
 }
 
-func (h *HealthPassportHandler) GetHealthPassportByUserId(ctx echo.Context) error {
-	// Bind query parameters ke struct request
-	var userReq dto.HealthPassportByUserIdRequest
-	if err := ctx.Bind(&userReq); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
-	}
-
-	healthPassport, err := h.healthPassportService.GetByUserId(ctx.Request().Context(), userReq.UserId)
-	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError,
-			response.ErrorResponse(http.StatusInternalServerError, err.Error()))
-	}
-	return ctx.JSON(http.StatusOK,
-		response.SuccessResponse("successfully showing health passport", healthPassport))
-}
-
 func (h *HealthPassportHandler) GetHealthPassportByUser(ctx echo.Context) error {
 	// Retrieve user claims from the JWT token
 	claims, ok := ctx.Get("user").(*jwt.Token)

@@ -106,8 +106,6 @@ func (h *UserHandler) GetProfile(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully showing a user", user))
 }
 
-
-
 func (h *UserHandler) DeleteUser(ctx echo.Context) error {
 	var req dto.DeleteUserRequest
 

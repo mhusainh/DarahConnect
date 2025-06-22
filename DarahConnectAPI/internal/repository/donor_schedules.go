@@ -13,8 +13,7 @@ import (
 type DonorScheduleRepository interface {
 	Create(ctx context.Context, donorSchedule *entity.DonorSchedule) error
 	GetById(ctx context.Context, id int64) (*entity.DonorSchedule, error)
-	GetAll(ctx context.Context, req dto.GetAllDonorScheduleRequest) ([]entity.DonorSchedule, int64, error)
-	GetByHospitalId(ctx context.Context, hospitalId int64, req dto.GetAllDonorScheduleRequest) ([]entity.DonorSchedule, int64, error)
+	GetAll(ctx context.Context, UserId int64, req dto.GetAllDonorScheduleRequest) ([]entity.DonorSchedule, int64, error)
 	Update(ctx context.Context, donorSchedule *entity.DonorSchedule) error
 	Delete(ctx context.Context, donorSchedule *entity.DonorSchedule) error
 }
@@ -89,34 +88,12 @@ func (r *donorScheduleRepository) GetById(ctx context.Context, id int64) (*entit
 	return result, nil
 }
 
-func (r *donorScheduleRepository) GetAll(ctx context.Context, req dto.GetAllDonorScheduleRequest) ([]entity.DonorSchedule, int64, error) {
+func (r *donorScheduleRepository) GetAll(ctx context.Context, UserId int64, req dto.GetAllDonorScheduleRequest) ([]entity.DonorSchedule, int64, error) {
 	var donorSchedule []entity.DonorSchedule
 	var total int64
 
 	// Hitung total item sebelum pagination
-	dataQuery := r.db.WithContext(ctx).Model(&entity.DonorSchedule{}).Preload("Hospital")
-	dataQuery, req = r.applyFilters(dataQuery, req)
-	if err := dataQuery.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-
-	// Pagination
-	offset := (req.Page - 1) * req.Limit
-	dataQuery = dataQuery.Limit(int(req.Limit)).Offset(int(offset))
-
-	if err := dataQuery.Find(&donorSchedule).Error; err != nil {
-		return nil, 0, err
-	}
-
-	return donorSchedule, total, nil
-}
-
-func (r *donorScheduleRepository) GetByHospitalId(ctx context.Context, hospitalId int64, req dto.GetAllDonorScheduleRequest) ([]entity.DonorSchedule, int64, error) {
-	var donorSchedule []entity.DonorSchedule
-	var total int64
-
-	// Hitung total item sebelum pagination
-	dataQuery := r.db.WithContext(ctx).Model(&entity.DonorSchedule{}).Where("hospital_id = ?", hospitalId)
+	dataQuery := r.db.WithContext(ctx).Model(&entity.DonorSchedule{}).Where("user_id = ?", UserId).Preload("Hospital").Preload("Request")
 	dataQuery, req = r.applyFilters(dataQuery, req)
 	if err := dataQuery.Count(&total).Error; err != nil {
 		return nil, 0, err

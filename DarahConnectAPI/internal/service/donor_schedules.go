@@ -10,9 +10,8 @@ import (
 )
 
 type DonorScheduleService interface {
-	GetAll(ctx context.Context, req dto.GetAllDonorScheduleRequest) ([]entity.DonorSchedule, int64, error)
+	GetAll(ctx context.Context, UserId int64, req dto.GetAllDonorScheduleRequest) ([]entity.DonorSchedule, int64, error)
 	GetById(ctx context.Context, id int64) (*entity.DonorSchedule, error)
-	GetByHospitalId(ctx context.Context, hospitalId int64, req dto.GetAllDonorScheduleRequest) ([]entity.DonorSchedule, int64, error)
 	Create(ctx context.Context, req dto.DonorScheduleCreateRequest) error
 	Update(ctx context.Context, req dto.DonorScheduleUpdateRequest, donorSchedule *entity.DonorSchedule) error
 	Delete(ctx context.Context, id int64) error
@@ -28,8 +27,8 @@ func NewDonorScheduleService(donorScheduleRepository repository.DonorScheduleRep
 	}
 }
 
-func (s *donorScheduleService) GetAll(ctx context.Context, req dto.GetAllDonorScheduleRequest) ([]entity.DonorSchedule, int64, error) {
-	donorSchedules, total, err := s.donorScheduleRepository.GetAll(ctx, req)
+func (s *donorScheduleService) GetAll(ctx context.Context, UserId int64, req dto.GetAllDonorScheduleRequest) ([]entity.DonorSchedule, int64, error) {
+	donorSchedules, total, err := s.donorScheduleRepository.GetAll(ctx, UserId, req)
 	if err != nil {
 		return nil, 0, errors.New("Gagal mendapatkan jadwal donor")
 	}
@@ -44,23 +43,11 @@ func (s *donorScheduleService) GetById(ctx context.Context, id int64) (*entity.D
 	return donorSchedule, nil
 }
 
-func (s *donorScheduleService) GetByHospitalId(ctx context.Context, hospitalId int64, req dto.GetAllDonorScheduleRequest) ([]entity.DonorSchedule, int64, error) {
-	donorSchedules, total, err := s.donorScheduleRepository.GetByHospitalId(ctx, hospitalId, req)
-	if err != nil {
-		return nil, 0, errors.New("Gagal mendapatkan jadwal donor")
-	}
-	return donorSchedules, total, nil
-}
-
 func (s *donorScheduleService) Create(ctx context.Context, req dto.DonorScheduleCreateRequest) error {
 	donorSchedule := new(entity.DonorSchedule)
 	donorSchedule.HospitalId = req.HospitalId
-	donorSchedule.EventName = req.EventName
-	donorSchedule.EventDate = req.EventDate
-	donorSchedule.StartTime = req.StartTime
-	donorSchedule.EndTime = req.EndTime
-	donorSchedule.SlotsAvailable = req.SlotsAvailable
-	donorSchedule.SlotsBooked = req.SlotsBooked
+	donorSchedule.UserId = req.UserId
+	donorSchedule.RequestId = req.RequestId
 	donorSchedule.Description = req.Description
 	donorSchedule.Status = "upcoming"
 
@@ -72,24 +59,6 @@ func (s *donorScheduleService) Create(ctx context.Context, req dto.DonorSchedule
 }
 
 func (s *donorScheduleService) Update(ctx context.Context, req dto.DonorScheduleUpdateRequest, donorSchedule *entity.DonorSchedule) error {
-	if req.EventName != "" {
-		donorSchedule.EventName = req.EventName
-	}
-	if !req.EventDate.IsZero() {
-		donorSchedule.EventDate = req.EventDate
-	}
-	if !req.StartTime.IsZero() {
-		donorSchedule.StartTime = req.StartTime
-	}
-	if !req.EndTime.IsZero() {
-		donorSchedule.EndTime = req.EndTime
-	}
-	if req.SlotsAvailable != 0 {
-		donorSchedule.SlotsAvailable = req.SlotsAvailable
-	}
-	if req.SlotsBooked != 0 {
-		donorSchedule.SlotsBooked = req.SlotsBooked
-	}
 	if req.Description != "" {
 		donorSchedule.Description = req.Description
 	}

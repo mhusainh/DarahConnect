@@ -15,7 +15,8 @@ type BloodRequestRepository interface {
 	GetById(ctx context.Context, id int64) (*entity.BloodRequest, error)
 	GetByUserId(ctx context.Context, userId int64, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error)
 	GetByHospitalId(ctx context.Context, hospitalId int64, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error)
-	GetAll(ctx context.Context, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error)
+	GetAllBloodRequest(ctx context.Context, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error)
+	GetAllCampaign(ctx context.Context, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error)
 	Update(ctx context.Context, bloodRequest *entity.BloodRequest) error
 	Delete(ctx context.Context, bloodRequest *entity.BloodRequest) error
 }
@@ -92,12 +93,34 @@ func (r *bloodRequestRepository) GetById(ctx context.Context, id int64) (*entity
 	return result, nil
 }
 
-func (r *bloodRequestRepository) GetAll(ctx context.Context, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error) {
+func (r *bloodRequestRepository) GetAllBloodRequest(ctx context.Context, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error) {
 	var bloodRequest []entity.BloodRequest
 	var total int64
 
 	// Hitung total item sebelum pagination
-	dataQuery := r.db.WithContext(ctx).Model(&entity.BloodRequest{}).Preload("User").Preload("Hospital")
+	dataQuery := r.db.WithContext(ctx).Model(&entity.BloodRequest{}).Where("event_type = ?", "blood_request").Preload("User").Preload("Hospital")
+	dataQuery, req = r.applyFilters(dataQuery, req)
+	if err := dataQuery.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Pagination
+	offset := (req.Page - 1) * req.Limit
+	dataQuery = dataQuery.Limit(int(req.Limit)).Offset(int(offset))
+
+	if err := dataQuery.Find(&bloodRequest).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return bloodRequest, total, nil
+}
+
+func (r *bloodRequestRepository) GetAllCampaign(ctx context.Context, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error) {
+	var bloodRequest []entity.BloodRequest
+	var total int64
+
+	// Hitung total item sebelum pagination
+	dataQuery := r.db.WithContext(ctx).Model(&entity.BloodRequest{}).Where("event_type = ?", "campaign").Preload("User").Preload("Hospital")
 	dataQuery, req = r.applyFilters(dataQuery, req)
 	if err := dataQuery.Count(&total).Error; err != nil {
 		return nil, 0, err
