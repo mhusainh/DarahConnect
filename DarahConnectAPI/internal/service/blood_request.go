@@ -10,10 +10,12 @@ import (
 )
 
 type BloodRequestService interface {
-	Create(ctx context.Context, req *dto.BloodRequestCreateRequest) error
-	GetAll(ctx context.Context) ([]entity.BloodRequest, error)
+	Create(ctx context.Context, req dto.BloodRequestCreateRequest) error
+	GetAll(ctx context.Context, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error)
+	GetAllByUserId(ctx context.Context, userId int64, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error)
+	GetAllByHospitalId(ctx context.Context, hospitalId int64, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error)
 	GetById(ctx context.Context, id int64) (*entity.BloodRequest, error)
-	Update(ctx context.Context, req *dto.BloodRequestUpdateRequest) error
+	Update(ctx context.Context, req dto.BloodRequestUpdateRequest, bloodRequest *entity.BloodRequest) error
 	Delete(ctx context.Context, id int64) error
 }
 
@@ -27,7 +29,7 @@ func NewBloodRequestService(bloodRequestRepository repository.BloodRequestReposi
 	}
 }
 
-func (s *bloodRequestService) Create(ctx context.Context, req *dto.BloodRequestCreateRequest) error {
+func (s *bloodRequestService) Create(ctx context.Context, req dto.BloodRequestCreateRequest) error {
 	bloodRequest := new(entity.BloodRequest)
 	bloodRequest.UserId = req.UserId
 	bloodRequest.HospitalId = req.HospitalId
@@ -46,13 +48,31 @@ func (s *bloodRequestService) Create(ctx context.Context, req *dto.BloodRequestC
 	return nil
 }
 
-func (s *bloodRequestService) GetAll(ctx context.Context) ([]entity.BloodRequest, error) {
-	bloodRequests, err := s.bloodRequestRepository.GetAll(ctx)
+func (s *bloodRequestService) GetAll(ctx context.Context, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error) {
+	bloodRequests, total, err := s.bloodRequestRepository.GetAll(ctx, req)
 	if err != nil {
-		return nil, errors.New("Gagal mendapatkan permintaan darah")
+		return nil, 0, errors.New("Gagal mendapatkan permintaan darah")
 	}
 
-	return bloodRequests, nil
+	return bloodRequests, total, nil
+}
+
+func (s *bloodRequestService) GetAllByUserId(ctx context.Context, userId int64, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error) {
+	bloodRequests, total, err := s.bloodRequestRepository.GetByUserId(ctx, userId, req)
+	if err != nil {
+		return nil, 0, errors.New("Gagal mendapatkan permintaan darah")
+	}
+
+	return bloodRequests, total, nil
+}
+
+func (s *bloodRequestService) GetAllByHospitalId(ctx context.Context, hospitalId int64, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error) {
+	bloodRequests, total, err := s.bloodRequestRepository.GetByHospitalId(ctx, hospitalId, req)
+	if err != nil {
+		return nil, 0, errors.New("Gagal mendapatkan permintaan darah")
+	}
+
+	return bloodRequests, total, nil
 }
 
 func (s *bloodRequestService) GetById(ctx context.Context, id int64) (*entity.BloodRequest, error) {
@@ -64,12 +84,7 @@ func (s *bloodRequestService) GetById(ctx context.Context, id int64) (*entity.Bl
 	return bloodRequest, nil
 }
 
-func (s *bloodRequestService) Update(ctx context.Context, req *dto.BloodRequestUpdateRequest) error {
-	bloodRequest, err := s.bloodRequestRepository.GetById(ctx, req.Id)
-	if err != nil {
-		return errors.New("Permintaan darah tidak ditemukan")
-	}
-
+func (s *bloodRequestService) Update(ctx context.Context, req dto.BloodRequestUpdateRequest, bloodRequest *entity.BloodRequest) error {
 	if req.PatientName != "" {
 		bloodRequest.PatientName = req.PatientName
 	}
