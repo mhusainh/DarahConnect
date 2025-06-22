@@ -30,7 +30,7 @@ func (h *DonorScheduleHandler) GetDonorSchedules(ctx echo.Context) error {
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("successfully showing all donor schedules", donorSchedules, total, req.Page, req.Limit))
+	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("successfully showing all donor schedules", donorSchedules, req.Page, req.Limit, total))
 }
 
 func (h *DonorScheduleHandler) GetDonorSchedule(ctx echo.Context) error {

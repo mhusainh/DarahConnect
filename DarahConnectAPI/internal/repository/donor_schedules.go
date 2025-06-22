@@ -29,12 +29,10 @@ func NewDonorScheduleRepository(db *gorm.DB) DonorScheduleRepository {
 
 func (r *donorScheduleRepository) applyFilters(query *gorm.DB, req dto.GetAllDonorScheduleRequest) (*gorm.DB, dto.GetAllDonorScheduleRequest) {
 	// Filter berdasarkan EventDate
-	if req.EventDate != "" {
-		query = query.Where("event_date = ?", req.EventDate)
+	if req.StartDate != "" && req.EndDate != "" {
+		query = query.Where("event_date BETWEEN ? AND ?", req.StartDate, req.EndDate)
 	}
-	if req.StartTime != "" && req.EndTime != "" {
-		query = query.Where("start_time BETWEEN ? AND ?", req.StartTime, req.EndTime)
-	}
+
 	if req.SlotsAvailable != nil {
 		if *req.SlotsAvailable {
 			query = query.Where("slots_available > ?", 0)
@@ -49,8 +47,9 @@ func (r *donorScheduleRepository) applyFilters(query *gorm.DB, req dto.GetAllDon
 	// Filter berdasarkan Search (pada judul atau pesan)
 	if req.Search != "" {
 		search := strings.ToLower(req.Search)
-		query = query.Where("LOWER(event_name) LIKE ?", "%"+search+"%").
-			Or("LOWER(description) LIKE ?", "%"+search+"%")
+		query = query.Joins("LEFT JOIN hospitals ON hospitals.id = donor_schedules.hospital_id").
+		Where("LOWER(donor_schedules.event_name) LIKE ? OR LOWER(hospitals.name) LIKE ? OR LOWER(donor_schedules.description) LIKE ? OR LOWER(donor_schedules.start_time) LIKE ? OR LOWER(donor_schedules.end_time) LIKE ?",
+			"%"+search+"%", "%"+search+"%", "%"+search+"%", "%"+search+"%", "%"+search+"%")
 	}
 
 	// Set default values jika tidak ada
@@ -95,7 +94,7 @@ func (r *donorScheduleRepository) GetAll(ctx context.Context, req dto.GetAllDono
 	var total int64
 
 	// Hitung total item sebelum pagination
-	dataQuery := r.db.WithContext(ctx).Model(&entity.DonorSchedule{})
+	dataQuery := r.db.WithContext(ctx).Model(&entity.DonorSchedule{}).Preload("Hospital")
 	dataQuery, req = r.applyFilters(dataQuery, req)
 	if err := dataQuery.Count(&total).Error; err != nil {
 		return nil, 0, err

@@ -39,9 +39,8 @@ type GetAllDonorScheduleRequest struct {
 	Search         string `query:"search"`
 	Sort           string `query:"sort"`
 	Order          string `query:"order"`
-	EventDate      string `query:"event_date"`
-	StartTime      string `query:"start_time"`
-	EndTime        string `query:"end_time"`
+	StartDate      string `query:"start_date"`
+	EndDate        string `query:"end_date"`
 	SlotsAvailable *bool  `query:"slots_available"`
 	Status         string `query:"status"`
 }
