@@ -7,9 +7,11 @@ import (
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/repository"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/utils"
 )
 
 type CertificateService interface {
+	Create(ctx context.Context, bloodDonation *entity.BloodDonation) (*entity.Certificate, error)
 	GetAll(ctx context.Context, req dto.GetAllCertificateRequest) ([]entity.Certificate, int64, error)
 	GetById(ctx context.Context, id int64) (*entity.Certificate, error)
 	GetByUser(ctx context.Context, userId int64, req dto.GetAllCertificateRequest) ([]entity.Certificate, int64, error)
@@ -24,6 +26,27 @@ func NewCertificateService(certificateRepository repository.CertificateRepositor
 	return &certificateService{
 		certificateRepository,
 	}
+}
+
+func (s *certificateService) Create(ctx context.Context, bloodDonation *entity.BloodDonation) (*entity.Certificate, error) {
+	certificateNumber, err := utils.GenerateUniqueCertificateNumber()
+	if err != nil {
+		return nil, errors.New("Gagal membuat sertifikat")
+	}
+	digitalSignature, err := utils.GenerateCertificateNumber()
+	if err != nil {
+		return nil, errors.New("Gagal membuat sertifikat")
+	}
+	certificate := &entity.Certificate{
+		DonationId:        bloodDonation.Id,
+		UserId:            bloodDonation.UserId,
+		CertificateNumber: certificateNumber,
+		DigitalSignature:  digitalSignature,
+	}
+	if err := s.certificateRepository.Create(ctx, certificate); err != nil {
+		return nil, errors.New("Gagal membuat sertifikat")
+	}
+	return certificate, nil
 }
 
 func (s *certificateService) GetAll(ctx context.Context, req dto.GetAllCertificateRequest) ([]entity.Certificate, int64, error) {
