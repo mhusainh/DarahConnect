@@ -73,6 +73,30 @@ func (h *DonorRegistrationHandler) GetDonorRegistrationsByUserId(ctx echo.Contex
 	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("successfully showing all donor registrations", donorRegistrations, req.Page, req.Limit, total))
 }
 
+func (h *DonorRegistrationHandler) GetRiwayatDonor(ctx echo.Context) error {
+	var req dto.GetAllDonorRegistrationRequest
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+
+	claims, ok := ctx.Get("user").(*jwt.Token)
+	if !ok {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user claims"))
+	}
+
+	// Extract user information from claims
+	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
+	if !ok {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user information from claims"))
+	}
+
+	donorRegistrations, total, err := h.donorRegistrationService.GetAllByUserId(ctx.Request().Context(), claimsData.Id, req)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("successfully showing all donor registrations", donorRegistrations, req.Page, req.Limit, total))
+}
+
 func (h *DonorRegistrationHandler) CreateDonorRegistration(ctx echo.Context) error {
 	var req dto.DonorRegistrationCreateRequest
 	if err := ctx.Bind(&req); err != nil {
@@ -106,15 +130,36 @@ func (h *DonorRegistrationHandler) CreateDonorRegistration(ctx echo.Context) err
 	return ctx.JSON(http.StatusCreated, response.SuccessResponse("successfully creating donor registration", nil))
 }
 
+// AllRole
 func (h *DonorRegistrationHandler) UpdateDonorRegistration(ctx echo.Context) error {
 	var req dto.DonorRegistrationUpdateRequest
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
 
+	claims, ok := ctx.Get("user").(*jwt.Token)
+	if !ok {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user claims"))
+	}
+
+	// Extract user information from claims
+	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
+	if !ok {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user information from claims"))
+	}
+
 	donorRegistration, err := h.donorRegistrationService.GetById(ctx.Request().Context(), req.Id)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+
+	if claimsData.Role == "User"{
+		if donorRegistration.UserId != claimsData.Id {
+			return ctx.JSON(http.StatusUnauthorized, response.ErrorResponse(http.StatusUnauthorized, "unauthorized"))
+		}
+		req.Status = ""
+	} else {
+		req.Notes = ""
 	}
 
 	if err := h.donorRegistrationService.Update(ctx.Request().Context(), req, donorRegistration); err != nil {
@@ -130,6 +175,26 @@ func (h *DonorRegistrationHandler) DeleteDonorRegistration(ctx echo.Context) err
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
 
+	claims, ok := ctx.Get("user").(*jwt.Token)
+	if !ok {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user claims"))
+	}
+
+	// Extract user information from claims
+	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
+	if !ok {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user information from claims"))
+	}
+
+	donorRegistration, err := h.donorRegistrationService.GetById(ctx.Request().Context(), req.Id)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+	
+	if claimsData.Id != donorRegistration.UserId {
+		return ctx.JSON(http.StatusUnauthorized, response.ErrorResponse(http.StatusUnauthorized, "unauthorized"))
+	}
+	
 	if err := h.donorRegistrationService.Delete(ctx.Request().Context(), req.Id); err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
