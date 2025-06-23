@@ -174,6 +174,20 @@ func (h *UserHandler) VerifyEmail(ctx echo.Context) error {
 func (h *UserHandler) UpdateUser(ctx echo.Context) error {
 	var req dto.UpdateUserRequest
 
+	// Manually bind the image file
+	imageFile, err := ctx.FormFile("image")
+	if err != nil {
+		// If the error is due to missing file, it means the image is optional
+		if err == http.ErrMissingFile {
+			req.Image = nil // Set image to nil if not provided
+		} else {
+			// Handle other errors (e.g., malformed multipart data)
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+		}
+	} else {
+		req.Image = imageFile
+	}
+
 	// Bind form data terlebih dahulu
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
@@ -192,23 +206,12 @@ func (h *UserHandler) UpdateUser(ctx echo.Context) error {
 	}
 
 	// Set user ID dari token
-	req.Id = claimsData.Id
-
-	// Handle file upload jika ada
-	if fileHeader, err := ctx.FormFile("image");err == nil { // File ditemukan, lakukan upload
-		// Upload file ke Cloudinary dengan folder "profile"
-		imageURL, publicId, err := h.cloudinaryService.UploadFile(fileHeader, "profile")
-		if err != nil {
-			return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "error uploading file: "+err.Error()))
-		}
-		
-		// Simpan URL dan Public ID ke request
-		req.UrlFile = imageURL
-		req.PublicId = publicId
+	if req.Id != claimsData.Id {
+		return ctx.JSON(http.StatusUnauthorized, response.ErrorResponse(http.StatusUnauthorized, "unauthorized"))
 	}
 
 	// Update user data
-	err := h.userService.Update(ctx.Request().Context(), req)
+	err = h.userService.Update(ctx.Request().Context(), req)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}

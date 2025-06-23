@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"errors"
-	"log"	
+	"log"
 	"time"
 
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/configs"
@@ -11,6 +11,7 @@ import (
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/repository"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cache"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cloudinary"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/mailer"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/token"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/utils"
@@ -32,11 +33,12 @@ type UserService interface {
 }
 
 type userService struct {
-	userRepository repository.UserRepository
-	tokenUseCase   token.TokenUseCase
-	cacheable      cache.Cacheable
-	mailer         *mailer.Mailer
-	cfg            *configs.Config
+	userRepository    repository.UserRepository
+	tokenUseCase      token.TokenUseCase
+	cacheable         cache.Cacheable
+	mailer            *mailer.Mailer
+	cfg               *configs.Config
+	cloudinaryService *cloudinary.Service
 }
 
 func NewUserService(
@@ -45,8 +47,9 @@ func NewUserService(
 	cacheable cache.Cacheable,
 	cfg *configs.Config,
 	mailer *mailer.Mailer,
+	cloudinaryService *cloudinary.Service,
 ) UserService {
-	return &userService{userRepository, tokenUseCase, cacheable, mailer, cfg}
+	return &userService{userRepository, tokenUseCase, cacheable, mailer, cfg, cloudinaryService}
 }
 
 func (s *userService) Login(ctx context.Context, email string, password string) (string, error) {
@@ -111,8 +114,8 @@ func (s *userService) Register(ctx context.Context, req dto.UserRegisterRequest)
 
 	// Prepare email data
 	emailData := mailer.EmailData{
-		To:      user.Email,
-		Subject: "Darah Connect : Verifikasi Email!",
+		To:       user.Email,
+		Subject:  "Darah Connect : Verifikasi Email!",
 		Template: "verify-email.html",
 		Data: struct {
 			Token string
@@ -131,7 +134,7 @@ func (s *userService) Register(ctx context.Context, req dto.UserRegisterRequest)
 	if err = s.userRepository.Create(ctx, user); err != nil {
 		return errors.New("gagal membuat user")
 	}
-	
+
 	return nil
 }
 
@@ -148,9 +151,26 @@ func (s *userService) GetById(ctx context.Context, id int64) (*entity.User, erro
 }
 
 func (s *userService) Update(ctx context.Context, req dto.UpdateUserRequest) error {
+	var oldPublicId string
+	var newPublicId string
+
 	user, err := s.userRepository.GetById(ctx, req.Id)
 	if err != nil {
-		return err
+		return errors.New("User tidak ditemukan")
+	}
+
+	if req.Image != nil {
+		// Simpan publicId lama sebelum mengubahnya
+		oldPublicId = user.PublicId
+
+		UrlFile, publicId, err := s.cloudinaryService.UploadFile(req.Image, "Users")
+		if err != nil {
+			return errors.New("Gagal mengupload gambar")
+
+		}
+		newPublicId = publicId
+		user.UrlFile = UrlFile
+		user.PublicId = publicId
 	}
 	if req.Email != "" {
 		user.Email = req.Email
@@ -158,7 +178,7 @@ func (s *userService) Update(ctx context.Context, req dto.UpdateUserRequest) err
 	if req.Password != "" {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 		if err != nil {
-			return err
+			return errors.New("ada kesalahan di server")
 		}
 		user.Password = string(hashedPassword)
 	}
@@ -184,7 +204,24 @@ func (s *userService) Update(ctx context.Context, req dto.UpdateUserRequest) err
 		}
 		user.BirthDate = birthDate
 	}
-	return s.userRepository.Update(ctx, user)
+
+	if err := s.userRepository.Update(ctx, user); err != nil {
+        // Jika database update gagal dan ada gambar baru yang diunggah, hapus gambar baru
+        if req.Image != nil {
+            if err := s.cloudinaryService.DeleteFile(newPublicId); err != nil {
+                return errors.New("Gagal menghapus gambar baru")
+            }
+        }
+        return errors.New("Gagal mengupdate user")
+    }
+    
+    // Jika berhasil dan ada gambar lama, hapus gambar lama
+    if req.Image != nil && oldPublicId != "" {
+        if err := s.cloudinaryService.DeleteFile(oldPublicId); err != nil {
+            return errors.New("Gagal menghapus gambar lama")
+        }
+    }
+	return nil
 }
 
 func (s *userService) Delete(ctx context.Context, user *entity.User) error {
@@ -238,8 +275,8 @@ func (s *userService) RequestResetPassword(ctx context.Context, email string) er
 
 	// Prepare email data
 	emailData := mailer.EmailData{
-		To:      user.Email,
-		Subject: "Darah Connect : Reset Password!",
+		To:       user.Email,
+		Subject:  "Darah Connect : Reset Password!",
 		Template: "reset-password.html",
 		Data: struct {
 			Token string
