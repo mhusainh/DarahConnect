@@ -21,6 +21,7 @@ type DonorRegistrationByUserIdRequest struct {
 }
 
 type GetAllDonorRegistrationRequest struct {
+	UserId int64  `param:"user_id"`
 	Page   int64  `query:"page"`
 	Limit  int64  `query:"limit"`
 	Search string `query:"search"`

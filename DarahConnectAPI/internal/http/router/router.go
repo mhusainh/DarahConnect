@@ -53,7 +53,7 @@ func PublicRoutes(
 		{
 			Method:  http.MethodGet,
 			Path:    "/campaign/:id",
-			Handler: bloodRequestHandler.GetBloodRequest,
+			Handler: bloodRequestHandler.GetCampaigns,
 		},
 
 	}

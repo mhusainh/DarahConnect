@@ -25,14 +25,13 @@ type EmailData struct {
 }
 func NewMailer(smtpCfg *configs.SMTPConfig) (*Mailer, error) {
 	// Inisialisasi client Mailjet
-	mailjetClient := mailjet.NewMailjetClient("08775d2600b7cb1496cd3008660a13e2", "58f9ed2703a140053f6018fb5606cae9")
-	log.Printf("key : %v", smtpCfg.APIKey)
-	log.Printf("key : %v", smtpCfg.SecretKey)
+	mailjetClient := mailjet.NewMailjetClient(smtpCfg.APIKey, smtpCfg.SecretKey)
 	return &Mailer{
 		client:  mailjetClient,
 		smtpCfg: *smtpCfg,
 	}, nil
 }
+
 func (m *Mailer) SendEmail(templatePath string, emailData EmailData) error {
 	// Dapatkan direktori kerja saat ini untuk logging
 	cwd, err := os.Getwd()
@@ -98,12 +97,11 @@ func (m *Mailer) SendEmail(templatePath string, emailData EmailData) error {
 			To: &mailjet.RecipientsV31{
 				mailjet.RecipientV31{
 					Email: emailData.To,
-					Name:  "Pengguna",
 				},
 			},
-			Subject:  emailData.Subject,
+			Subject:  "Reset Password",
 			TextPart: "Silakan gunakan email client yang mendukung HTML untuk melihat pesan ini.",
-			HTMLPart: emailBody.String(),
+			HTMLPart: "test",
 		},
 	}
 

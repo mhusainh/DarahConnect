@@ -40,6 +40,9 @@ func (r *donorRegistrationRepository) applyFilters(query *gorm.DB, req dto.GetAl
 				"%"+search+"%", "%"+search+"%", "%"+search+"%")
 	}
 
+	if req.UserId != 0 {
+		query = query.Where("user_id = ?", req.UserId)
+	}
 	// Set default values jika tidak ada
 	if req.Page <= 0 {
 		req.Page = 1

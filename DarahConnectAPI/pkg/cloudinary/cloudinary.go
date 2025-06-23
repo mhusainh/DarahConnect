@@ -33,7 +33,6 @@ func NewService(config *configs.CloudinaryConfig) (*Service, error) {
 // Menerima file multipart, dan folder tujuan
 // Mengembalikan URL gambar dan public ID jika berhasil
 func (s *Service) UploadFile(fileHeader *multipart.FileHeader, folder string) (string, string, error) {
-
 	// Buka file
 	file, err := fileHeader.Open()
 	if err != nil {
@@ -53,6 +52,7 @@ func (s *Service) UploadFile(fileHeader *multipart.FileHeader, folder string) (s
 		Folder:         "darahconnect/" + folder,
 		UniqueFilename: api.Bool(true),
 		Overwrite:      api.Bool(true),
+		Transformation: "q_auto:low,",
 	})
 
 	if err != nil {

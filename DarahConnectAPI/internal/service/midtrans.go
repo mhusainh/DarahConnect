@@ -5,25 +5,32 @@ import (
 	"errors"
 	"time"
 
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/configs"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/repository"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/midtrans"
 )
+
 
 type MidtransService interface {
 	WebHookTransaction(ctx context.Context, input *dto.DonationsCreate) error
+	CreateTransaction(ctx context.Context, req dto.PaymentRequest) (string, error)
 }
 
 type midtransService struct {
 	donationsRepository repository.DonationsRepository
+	midtransClient     *midtrans.Service
 }
 
 // NewMidtransService creates a new instance of midtransService
-func NewMidtransService(donationsRepository repository.DonationsRepository) MidtransService {
+func NewMidtransService(cfg *configs.MidtransConfig, donationsRepository repository.DonationsRepository) MidtransService {
 	return &midtransService{
 		donationsRepository: donationsRepository,
+		midtransClient:     midtrans.NewMidtransService(cfg),
 	}
 }
+
 
 func (s *midtransService) WebHookTransaction(ctx context.Context, input *dto.DonationsCreate) error {
 	donation := new(entity.Donation)
@@ -53,4 +60,17 @@ func (s *midtransService) WebHookTransaction(ctx context.Context, input *dto.Don
 	}
 
 	return nil
+}
+
+func (s *midtransService) CreateTransaction(ctx context.Context, req dto.PaymentRequest) (string, error) {
+	// Convert DTO to midtrans.PaymentRequest
+	paymentReq := midtrans.PaymentRequest{
+		OrderID:  req.OrderID,
+		Amount:   req.Amount,
+		Fullname: req.Fullname,
+		Email:    req.Email,
+	}
+
+	// Call midtrans client
+	return s.midtransClient.CreateTransaction(ctx, paymentReq)
 }

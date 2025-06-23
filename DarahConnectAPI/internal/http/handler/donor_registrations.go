@@ -55,24 +55,6 @@ func (h *DonorRegistrationHandler) GetDonorRegistration(ctx echo.Context) error 
 	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully showing donor registration", donorRegistration))
 }
 
-func (h *DonorRegistrationHandler) GetDonorRegistrationsByUserId(ctx echo.Context) error {
-	var req dto.GetAllDonorRegistrationRequest
-	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
-	}
-
-	var userId dto.DonorRegistrationByUserIdRequest
-	if err := ctx.Bind(&userId); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
-	}
-
-	donorRegistrations, total, err := h.donorRegistrationService.GetAllByUserId(ctx.Request().Context(), userId.UserId, req)
-	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
-	}
-	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("successfully showing all donor registrations", donorRegistrations, req.Page, req.Limit, total))
-}
-
 func (h *DonorRegistrationHandler) GetRiwayatDonor(ctx echo.Context) error {
 	var req dto.GetAllDonorRegistrationRequest
 	if err := ctx.Bind(&req); err != nil {

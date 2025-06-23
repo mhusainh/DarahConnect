@@ -24,16 +24,18 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clou
 	//repository
 	userRepository := repository.NewUserRepository(db)
 	bloodRequestRepository := repository.NewBloodRequestRepository(db)
+	notificationRepository := repository.NewNotificationRepository(db)
 	//end
 
 	//service
-	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg, mailer)
+	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg, mailer,cloudinaryService)
 	bloodRequestService := service.NewBloodRequestService(bloodRequestRepository)
+	notificationService := service.NewNotificationService(notificationRepository)
 	//end
 
 	//handler
 	userHandler := handler.NewUserHandler(userService, cloudinaryService)
-	bloodRequestHandler := handler.NewBloodRequestHandler(bloodRequestService)
+	bloodRequestHandler := handler.NewBloodRequestHandler(bloodRequestService,notificationService)
 	//end
 
 	return router.PublicRoutes(userHandler, bloodRequestHandler)
@@ -54,7 +56,7 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clo
 	//end
 
 	//service
-	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg, mailer)
+	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg, mailer,cloudinaryService)
 	notificationService := service.NewNotificationService(notificationRepository)
 	healthPassportService := service.NewHealthPassportService(healthPassportRepository)
 	bloodRequestService := service.NewBloodRequestService(bloodRequestRepository)
@@ -65,10 +67,10 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clo
 
 	//handler
 	userHandler := handler.NewUserHandler(userService, cloudinaryService)
-	notificationHandler := handler.NewNotificationHandler(notificationService,)
+	notificationHandler := handler.NewNotificationHandler(notificationService)
 	healthPassportHandler := handler.NewHealthPassportHandler(healthPassportService)
-	bloodRequestHandler := handler.NewBloodRequestHandler(bloodRequestService)
-	donorRegistrationHandler := handler.NewDonorRegistrationHandler(donorRegistrationService)
+	bloodRequestHandler := handler.NewBloodRequestHandler(bloodRequestService,notificationService)
+	donorRegistrationHandler := handler.NewDonorRegistrationHandler(donorRegistrationService,healthPassportService)
 	donorScheduleHandler := handler.NewDonorScheduleHandler(donorScheduleService)
 	hospitalHandler := handler.NewHospitalHandler(hospitalService)
 	//end

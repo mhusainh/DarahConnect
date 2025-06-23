@@ -175,8 +175,7 @@ func (h *UserHandler) UpdateUser(ctx echo.Context) error {
 	var req dto.UpdateUserRequest
 
 	// Manually bind the image file
-	imageFile, err := ctx.FormFile("image")
-	if err != nil {
+	if imageFile, err := ctx.FormFile("image"); err != nil {
 		// If the error is due to missing file, it means the image is optional
 		if err == http.ErrMissingFile {
 			req.Image = nil // Set image to nil if not provided
@@ -211,7 +210,7 @@ func (h *UserHandler) UpdateUser(ctx echo.Context) error {
 	}
 
 	// Update user data
-	err = h.userService.Update(ctx.Request().Context(), req)
+	err := h.userService.Update(ctx.Request().Context(), req)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
