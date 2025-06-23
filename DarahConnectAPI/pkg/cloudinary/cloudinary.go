@@ -2,10 +2,7 @@ package cloudinary
 
 import (
 	"context"
-	"errors"
 	"mime/multipart"
-	"path/filepath"
-	"strings"
 
 	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/cloudinary/cloudinary-go/v2/api"
@@ -18,7 +15,6 @@ type Service struct {
 	cld *cloudinary.Cloudinary
 }
 
-// NewService membuat instance baru dari Service Cloudinary
 // NewService membuat instance baru dari Service Cloudinary
 func NewService(config *configs.CloudinaryConfig) (*Service, error) {
     // Inisialisasi Cloudinary dari konfigurasi
@@ -37,10 +33,6 @@ func NewService(config *configs.CloudinaryConfig) (*Service, error) {
 // Menerima file multipart, dan folder tujuan
 // Mengembalikan URL gambar dan public ID jika berhasil
 func (s *Service) UploadFile(fileHeader *multipart.FileHeader, folder string) (string, string, error) {
-	// Validasi tipe file (hanya menerima gambar)
-	if !isImageFile(fileHeader.Filename) {
-		return "", "", errors.New("only image files are allowed")
-	}
 
 	// Buka file
 	file, err := fileHeader.Open()
@@ -80,19 +72,4 @@ func (s *Service) DeleteFile(publicID string) error {
 	})
 
 	return err
-}
-
-// isImageFile memeriksa apakah file adalah gambar berdasarkan ekstensi
-func isImageFile(filename string) bool {
-	ext := strings.ToLower(filepath.Ext(filename))
-	validExts := map[string]bool{
-		".jpg":  true,
-		".jpeg": true,
-		".png":  true,
-		".gif":  true,
-		".webp": true,
-		".bmp":  true,
-	}
-
-	return validExts[ext]
 }
