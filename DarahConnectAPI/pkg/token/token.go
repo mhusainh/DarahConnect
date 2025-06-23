@@ -29,6 +29,15 @@ type ResetPasswordClaims struct {
 	jwt.RegisteredClaims
 }
 
+type GoogleOAuthClaims struct {
+	Id            string `json:"id"`
+	Email         string `json:"email"`
+	Name          string `json:"name"`
+	PictureURL    string `json:"picture_url,omitempty"`
+	Provider      string `json:"provider"` // "google"
+	jwt.RegisteredClaims
+}
+
 func (t *tokenUseCase) GenerateAccessToken(claims jwt.Claims) (string, error) {
 	plainToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 

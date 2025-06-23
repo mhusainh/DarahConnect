@@ -2,14 +2,30 @@ package googleoauth
 
 import (
 	"errors"
+	"net/http"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/labstack/echo/v4"
 	"github.com/markbates/goth"
+	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/google"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/configs"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/token"
 )
 
-type Service struct{
-	cfg *configs.GoogleOauth
+type GoogleAuthService interface {
+	Login(ctx echo.Context) error
+	Callback(ctx echo.Context) error
+}
+type Service struct {
+	tokenService token.TokenUseCase
+}
+
+func NewGoogleOAuthService(cfg *configs.GoogleOauth, tokenService token.TokenUseCase) *Service {
+	return &Service{
+		tokenService: tokenService,
+	}
 }
 
 func InitGoogle (cfg *configs.GoogleOauth) error {
@@ -23,5 +39,56 @@ func InitGoogle (cfg *configs.GoogleOauth) error {
 	return nil
 }
 
+func (s *Service) Login(ctx echo.Context) error {
+	provider := ctx.Param("provider")
+	if provider == "" {
+	 return ctx.String(http.StatusBadRequest, "Provider not specified")
+	}
+  
+	q := ctx.Request().URL.Query()
+	q.Add("provider", ctx.Param("provider"))
+	ctx.Request().URL.RawQuery = q.Encode()
+  
+	req := ctx.Request()
+	res := ctx.Response().Writer	
+	if gothUser, err := gothic.CompleteUserAuth(res, req); err == nil {
+	 return ctx.JSON(http.StatusOK, gothUser)
+	}
+	gothic.BeginAuthHandler(res, req)
+	return nil
+}
 
+func (s *Service) Callback(ctx echo.Context) error {
+	req := ctx.Request()
+	res := ctx.Response().Writer
+	user, err := gothic.CompleteUserAuth(res, req)
+	if err != nil {
+		return ctx.String(http.StatusBadRequest, err.Error())
+	}
+	
+	// Buat JWT claims dari data Google OAuth
+	claims := &token.GoogleOAuthClaims{
+		Id:       user.UserID,
+		Email:    user.Email,
+		Name:     user.Name,
+		PictureURL: user.AvatarURL,
+		Provider: "google",
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+	
+	// Generate token
+	accessToken, err := s.tokenService.GenerateAccessToken(claims)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to generate token"})
+	}
+	
+	// Return token dan data user
+	return ctx.JSON(http.StatusOK, map[string]interface{}{
+		"token": accessToken,
+		"user": user,
+	})
+}
 
