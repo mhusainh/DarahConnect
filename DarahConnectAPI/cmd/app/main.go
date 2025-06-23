@@ -13,8 +13,9 @@ import (
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cache"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cloudinary"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/database"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/googleOauth"
+	googleoauth "github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/googleOauth"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/mailer"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/midtrans"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/server"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/timezone"
 )
@@ -41,6 +42,8 @@ func main() {
 	err = googleoauth.InitGoogle(&cfg.GoogleOauth)
 	checkError(err)
 
+	_,err = midtrans.InitMidtrans(&cfg.MidtransConfig)
+	checkError(err)
 
 	publicRoutes := builder.BuildPublicRoutes(cfg, db, rdb, cloudinaryService, mailer)
 	privateRoutes := builder.BuildPrivateRoutes(cfg, db, rdb, cloudinaryService, mailer)

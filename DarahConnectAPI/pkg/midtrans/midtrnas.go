@@ -2,39 +2,50 @@ package midtrans
 
 import (
 	"context"
+	"errors"
+	"time"
 
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/configs"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/repository"
 	"github.com/midtrans/midtrans-go"
 	"github.com/midtrans/midtrans-go/snap"
 )
 
-type Service struct {
+type MidtransService interface {
+	CreateTransaction(ctx context.Context, req dto.PaymentRequest) (string, error)
+	WebHookTransaction(ctx context.Context, input *dto.DonationsCreate) error
+}
+
+
+type midtransService struct {
 	cfg *configs.MidtransConfig
+	snapClient snap.Client
+	donationsRepository repository.DonationsRepository
+	
 }
 
-type PaymentRequest struct {
-	OrderID  string
-	Amount   int64
-	Fullname string
-	Email    string
-}
 
-func initMidtrans(cfg *configs.MidtransConfig) snap.Client {
+func InitMidtrans(cfg *configs.MidtransConfig) (MidtransService, error) {
 	snapClient := snap.Client{}
 
 	snapClient.New(cfg.ServerKey, midtrans.Sandbox)
 	
 
-	return snapClient
+	return &midtransService{
+		cfg:        cfg,
+		snapClient: snapClient,
+	}, nil
 }
 
-func NewMidtransService(cfg *configs.MidtransConfig) *Service {
-	return &Service{
+func NewMidtransService(cfg *configs.MidtransConfig) *midtransService {
+	return &midtransService{
 		cfg: cfg,
 	}
 }
 
-func (s *Service) CreateTransaction(ctx context.Context, req PaymentRequest) (string, error) {
+func (s *midtransService) CreateTransaction(ctx context.Context, req dto.PaymentRequest) (string, error) {
 	request := &snap.Request{
 		TransactionDetails: midtrans.TransactionDetails{
 			OrderID:  req.OrderID,
@@ -45,11 +56,39 @@ func (s *Service) CreateTransaction(ctx context.Context, req PaymentRequest) (st
 			Email: req.Email,
 		},
 	}
-
-	snapClient := initMidtrans(s.cfg)
-	resp, err := snapClient.CreateTransaction(request)
+	resp, err := s.snapClient.CreateTransaction(request)
 	if err != nil {
 		return "", err
 	}
 	return resp.RedirectURL, nil
+}
+
+func (s *midtransService) WebHookTransaction(ctx context.Context, input *dto.DonationsCreate) error {
+	donation := new(entity.Donation)
+
+	donation.UserId = input.UserID
+	donation.Amount = input.Amount
+	donation.Status = input.Transaction_status
+	donation.CreatedAt = time.Now()
+	donation.UpdatedAt = time.Now()
+	
+	// Parse transaction time
+	transactionTime, err := time.Parse("2006-01-02 15:04:05", input.Transaction_time)
+	if err != nil {
+		return errors.New("Invalid transaction time format")
+	}
+	donation.TransactionTime = transactionTime
+
+	// Validate transaction status
+	if input.Transaction_status != "settlement" && input.Transaction_status != "capture" {
+		return errors.New("Invalid transaction status")
+	} 
+	donation.Status = "success"
+	
+	// Save donation to database
+	if err := s.donationsRepository.Create(ctx, donation); err != nil {
+		return errors.New("Failed to process donation")
+	}
+
+	return nil
 }

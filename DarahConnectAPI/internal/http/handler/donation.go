@@ -11,16 +11,16 @@ import (
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/response"
 
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/service"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/midtrans"
 )
 
 type DonationHandler struct {
-	donationService service.MidtransService
+	midtransService midtrans.MidtransService
 }
 
-func NewDonationHandler(donationService service.MidtransService) *DonationHandler {
+func NewDonationHandler(midtransService midtrans.MidtransService) *DonationHandler {
 	return &DonationHandler{
-		donationService: donationService,
+		midtransService: midtransService,
 	}
 }
 
@@ -31,7 +31,7 @@ func (h *DonationHandler) WebHookTransaction(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
 
-	err := h.donationService.WebHookTransaction(ctx.Request().Context(), &req)
+	err := h.midtransService.WebHookTransaction(ctx.Request().Context(), &req)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
@@ -65,7 +65,7 @@ func (h *DonationHandler) CreateTransaction(ctx echo.Context) error {
 	req.Fullname = claimsData.Name
 	req.Email = claimsData.Email
 
-	redirectURL, err := h.donationService.CreateTransaction(ctx.Request().Context(), req)
+	redirectURL, err := h.midtransService.CreateTransaction(ctx.Request().Context(), req)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
