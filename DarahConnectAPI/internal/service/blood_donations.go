@@ -7,6 +7,7 @@ import (
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/repository"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cloudinary"
 )
 
 type BloodDonationService interface {
@@ -14,17 +15,22 @@ type BloodDonationService interface {
 	GetAll(ctx context.Context, req dto.GetAllBloodDonationRequest) ([]entity.BloodDonation, int64, error)
 	GetByUserId(ctx context.Context, userId int64, req dto.GetAllBloodDonationRequest) ([]entity.BloodDonation, int64, error)
 	GetById(ctx context.Context, id int64) (*entity.BloodDonation, error)
-	Update(ctx context.Context, req dto.BloodDonationUpdateRequest) error
+	Update(ctx context.Context, req dto.BloodDonationUpdateRequest, bloodDonation *entity.BloodDonation) error
 	Delete(ctx context.Context, id int64) error
 }
 
 type bloodDonationService struct {
 	bloodDonationRepository repository.BloodDonationRepository
+	cloudinaryService       cloudinary.Service
 }
 
-func NewBloodDonationService(bloodDonationRepository repository.BloodDonationRepository) BloodDonationService {
+func NewBloodDonationService(
+	bloodDonationRepository repository.BloodDonationRepository,
+	cloudinaryService cloudinary.Service,
+) BloodDonationService {
 	return &bloodDonationService{
 		bloodDonationRepository,
+		cloudinaryService,
 	}
 }
 
@@ -37,7 +43,21 @@ func (s *bloodDonationService) Create(ctx context.Context, req dto.BloodDonation
 	bloodDonation.BloodType = req.BloodType
 	bloodDonation.Status = "pending"
 
+	UrlFile, publicId, err := s.cloudinaryService.UploadFile(req.Image, "BloodDonations")
+	if err != nil {
+		return errors.New("Gagal mengupload gambar")
+	}
+
+	// Simpan URL dan Public ID ke request
+	bloodDonation.UrlFile = UrlFile
+	bloodDonation.PublicId = publicId
+
 	if err := s.bloodDonationRepository.Create(ctx, bloodDonation); err != nil {
+		if bloodDonation.PublicId != "" {
+			if err := s.cloudinaryService.DeleteFile(bloodDonation.PublicId); err != nil {
+				return errors.New("Gagal menghapus gambar")
+			}
+		}
 		return errors.New("Gagal membuat donasi darah")
 	}
 
@@ -71,27 +91,51 @@ func (s *bloodDonationService) GetById(ctx context.Context, id int64) (*entity.B
 	return bloodDonation, nil
 }
 
-func (s *bloodDonationService) Update(ctx context.Context, req dto.BloodDonationUpdateRequest) error {
-	bloodDonation, err := s.bloodDonationRepository.GetById(ctx, req.Id)
-	if err != nil {
-		return errors.New("Gagal mengambil donasi darah")
-	}
+func (s *bloodDonationService) Update(ctx context.Context, req dto.BloodDonationUpdateRequest, bloodDonation *entity.BloodDonation) error {
+    if !req.DonationDate.IsZero() {
+        bloodDonation.DonationDate = req.DonationDate
+    }
+    if req.BloodType != "" {
+        bloodDonation.BloodType = req.BloodType
+    }
+    if req.Status != "" {
+        bloodDonation.Status = req.Status
+    }
+    
+    var oldPublicId string
+    var newPublicId string
+    
+    if req.Image != nil {
+        // Simpan publicId lama sebelum mengubahnya
+        oldPublicId = bloodDonation.PublicId
+        
+        UrlFile, publicId, err := s.cloudinaryService.UploadFile(req.Image, "BloodDonations")
+        if err != nil {
+            return errors.New("Gagal mengupload gambar")
+        }
+        newPublicId = publicId
+        bloodDonation.UrlFile = UrlFile
+        bloodDonation.PublicId = publicId
+    }
 
-	if !req.DonationDate.IsZero() {
-		bloodDonation.DonationDate = req.DonationDate
-	}
-	if req.BloodType != "" {
-		bloodDonation.BloodType = req.BloodType
-	}
-	if req.Status != "" {
-		bloodDonation.Status = req.Status
-	}
-
-	if err := s.bloodDonationRepository.Update(ctx, bloodDonation); err != nil {
-		return errors.New("Gagal mengupdate donasi darah")
-	}
-
-	return nil
+    if err := s.bloodDonationRepository.Update(ctx, bloodDonation); err != nil {
+        // Jika database update gagal dan ada gambar baru yang diunggah, hapus gambar baru
+        if req.Image != nil {
+            if err := s.cloudinaryService.DeleteFile(newPublicId); err != nil {
+                return errors.New("Gagal menghapus gambar baru")
+            }
+        }
+        return errors.New("Gagal mengupdate donasi darah")
+    }
+    
+    // Jika berhasil dan ada gambar lama, hapus gambar lama
+    if req.Image != nil && oldPublicId != "" {
+        if err := s.cloudinaryService.DeleteFile(oldPublicId); err != nil {
+            return errors.New("Gagal menghapus gambar lama")
+        }
+    }
+    
+    return nil
 }
 
 func (s *bloodDonationService) Delete(ctx context.Context, id int64) error {
