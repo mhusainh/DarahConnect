@@ -6,6 +6,7 @@ import (
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/service"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cloudinary"
+	googleoauth "github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/googleOauth"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/response"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/token"
 
@@ -16,10 +17,11 @@ import (
 type UserHandler struct {
 	userService       service.UserService
 	cloudinaryService *cloudinary.Service
+	GoogleOauthService   *googleoauth.Service
 }	
 
-func NewUserHandler(userService service.UserService, cloudinaryService *cloudinary.Service) UserHandler {
-	return UserHandler{userService, cloudinaryService}
+func NewUserHandler(userService service.UserService, cloudinaryService *cloudinary.Service, GoogleOauthService *googleoauth.Service) UserHandler {
+	return UserHandler{userService, cloudinaryService, GoogleOauthService}
 }
 
 func (h *UserHandler) GetUsers(ctx echo.Context) error {
@@ -216,4 +218,22 @@ func (h *UserHandler) UpdateUser(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusCreated, response.SuccessResponse("successfully update user", nil))
+}
+
+func (h *UserHandler) LoginGoogleAuth(ctx echo.Context) error {
+	user, err := h.GoogleOauthService.Login(ctx)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully login", user))
+}
+
+func (h *UserHandler) CallbackGoogleAuth(ctx echo.Context) error {
+	data, err := h.GoogleOauthService.Callback(ctx)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully callback", data))
 }

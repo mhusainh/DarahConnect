@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/markbates/goth"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/configs"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
@@ -25,6 +26,7 @@ type UserService interface {
 	GetById(ctx context.Context, id int64) (*entity.User, error)
 	Login(ctx context.Context, email, password string) (string, error)
 	Register(ctx context.Context, req dto.UserRegisterRequest) error
+	CheckGoogleOAuth(ctx context.Context, email string, user *goth.User) (bool, error)
 	Update(ctx context.Context, req dto.UpdateUserRequest) error
 	Delete(ctx context.Context, user *entity.User) error
 	VerifyEmail(ctx context.Context, req dto.VerifyEmailRequest) error
@@ -206,21 +208,21 @@ func (s *userService) Update(ctx context.Context, req dto.UpdateUserRequest) err
 	}
 
 	if err := s.userRepository.Update(ctx, user); err != nil {
-        // Jika database update gagal dan ada gambar baru yang diunggah, hapus gambar baru
-        if req.Image != nil {
-            if err := s.cloudinaryService.DeleteFile(newPublicId); err != nil {
-                return errors.New("Gagal menghapus gambar baru")
-            }
-        }
-        return errors.New("Gagal mengupdate user")
-    }
-    
-    // Jika berhasil dan ada gambar lama, hapus gambar lama
-    if req.Image != nil && oldPublicId != "" {
-        if err := s.cloudinaryService.DeleteFile(oldPublicId); err != nil {
-            return errors.New("Gagal menghapus gambar lama")
-        }
-    }
+		// Jika database update gagal dan ada gambar baru yang diunggah, hapus gambar baru
+		if req.Image != nil {
+			if err := s.cloudinaryService.DeleteFile(newPublicId); err != nil {
+				return errors.New("Gagal menghapus gambar baru")
+			}
+		}
+		return errors.New("Gagal mengupdate user")
+	}
+
+	// Jika berhasil dan ada gambar lama, hapus gambar lama
+	if req.Image != nil && oldPublicId != "" {
+		if err := s.cloudinaryService.DeleteFile(oldPublicId); err != nil {
+			return errors.New("Gagal menghapus gambar lama")
+		}
+	}
 	return nil
 }
 
@@ -301,6 +303,22 @@ func (s *userService) VerifyEmail(ctx context.Context, req dto.VerifyEmailReques
 	}
 	user.IsVerified = 1
 	return s.userRepository.Update(ctx, user)
+}
+
+func (s *userService) CheckGoogleOAuth(ctx context.Context, email string, user *goth.User) (bool, error) {
+	if user, err := s.userRepository.GetByEmail(ctx, email); err != nil {
+		// User not found, create a new one
+		newUser := new(entity.User)
+		newUser.Email = user.Email
+		newUser.Name = user.Name
+		newUser.Role = "User"
+		newUser.IsVerified = 1
+		if err = s.userRepository.Create(ctx, newUser); err != nil {
+			return false, err
+		}
+		return true, nil
+	}
+	return false, nil
 }
 
 // func (s *userService) GetAll(ctx context.Context) (result []entity.User, err error) {
