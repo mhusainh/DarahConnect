@@ -2,7 +2,6 @@ package googleoauth
 
 import (
 	"errors"
-	"net/http"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -11,9 +10,7 @@ import (
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/google"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/configs"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/repository"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/response"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/service"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/token"
 )
 
@@ -22,14 +19,14 @@ type GoogleAuthService interface {
 	Callback(ctx echo.Context) error
 }
 type Service struct {
-	tokenService   token.TokenUseCase
-	UserRepository repository.UserRepository
+	tokenService token.TokenUseCase
+	userService  service.UserService
 }
 
-func NewGoogleOAuthService(tokenService token.TokenUseCase, userRepository repository.UserRepository) *Service {
+func NewGoogleOAuthService(tokenService token.TokenUseCase, userService service.UserService) *Service {
 	return &Service{
 		tokenService,
-		userRepository,
+		userService,
 	}
 }
 
@@ -44,10 +41,10 @@ func InitGoogle(cfg *configs.GoogleOauth) error {
 	return nil
 }
 
-func (s *Service) Login(ctx echo.Context) error {
+func (s *Service) Login(ctx echo.Context) (goth.User, error) {
 	provider := ctx.Param("provider")
 	if provider == "" {
-		return ctx.String(http.StatusBadRequest, "Provider not specified")
+		return goth.User{}, errors.New("Provider not specified")
 	}
 
 	q := ctx.Request().URL.Query()
@@ -57,31 +54,24 @@ func (s *Service) Login(ctx echo.Context) error {
 	req := ctx.Request()
 	res := ctx.Response().Writer
 	if gothUser, err := gothic.CompleteUserAuth(res, req); err == nil {
-		return ctx.JSON(http.StatusOK, gothUser)
+		return gothUser, nil
 	}
 	gothic.BeginAuthHandler(res, req)
-	return nil
+	return goth.User{}, errors.New("Failed to complete user authentication")
 }
 
-func (s *Service) Callback(ctx echo.Context) error {
+func (s *Service) Callback(ctx echo.Context) (map[string]interface{}, error) {
 	req := ctx.Request()
 	res := ctx.Response().Writer
 	user, err := gothic.CompleteUserAuth(res, req)
 	if err != nil {
-		return ctx.String(http.StatusBadRequest, err.Error())
+		return nil, err
 	}
 
-	_, err = s.UserRepository.GetByEmail(ctx.Request().Context(), user.Email)
+	// Check if user already exists in the database
+	IsNew, err := s.userService.CheckGoogleOAuth(ctx.Request().Context(), user.Email, &user)
 	if err != nil {
-		// User not found, create a new one
-		newUser := new(entity.User)
-		newUser.Email = user.Email
-		newUser.Name = user.Name
-		newUser.Role = "User"
-		newUser.IsVerified = 1
-		if err = s.UserRepository.Create(ctx.Request().Context(), newUser); err != nil {
-			return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
-		}
+		return nil, errors.New("ada kesalahan saat check google oauth")
 	}
 
 	// Buat JWT claims dari data Google OAuth
@@ -100,12 +90,13 @@ func (s *Service) Callback(ctx echo.Context) error {
 	// Generate token
 	accessToken, err := s.tokenService.GenerateAccessToken(claims)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to generate token"})
+		return nil, errors.New("ada kesalahan saat generate token")
 	}
 
 	// Return token dan data user
-	return ctx.JSON(http.StatusOK, map[string]interface{}{
+	return map[string]interface{}{
 		"token": accessToken,
 		"user":  user,
-	})
+		"IsNew": IsNew,
+	}, nil
 }
