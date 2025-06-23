@@ -23,14 +23,13 @@ func initMidtrans(cfg *configs.MidtransConfig) snap.Client {
 	snapClient := snap.Client{}
 
 	snapClient.New(cfg.ServerKey, midtrans.Sandbox)
-	
 
 	return snapClient
 }
 
 func NewMidtransService(cfg *configs.MidtransConfig) *Service {
 	return &Service{
-		cfg: cfg,
+		cfg,
 	}
 }
 
