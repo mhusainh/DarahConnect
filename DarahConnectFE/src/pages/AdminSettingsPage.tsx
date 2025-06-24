@@ -13,9 +13,11 @@ import {
   AlertTriangle,
   CheckCircle,
   Eye,
-  EyeOff
+  EyeOff,
+  MessageCircle
 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
+import ChatBotConfig from '../components/ChatBotConfig';
 
 const AdminSettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('general');
@@ -382,7 +384,8 @@ const AdminSettingsPage: React.FC = () => {
     { id: 'general', label: 'Umum', icon: Settings },
     { id: 'notifications', label: 'Notifikasi', icon: Bell },
     { id: 'security', label: 'Keamanan', icon: Shield },
-    { id: 'certificates', label: 'Sertifikat', icon: Database }
+    { id: 'certificates', label: 'Sertifikat', icon: Database },
+    { id: 'chatbot', label: 'ChatBot', icon: MessageCircle }
   ];
 
   return (
@@ -420,6 +423,7 @@ const AdminSettingsPage: React.FC = () => {
             {activeTab === 'notifications' && renderNotificationSettings()}
             {activeTab === 'security' && renderSecuritySettings()}
             {activeTab === 'certificates' && renderCertificateSettings()}
+            {activeTab === 'chatbot' && <ChatBotConfig />}
 
             {/* Save Button */}
             <div className="mt-8 flex items-center justify-between bg-white p-6 rounded-xl shadow-sm border">

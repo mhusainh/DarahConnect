@@ -14,6 +14,8 @@ import AboutPage from './pages/AboutPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import DonationModal from './components/DonationModal';
+import ChatBot from './components/ChatBot';
+import ChatBotDemo from './components/ChatBotDemo';
 import { HomepageLoader } from './components/ui/LoadingComponents';
 import { campaigns } from './data/dummy';
 import { BloodCampaign } from './types';
@@ -178,6 +180,24 @@ function App() {
   return (
     <Router>
       <div className="App relative">
+        {/* ChatBot tersedia di semua halaman */}
+        {/* Gunakan ChatBotDemo untuk testing tanpa n8n */}
+        {/* <ChatBotDemo 
+          position="bottom-right"
+          primaryColor="#ef4444"
+          botName="DarahConnect Assistant"
+          welcomeMessage="Halo! Saya assistant DarahConnect. Ada yang bisa saya bantu hari ini? 🩸"
+        /> */}
+        
+        {/* Uncomment untuk menggunakan ChatBot dengan n8n webhook */}
+   
+        <ChatBot 
+          webhookUrl="https://vertically-possible-amoeba.ngrok-free.app/webhook-test/47613ca2-45fb-450a-9480-66eb1ead44ac"
+          position="bottom-right"
+          primaryColor="#ef4444"
+          botName="DarahConnect Assistant"
+          welcomeMessage="Halo! Saya assistant DarahConnect. Ada yang bisa saya bantu hari ini? 🩸"
+        />
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
