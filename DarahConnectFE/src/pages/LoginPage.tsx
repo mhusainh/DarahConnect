@@ -1,0 +1,218 @@
+import React, { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { HeartHandshakeIcon, EyeIcon, EyeOffIcon, MailIcon, LockIcon, AlertCircleIcon } from 'lucide-react';
+
+const LoginPage: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState<{email?: string; password?: string}>({});
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Get redirect info from location state
+  const from = location.state?.from || '/dashboard';
+  const message = location.state?.message;
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field as keyof typeof errors]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: {email?: string; password?: string} = {};
+    
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email wajib diisi';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Format email tidak valid';
+    }
+    
+    if (!formData.password) {
+      newErrors.password = 'Password wajib diisi';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password minimal 6 karakter';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+    
+    setIsLoading(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      // For demo purposes, accept any valid email/password
+      localStorage.setItem('isLoggedIn', 'true');
+      localStorage.setItem('userEmail', formData.email);
+      localStorage.setItem('userName', formData.email.split('@')[0]);
+      setIsLoading(false);
+      
+      // Redirect to original destination or dashboard
+      navigate(from, { replace: true });
+    }, 1500);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        {/* Header */}
+        <div className="text-center">
+          <div className="flex justify-center">
+            <HeartHandshakeIcon className="h-16 w-16 text-primary-600" />
+          </div>
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">
+            Masuk ke DarahConnect
+          </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Bergabunglah dengan komunitas hero penyelamat nyawa
+          </p>
+        </div>
+
+        {/* Login Required Message */}
+        {message && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <AlertCircleIcon className="h-5 w-5 text-red-600 mr-2" />
+              <p className="text-sm text-red-800">{message}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Login Form */}
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {/* Email */}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                Email
+              </label>
+              <div className="relative">
+                <MailIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors ${
+                    errors.email ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Masukkan email Anda"
+                />
+              </div>
+              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+            </div>
+
+            {/* Password */}
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <LockIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
+                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors ${
+                    errors.password ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Masukkan password Anda"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                </button>
+              </div>
+              {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+            </div>
+
+            {/* Remember Me & Forgot Password */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  type="checkbox"
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                  Ingat saya
+                </label>
+              </div>
+              <Link
+                to="/forgot-password"
+                className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+              >
+                Lupa password?
+              </Link>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-primary-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Masuk...
+                </div>
+              ) : (
+                'Masuk'
+              )}
+            </button>
+
+            {/* Demo Accounts */}
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <p className="text-sm font-medium text-blue-800 mb-2">Demo Accounts:</p>
+              <div className="text-xs text-blue-600 space-y-1">
+                <p><strong>Donor:</strong> donor@donorkita.id / password123</p>
+                <p><strong>Admin:</strong> admin@donorkita.id / password123</p>
+              </div>
+            </div>
+          </form>
+
+          {/* Register Link */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              Belum punya akun?{' '}
+              <Link
+                to="/register"
+                className="text-primary-600 hover:text-primary-700 font-medium"
+              >
+                Daftar sekarang
+              </Link>
+            </p>
+          </div>
+        </div>
+
+        {/* Back to Home */}
+        <div className="text-center">
+          <Link
+            to="/"
+            className="text-sm text-gray-500 hover:text-gray-700 font-medium"
+          >
+            ← Kembali ke beranda
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default LoginPage; 
