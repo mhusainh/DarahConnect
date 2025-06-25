@@ -47,4 +47,37 @@ export interface DonationRequest {
   requestedDate: string;
   completedDate?: string;
   notes?: string;
+}
+
+// MetaMask and Wallet Types
+export interface WalletState {
+  account: string | null;
+  isConnected: boolean;
+  isConnecting: boolean;
+  error: string | null;
+  balance: string;
+  network: {
+    chainId: number;
+    name: string;
+  } | null;
+}
+
+export interface MetaMaskError {
+  code: number;
+  message: string;
+}
+
+export interface WalletTransaction {
+  hash: string;
+  from: string;
+  to: string;
+  value: string;
+  timestamp: number;
+  status: 'pending' | 'success' | 'failed';
+}
+
+export interface DonationTransaction extends WalletTransaction {
+  campaignId: string;
+  donorId: string;
+  amount: string;
 } 

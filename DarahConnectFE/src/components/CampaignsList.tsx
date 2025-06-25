@@ -9,12 +9,14 @@ interface CampaignsListProps {
   campaigns: BloodCampaign[];
   onViewDetails?: (campaign: BloodCampaign) => void;
   onDonate?: (campaign: BloodCampaign) => void;
+  onCryptoDonate?: (campaign: BloodCampaign) => void;
 }
 
 const CampaignsList: React.FC<CampaignsListProps> = ({ 
   campaigns, 
   onViewDetails, 
-  onDonate 
+  onDonate,
+  onCryptoDonate 
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBloodType, setSelectedBloodType] = useState<BloodType | ''>('');
@@ -151,6 +153,7 @@ const CampaignsList: React.FC<CampaignsListProps> = ({
                 campaign={campaign}
                 onViewDetails={onViewDetails}
                 onDonate={onDonate}
+                onCryptoDonate={onCryptoDonate}
               />
             </StaggerItem>
           ))}

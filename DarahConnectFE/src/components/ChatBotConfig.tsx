@@ -52,6 +52,7 @@ const ChatBotConfig: React.FC<ChatBotConfigProps> = ({ onSave }) => {
           message: 'Test connection from DarahConnect admin panel',
           timestamp: new Date().toISOString(),
           sessionId: 'test_session',
+          userId : '1234567890',
           test: true
         }),
       });

@@ -4,7 +4,8 @@ import {
   CalendarIcon, 
   PhoneIcon,
   AlertTriangleIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  Wallet
 } from 'lucide-react';
 import { BloodCampaign } from '../types';
 import { HoverScale, FadeIn, Pulse } from './ui/AnimatedComponents';
@@ -14,12 +15,14 @@ interface CampaignCardProps {
   campaign: BloodCampaign;
   onViewDetails?: (campaign: BloodCampaign) => void;
   onDonate?: (campaign: BloodCampaign) => void;
+  onCryptoDonate?: (campaign: BloodCampaign) => void;
 }
 
 const CampaignCard: React.FC<CampaignCardProps> = ({ 
   campaign, 
   onViewDetails, 
-  onDonate 
+  onDonate,
+  onCryptoDonate 
 }) => {
   const progress = (campaign.currentDonors / campaign.targetDonors) * 100;
   
@@ -159,30 +162,49 @@ const CampaignCard: React.FC<CampaignCardProps> = ({
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3">
-              <RippleEffect 
-                className="flex-1" 
-                color="rgba(107, 114, 128, 0.3)"
-              >
-                <button 
-                  onClick={() => onViewDetails?.(campaign)}
-                  className="w-full border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
+            <div className="space-y-3">
+              {/* Primary Actions */}
+              <div className="flex gap-3">
+                <RippleEffect 
+                  className="flex-1" 
+                  color="rgba(107, 114, 128, 0.3)"
                 >
-                  Lihat Detail
-                </button>
-              </RippleEffect>
+                  <button 
+                    onClick={() => onViewDetails?.(campaign)}
+                    className="w-full border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
+                  >
+                    Lihat Detail
+                  </button>
+                </RippleEffect>
+                
+                <RippleEffect 
+                  className="flex-1" 
+                  color="rgba(255, 255, 255, 0.4)"
+                >
+                  <button 
+                    onClick={() => onDonate?.(campaign)}
+                    className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-primary-700 hover:to-primary-800 transform hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
+                  >
+                    Donasi Sekarang
+                  </button>
+                </RippleEffect>
+              </div>
               
-              <RippleEffect 
-                className="flex-1" 
-                color="rgba(255, 255, 255, 0.4)"
-              >
-                <button 
-                  onClick={() => onDonate?.(campaign)}
-                  className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-primary-700 hover:to-primary-800 transform hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
+              {/* Crypto Donation Button */}
+              {onCryptoDonate && (
+                <RippleEffect 
+                  className="w-full" 
+                  color="rgba(59, 130, 246, 0.4)"
                 >
-                  Donasi Sekarang
-                </button>
-              </RippleEffect>
+                  <button 
+                    onClick={() => onCryptoDonate(campaign)}
+                    className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg border border-blue-500/20"
+                  >
+                    <Wallet className="w-4 h-4" />
+                    <span className="font-semibold">💎 Crypto Donation</span>
+                  </button>
+                </RippleEffect>
+              )}
             </div>
           </div>
         </div>

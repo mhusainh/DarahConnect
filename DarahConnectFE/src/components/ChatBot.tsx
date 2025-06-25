@@ -88,6 +88,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
           message: inputText,
           timestamp: new Date().toISOString(),
           sessionId: `session_${Date.now()}`, // Simple session ID
+          userId : '1234567890',
           userAgent: navigator.userAgent,
         }),
       });
