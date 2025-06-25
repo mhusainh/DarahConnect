@@ -68,7 +68,7 @@ func (s *userService) Login(ctx context.Context, email string, password string) 
 		return "", errors.New("Silahkan verifikasi email terlebih dahulu")
 	}
 
-	expiredTime := time.Now().Add(time.Minute * 10)
+	expiredTime := time.Now().Add(time.Hour * 12)
 
 	claims := token.JwtCustomClaims{
 		Id:    user.Id,
