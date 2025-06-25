@@ -64,7 +64,7 @@ type RequestResetPassword struct {
 }
 
 type VerifyEmailRequest struct {
-	Token string `param:"token" validate:"required"`
+	Token string `query:"token"`
 }
 
 type GetAllUserRequest struct {

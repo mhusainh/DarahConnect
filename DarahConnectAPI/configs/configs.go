@@ -17,7 +17,7 @@ type Config struct {
 	SMTPConfig       SMTPConfig       `envPrefix:"SMTP_" mapstructure:"SMTP"`
 	CloudinaryConfig CloudinaryConfig `envPrefix:"CLOUDINARY_" mapstructure:"CLOUDINARY"`
 	MidtransConfig   MidtransConfig   `envPrefix:"MIDTRANS_" mapstructure:"MIDTRANS"`
-	GoogleOauth 		GoogleOauth		`envPrefix:"GOOGLE_" mapstructure:"GOOGLE_OAUTH"`
+	GoogleOauth 		GoogleOauth		`envPrefix:"GOOGLE_" mapstructure:"GOOGLE_"`
 }
 
 type RedisConfig struct {
@@ -29,7 +29,7 @@ type RedisConfig struct {
 type GoogleOauth struct{
 	ClientId string `env:"CLIENT_ID" mapstructure:"CLIENT_ID"`
 	ClientSecret string `env:"CLIENT_SECRET" mapstructure:"CLIENT_SECRET"`
-	CallbackURL string `env:"CALLBACK_URL" mapstructure:"CALLBACK_URL"`
+	CallbackURL string `env:"CLIENT_CALLBACK_URL" mapstructure:"CLIENT_CALLBACK_URL"`
 }
 type JWTConfig struct {
 	SecretKey string `env:"SECRET_KEY" envDefault:"secret" mapstructure:"SECRET_KEY"`

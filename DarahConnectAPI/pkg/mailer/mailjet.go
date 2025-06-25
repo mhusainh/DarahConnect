@@ -99,9 +99,9 @@ func (m *Mailer) SendEmail(templatePath string, emailData EmailData) error {
 					Email: emailData.To,
 				},
 			},
-			Subject:  "Reset Password",
+			Subject:  emailData.Subject,
 			TextPart: "Silakan gunakan email client yang mendukung HTML untuk melihat pesan ini.",
-			HTMLPart: "test",
+			HTMLPart: emailBody.String(),
 		},
 	}
 
