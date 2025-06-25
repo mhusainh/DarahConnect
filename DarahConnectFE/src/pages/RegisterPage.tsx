@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { HeartHandshakeIcon, EyeIcon, EyeOffIcon, UserIcon, MailIcon, LockIcon, PhoneIcon } from 'lucide-react';
 import { BloodType } from '../types';
 import LocationPicker from '../components/LocationPicker';
+import { GoogleSignInButton } from '../components/GoogleSignInButton';
 
 interface RegisterFormData {
   name: string;
@@ -123,9 +124,30 @@ const RegisterPage: React.FC = () => {
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('userEmail', formData.email);
       localStorage.setItem('userName', formData.name);
+      localStorage.setItem('authMethod', 'email');
       setIsLoading(false);
       setShowSuccessModal(true);
     }, 2000);
+  };
+
+  const handleGoogleSuccess = (user: any) => {
+    console.log('Google register successful:', user);
+    // Auto-fill form data from Google account
+    setFormData(prev => ({
+      ...prev,
+      name: user.name,
+      email: user.email
+    }));
+    
+    // Show success modal immediately for Google users
+    setTimeout(() => {
+      setShowSuccessModal(true);
+    }, 500);
+  };
+
+  const handleGoogleError = (error: any) => {
+    console.error('Google register error:', error);
+    setErrors({ email: 'Gagal mendaftar dengan Google. Silakan coba lagi.' });
   };
 
   const handleGoToDashboard = () => {
@@ -318,6 +340,24 @@ const RegisterPage: React.FC = () => {
                     {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
                   </div>
                 </div>
+
+                {/* Divider */}
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300" />
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-500">Atau daftar dengan</span>
+                  </div>
+                </div>
+
+                {/* Google Sign In Button */}
+                <GoogleSignInButton
+                  text="Daftar dengan Google"
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  disabled={isLoading}
+                />
               </div>
             )}
 

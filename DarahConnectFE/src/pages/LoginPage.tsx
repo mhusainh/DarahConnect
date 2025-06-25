@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { HeartHandshakeIcon, EyeIcon, EyeOffIcon, MailIcon, LockIcon, AlertCircleIcon } from 'lucide-react';
+import { GoogleSignInButton } from '../components/GoogleSignInButton';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -56,11 +57,25 @@ const LoginPage: React.FC = () => {
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('userEmail', formData.email);
       localStorage.setItem('userName', formData.email.split('@')[0]);
+      localStorage.setItem('authMethod', 'email');
       setIsLoading(false);
       
       // Redirect to original destination or dashboard
       navigate(from, { replace: true });
     }, 1500);
+  };
+
+  const handleGoogleSuccess = (user: any) => {
+    console.log('Google login successful:', user);
+    // Redirect to original destination or dashboard
+    setTimeout(() => {
+      navigate(from, { replace: true });
+    }, 500);
+  };
+
+  const handleGoogleError = (error: any) => {
+    console.error('Google login error:', error);
+    setErrors({ email: 'Gagal masuk dengan Google. Silakan coba lagi.' });
   };
 
   return (
@@ -176,6 +191,23 @@ const LoginPage: React.FC = () => {
                 'Masuk'
               )}
             </button>
+
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Atau</span>
+              </div>
+            </div>
+
+            {/* Google Sign In Button */}
+            <GoogleSignInButton
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              disabled={isLoading}
+            />
 
             {/* Demo Accounts */}
             <div className="bg-blue-50 p-4 rounded-lg">

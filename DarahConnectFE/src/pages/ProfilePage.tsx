@@ -17,8 +17,13 @@ import {
   Star,
   TrendingUp,
   Shield,
-  Gift
+  Gift,
+  Wallet,
+  Copy,
+  ExternalLink
 } from 'lucide-react';
+import { useMetaMask } from '../hooks/useMetaMask';
+import MetaMaskWallet from '../components/MetaMaskWallet';
 import { FadeIn, HoverScale } from '../components/ui/AnimatedComponents';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -43,6 +48,7 @@ interface UserProfile {
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
+  const { isConnected, account, balance, network, disconnect } = useMetaMask();
   const [profile, setProfile] = useState<UserProfile>({
     name: localStorage.getItem('userName') || 'John Doe',
     email: localStorage.getItem('userEmail') || 'john.doe@email.com',
@@ -367,6 +373,78 @@ const ProfilePage: React.FC = () => {
                         </div>
                       </HoverScale>
                     ))}
+                  </div>
+                </div>
+              </FadeIn>
+
+              {/* Crypto Wallet Card */}
+              <FadeIn direction="up" delay={0.4}>
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-blue-200/50">
+                  <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                    <Wallet className="w-5 h-5 mr-2" />
+                    💎 Crypto Wallet
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <MetaMaskWallet showBalance={true} />
+                    
+                    {isConnected && account && (
+                      <div className="space-y-3 pt-4 border-t border-blue-200">
+                        <div className="flex items-center justify-between p-3 bg-white/50 rounded-xl">
+                          <span className="text-sm text-gray-600">Network</span>
+                          <span className="font-semibold text-gray-900 text-sm">
+                            {network?.name || 'Unknown'}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center justify-between p-3 bg-white/50 rounded-xl">
+                          <span className="text-sm text-gray-600">Balance</span>
+                          <span className="font-semibold text-gray-900 text-sm">
+                            {parseFloat(balance).toFixed(4)} ETH
+                          </span>
+                        </div>
+                        
+                        <div className="p-3 bg-white/50 rounded-xl">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm text-gray-600">Wallet Address</span>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(account);
+                                alert('Address copied to clipboard!');
+                              }}
+                              className="text-blue-600 hover:text-blue-700 transition-colors"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <p className="text-xs font-mono text-gray-700 break-all bg-white/70 p-2 rounded">
+                            {account}
+                          </p>
+                        </div>
+                        
+                        <a
+                          href={`https://etherscan.io/address/${account}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full flex items-center justify-center space-x-2 bg-blue-600 text-white py-2 rounded-xl font-medium hover:bg-blue-700 transition-colors text-sm"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          <span>View on Etherscan</span>
+                        </a>
+                      </div>
+                    )}
+                    
+                    {!isConnected && (
+                      <div className="text-center py-6">
+                        <Wallet className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                        <p className="text-gray-600 text-sm mb-4">
+                          Connect your wallet to view crypto donation features
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Use the banner at the top to connect your MetaMask wallet
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </FadeIn>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import Layout from './components/Layout';
 import HeroSection from './components/HeroSection';
 import CampaignsList from './components/CampaignsList';
 import LoginPage from './pages/LoginPage';
@@ -14,6 +15,8 @@ import AboutPage from './pages/AboutPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import DonationModal from './components/DonationModal';
+import CryptoDonationModal from './components/CryptoDonationModal';
+import WalletConnectBanner from './components/WalletConnectBanner';
 import ChatBot from './components/ChatBot';
 import ChatBotDemo from './components/ChatBotDemo';
 import { HomepageLoader } from './components/ui/LoadingComponents';
@@ -38,6 +41,7 @@ const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const [selectedCampaign, setSelectedCampaign] = useState<BloodCampaign | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCryptoModalOpen, setIsCryptoModalOpen] = useState(false);
   const [showLoader, setShowLoader] = useState(true);
 
   const handleViewDetails = (campaign: BloodCampaign) => {
@@ -53,6 +57,17 @@ const HomePage: React.FC = () => {
     console.log('Donation submitted:', data);
     alert('Pendaftaran donasi berhasil! Kami akan menghubungi Anda segera.');
     setIsModalOpen(false);
+  };
+
+  const handleCryptoDonate = (campaign: BloodCampaign) => {
+    setSelectedCampaign(campaign);
+    setIsCryptoModalOpen(true);
+  };
+
+  const handleCryptoDonationSuccess = (txHash: string) => {
+    console.log('Crypto donation successful:', txHash);
+    alert(`Donasi crypto berhasil! Transaction Hash: ${txHash}`);
+    setIsCryptoModalOpen(false);
   };
 
   const handleLoaderComplete = () => {
@@ -74,12 +89,14 @@ const HomePage: React.FC = () => {
 
   return (
     <>
+      <WalletConnectBanner />
       <Header />
       <HeroSection />
       <CampaignsList 
         campaigns={campaigns}
         onViewDetails={handleViewDetails}
         onDonate={handleDonate}
+        onCryptoDonate={handleCryptoDonate}
       />
       <Footer />
       
@@ -88,6 +105,13 @@ const HomePage: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         campaign={selectedCampaign}
         onSubmit={handleDonationSubmit}
+      />
+      
+      <CryptoDonationModal
+        isOpen={isCryptoModalOpen}
+        onClose={() => setIsCryptoModalOpen(false)}
+        campaign={selectedCampaign}
+        onSuccess={handleCryptoDonationSuccess}
       />
     </>
   );
@@ -98,6 +122,7 @@ const CampaignsPage: React.FC = () => {
   const navigate = useNavigate();
   const [selectedCampaign, setSelectedCampaign] = useState<BloodCampaign | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCryptoModalOpen, setIsCryptoModalOpen] = useState(false);
 
   const handleViewDetails = (campaign: BloodCampaign) => {
     navigate(`/campaigns/${campaign.id}`);
@@ -114,8 +139,20 @@ const CampaignsPage: React.FC = () => {
     setIsModalOpen(false);
   };
 
+  const handleCryptoDonate = (campaign: BloodCampaign) => {
+    setSelectedCampaign(campaign);
+    setIsCryptoModalOpen(true);
+  };
+
+  const handleCryptoDonationSuccess = (txHash: string) => {
+    console.log('Crypto donation successful:', txHash);
+    alert(`Donasi crypto berhasil! Transaction Hash: ${txHash}`);
+    setIsCryptoModalOpen(false);
+  };
+
   return (
     <>
+      <WalletConnectBanner />
       <Header />
       <div className="min-h-screen bg-gray-50 pt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -127,6 +164,7 @@ const CampaignsPage: React.FC = () => {
             campaigns={campaigns}
             onViewDetails={handleViewDetails}
             onDonate={handleDonate}
+            onCryptoDonate={handleCryptoDonate}
           />
         </div>
       </div>
@@ -137,6 +175,13 @@ const CampaignsPage: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         campaign={selectedCampaign}
         onSubmit={handleDonationSubmit}
+      />
+      
+      <CryptoDonationModal
+        isOpen={isCryptoModalOpen}
+        onClose={() => setIsCryptoModalOpen(false)}
+        campaign={selectedCampaign}
+        onSuccess={handleCryptoDonationSuccess}
       />
     </>
   );
@@ -203,25 +248,19 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/campaigns" element={<CampaignsPage />} />
           <Route path="/campaigns/:id" element={
-            <>
-              <Header />
+            <Layout>
               <CampaignDetailPage />
-              <Footer />
-            </>
+            </Layout>
           } />
           <Route path="/donors" element={
-            <>
-              <Header />
+            <Layout>
               <DonorPage />
-              <Footer />
-            </>
+            </Layout>
           } />
           <Route path="/about" element={
-            <>
-              <Header />
+            <Layout>
               <AboutPage />
-              <Footer />
-            </>
+            </Layout>
           } />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />

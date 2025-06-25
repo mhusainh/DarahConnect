@@ -159,7 +159,7 @@ const Header: React.FC = () => {
                   </HoverScale>
                 </>
               ) : (
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-3">
                   <HoverScale scale={1.05}>
                     <MagneticButton
                       onClick={handleDonateNow}
