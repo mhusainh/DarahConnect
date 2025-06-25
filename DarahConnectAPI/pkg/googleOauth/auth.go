@@ -82,7 +82,7 @@ func (s *Service) Callback(ctx echo.Context) (map[string]interface{}, error) {
 		PictureURL: user.AvatarURL,
 		Provider:   "google",
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(12 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}

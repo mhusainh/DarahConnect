@@ -17,6 +17,9 @@ var (
 func PublicRoutes(
 	userHandler handler.UserHandler,
 	bloodRequestHandler handler.BloodRequestHandler,
+	bloodDonationHandler handler.BloodDonationHandler,
+	certificateHandler handler.CertificateHandler,
+	donationHandler *handler.DonationHandler,
 ) []route.Route {
 	return []route.Route{
 		// User Handler
@@ -45,6 +48,7 @@ func PublicRoutes(
 			Path:    "/verify-email",
 			Handler: userHandler.VerifyEmail,
 		},
+		// Blood Request/Campaign Handler
 		{
 			Method:  http.MethodGet,
 			Path:    "/campaign",
@@ -55,6 +59,13 @@ func PublicRoutes(
 			Path:    "/campaign/:id",
 			Handler: bloodRequestHandler.GetCampaigns,
 		},
+		// Donation Handler
+		{
+			Method:  http.MethodPost,
+			Path:    "/donation/webhook",
+			Handler: donationHandler.WebHookTransaction,
+		},
+		// Certificate Handler
 
 	}
 }
@@ -67,6 +78,9 @@ func PrivateRoutes(
 	donorRegistrationHandler handler.DonorRegistrationHandler,
 	donorScheduleHandler handler.DonorScheduleHandler,
 	hospitalHandler handler.HospitalHandler,
+	bloodDonationHandler handler.BloodDonationHandler,
+	certificateHandler handler.CertificateHandler,
+	donationHandler *handler.DonationHandler,
 ) []route.Route {
 	return []route.Route{
 		// =============================================
@@ -141,7 +155,36 @@ func PrivateRoutes(
 			Handler: donorScheduleHandler.DeleteDonorSchedule,
 			Roles:   userOnly,
 		},
-
+		{
+			Method:  http.MethodPost,
+			Path:    "/donation/transaction",
+			Handler: donationHandler.CreateTransaction,
+			Roles:   userOnly,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/certificates",
+			Handler: certificateHandler.GetAll,
+			Roles:   userOnly,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/certificate/:id",
+			Handler: certificateHandler.GetById,
+			Roles:   userOnly,
+		},
+		{
+			Method:  http.MethodPost,
+			Path:    "/admin/campaign/:id",
+			Handler: bloodRequestHandler.CreateBloodRequest,
+			Roles:   userOnly,
+		},
+		{
+			Method:  http.MethodPut,
+			Path:    "/admin/campaign/:id",
+			Handler: bloodRequestHandler.UpdateBloodRequest,
+			Roles:   userOnly,
+		},
 		// =============================================
 		// ADMIN ONLY ROUTES
 		// =============================================
@@ -172,9 +215,21 @@ func PrivateRoutes(
 		},
 		// Blood Request/Campaign - Admin Only
 		{
+			Method:  http.MethodPost,
+			Path:    "/admin/campaign",
+			Handler: bloodRequestHandler.CreateCampaign,
+			Roles:   adminOnly,
+		},
+		{
 			Method:  http.MethodPut,
 			Path:    "/admin/campaign/:id",
-			Handler: bloodRequestHandler.UpdateBloodRequest,
+			Handler: bloodRequestHandler.UpdateCampaign,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodPut,
+			Path:    "/admin/campaign/:id",
+			Handler: bloodRequestHandler.StatusBloodRequest,
 			Roles:   adminOnly,
 		},
 		{
@@ -275,6 +330,7 @@ func PrivateRoutes(
 			Handler: donorRegistrationHandler.UpdateDonorRegistration,
 			Roles:   allRoles,
 		},
+		// Hospital - All Roles
 		{
 			Method:  http.MethodGet,
 			Path:    "/hospital/",
@@ -285,6 +341,56 @@ func PrivateRoutes(
 			Method:  http.MethodGet,
 			Path:    "/hospital/:id",
 			Handler: hospitalHandler.GetById,
+			Roles:   allRoles,
+		},
+		// Blood Donation - All Roles
+		{
+			Method:  http.MethodGet,
+			Path:    "/blood-donations",
+			Handler: bloodDonationHandler.GetAll,
+			Roles:   allRoles,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/blood-donations/user",
+			Handler: bloodDonationHandler.GetByUser,
+			Roles:   allRoles,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/blood-donation/:id",
+			Handler: bloodDonationHandler.GetById,
+			Roles:   allRoles,
+		},
+		{
+			Method:  http.MethodPost,
+			Path:    "/blood-donation",
+			Handler: bloodDonationHandler.Create,
+			Roles:   allRoles,
+		},
+		{
+			Method:  http.MethodPut,
+			Path:    "/blood-donation/:id",
+			Handler: bloodDonationHandler.Update,
+			Roles:   allRoles,
+		},
+		{
+			Method:  http.MethodPut,
+			Path:    "/blood-donation/:id/status",
+			Handler: bloodDonationHandler.StatusBloodDonation,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodDelete,
+			Path:    "/blood-donation/:id",
+			Handler: bloodDonationHandler.Delete,
+			Roles:   allRoles,
+		},
+		// Certificate - All Roles
+		{
+			Method:  http.MethodGet,
+			Path:    "/certificates/user",
+			Handler: certificateHandler.GetByUser,
 			Roles:   allRoles,
 		},
 	}

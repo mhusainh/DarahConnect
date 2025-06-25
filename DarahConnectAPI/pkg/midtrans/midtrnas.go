@@ -22,7 +22,7 @@ type MidtransService interface {
 type midtransService struct {
 	cfg *configs.MidtransConfig
 	snapClient snap.Client
-	donationsRepository repository.DonationsRepository
+	DonationsRepository repository.DonationsRepository
 	
 }
 
@@ -86,7 +86,7 @@ func (s *midtransService) WebHookTransaction(ctx context.Context, input *dto.Don
 	donation.Status = "success"
 	
 	// Save donation to database
-	if err := s.donationsRepository.Create(ctx, donation); err != nil {
+	if err := s.DonationsRepository.Create(ctx, donation); err != nil {
 		return errors.New("Failed to process donation")
 	}
 
