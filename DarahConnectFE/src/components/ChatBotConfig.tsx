@@ -18,7 +18,7 @@ interface ChatBotSettings {
 
 const ChatBotConfig: React.FC<ChatBotConfigProps> = ({ onSave }) => {
   const [config, setConfig] = useState<ChatBotSettings>({
-    webhookUrl: 'https://vertically-possible-amoeba.ngrok-free.app/webhook-test/47613ca2-45fb-450a-9480-66eb1ead44ac',
+    webhookUrl: 'https://vertically-possible-amoeba.ngrok-free.app/webhook-test/0f8b8e46-3150-4d54-9ed4-5bf0d7952d17',
     botName: 'DarahConnect Assistant',
     welcomeMessage: 'Halo! Saya assistant DarahConnect. Ada yang bisa saya bantu hari ini? 🩸',
     primaryColor: '#ef4444',
