@@ -30,9 +30,14 @@ func PublicRoutes(
 		},
 		{
 			Method:  http.MethodGet,
-			Path:    "/login/google",
+			Path:    "/login/:provider",
 			Handler: userHandler.LoginGoogleAuth,
 		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/login/:provider/callback",
+			Handler: userHandler.CallbackGoogleAuth,
+		},	
 		{
 			Method:  http.MethodPost,
 			Path:    "/register",

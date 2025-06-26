@@ -64,7 +64,7 @@ func (s *userService) Login(ctx context.Context, email string, password string) 
 		return "", errors.New("Email atau password salah")
 	}
 
-	if user.IsVerified == 0 {
+	if !user.IsVerified {
 		return "", errors.New("Silahkan verifikasi email terlebih dahulu")
 	}
 
@@ -105,7 +105,7 @@ func (s *userService) Register(ctx context.Context, req dto.UserRegisterRequest)
 	user.Address = req.Address
 	user.Role = "User"
 	user.VerifyEmailToken = utils.RandomString(16)
-	user.IsVerified = 0
+	user.IsVerified = false
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -301,23 +301,28 @@ func (s *userService) VerifyEmail(ctx context.Context, req dto.VerifyEmailReques
 	if err != nil {
 		return errors.New("Token verifikasi email salah")
 	}
-	user.IsVerified = 1
+	user.IsVerified = true
 	return s.userRepository.Update(ctx, user)
 }
 
 func (s *userService) CheckGoogleOAuth(ctx context.Context, email string, user *goth.User) (bool, error) {
-	if user, err := s.userRepository.GetByEmail(ctx, email); err != nil {
+	existingUser, err := s.userRepository.GetByEmail(ctx, email)
+	if err != nil {
 		// User not found, create a new one
+		log.Printf("Creating new user from Google OAuth: %s", email)
 		newUser := new(entity.User)
 		newUser.Email = user.Email
 		newUser.Name = user.Name
 		newUser.Role = "User"
-		newUser.IsVerified = 1
+		newUser.IsVerified = true
 		if err = s.userRepository.Create(ctx, newUser); err != nil {
+			log.Printf("Error creating new user: %v", err)
 			return false, err
 		}
 		return true, nil
 	}
+	// User already exists
+	log.Printf("Existing user found for Google OAuth: %s (ID: %d)", existingUser.Email, existingUser.Id)
 	return false, nil
 }
 

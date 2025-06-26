@@ -2,6 +2,8 @@ package googleoauth
 
 import (
 	"errors"
+	"fmt"
+	"log"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -35,6 +37,8 @@ func InitGoogle(cfg *configs.GoogleOauth) error {
 		return errors.New("Environment variables (CLIENT_ID, CLIENT_SECRET, CLIENT_CALLBACK_URL) are required")
 	}
 
+	log.Printf("Initializing Google OAuth with callback URL: %s", cfg.CallbackURL)
+
 	goth.UseProviders(
 		google.New(cfg.ClientId, cfg.ClientSecret, cfg.CallbackURL),
 	)
@@ -47,30 +51,70 @@ func (s *Service) Login(ctx echo.Context) (goth.User, error) {
 		return goth.User{}, errors.New("Provider not specified")
 	}
 
+	// Clear any existing session first
+	gothic.Logout(ctx.Response().Writer, ctx.Request())
+
 	q := ctx.Request().URL.Query()
-	q.Add("provider", ctx.Param("provider"))
+	q.Add("provider", provider)
 	ctx.Request().URL.RawQuery = q.Encode()
 
 	req := ctx.Request()
 	res := ctx.Response().Writer
-	if gothUser, err := gothic.CompleteUserAuth(res, req); err == nil {
-		return gothUser, nil
-	}
+
+	log.Printf("Starting OAuth login for provider: %s", provider)
+	log.Printf("Request URL: %s", req.URL.String())
+
+	// Begin authentication process - this will redirect to Google
 	gothic.BeginAuthHandler(res, req)
-	return goth.User{}, errors.New("Failed to complete user authentication")
+
+	// This won't be reached due to redirect, but we need to return something
+	return goth.User{}, nil
 }
 
 func (s *Service) Callback(ctx echo.Context) (map[string]interface{}, error) {
+	// Add provider parameter to query for goth
+	provider := ctx.Param("provider")
+	if provider == "" {
+		return nil, errors.New("Provider not specified")
+	}
+
+	q := ctx.Request().URL.Query()
+	q.Add("provider", provider)
+	ctx.Request().URL.RawQuery = q.Encode()
+
 	req := ctx.Request()
 	res := ctx.Response().Writer
+
+	log.Printf("Processing OAuth callback for provider: %s", provider)
+	log.Printf("Callback URL: %s", req.URL.String())
+	log.Printf("Query parameters: %s", req.URL.RawQuery)
+
+	// Add debugging for the authorization code
+	authCode := req.URL.Query().Get("code")
+	if authCode == "" {
+		log.Printf("No authorization code found in callback")
+		return nil, errors.New("authorization code not found")
+	}
+	log.Printf("Authorization code received (length: %d)", len(authCode))
+
+	// Check for error parameter
+	if errParam := req.URL.Query().Get("error"); errParam != "" {
+		log.Printf("OAuth error parameter: %s", errParam)
+		return nil, fmt.Errorf("OAuth error: %s", errParam)
+	}
+
 	user, err := gothic.CompleteUserAuth(res, req)
 	if err != nil {
-		return nil, err
+		log.Printf("Error completing user auth: %v", err)
+		return nil, fmt.Errorf("authentication failed: %v", err)
 	}
+
+	log.Printf("Successfully authenticated user: %s", user.Email)
 
 	// Check if user already exists in the database
 	IsNew, err := s.userService.CheckGoogleOAuth(ctx.Request().Context(), user.Email, &user)
 	if err != nil {
+		log.Printf("Error checking Google OAuth user: %v", err)
 		return nil, errors.New("ada kesalahan saat check google oauth")
 	}
 
@@ -90,6 +134,7 @@ func (s *Service) Callback(ctx echo.Context) (map[string]interface{}, error) {
 	// Generate token
 	accessToken, err := s.tokenService.GenerateAccessToken(claims)
 	if err != nil {
+		log.Printf("Error generating access token: %v", err)
 		return nil, errors.New("ada kesalahan saat generate token")
 	}
 

@@ -17,7 +17,7 @@ type Config struct {
 	SMTPConfig       SMTPConfig       `envPrefix:"SMTP_" mapstructure:"SMTP"`
 	CloudinaryConfig CloudinaryConfig `envPrefix:"CLOUDINARY_" mapstructure:"CLOUDINARY"`
 	MidtransConfig   MidtransConfig   `envPrefix:"MIDTRANS_" mapstructure:"MIDTRANS"`
-	GoogleOauth 		GoogleOauth		`envPrefix:"GOOGLE_" mapstructure:"GOOGLE_"`
+	GoogleOauth      GoogleOauth      `envPrefix:"GOOGLE_" mapstructure:"GOOGLE_"`
 }
 
 type RedisConfig struct {
@@ -26,21 +26,21 @@ type RedisConfig struct {
 	Password string `env:"PASSWORD" envDefault:"" mapstructure:"PASSWORD"`
 }
 
-type GoogleOauth struct{
-	ClientId string `env:"CLIENT_ID" mapstructure:"CLIENT_ID"`
+type GoogleOauth struct {
+	ClientId     string `env:"CLIENT_ID" mapstructure:"CLIENT_ID"`
 	ClientSecret string `env:"CLIENT_SECRET" mapstructure:"CLIENT_SECRET"`
-	CallbackURL string `env:"CLIENT_CALLBACK_URL" mapstructure:"CLIENT_CALLBACK_URL"`
+	CallbackURL  string `env:"CLIENT_CALLBACK_URL" mapstructure:"CLIENT_CALLBACK_URL"`
 }
 type JWTConfig struct {
 	SecretKey string `env:"SECRET_KEY" envDefault:"secret" mapstructure:"SECRET_KEY"`
 }
 
 type SMTPConfig struct {
-	Username string `env:"SENDER_EMAIL" mapstructure:"SENDER_EMAIL"`
+	Username    string `env:"SENDER_EMAIL" mapstructure:"SENDER_EMAIL"`
 	SenderEmail string `env:"SENDER_EMAIL" mapstructure:"SENDER_EMAIL"`
-	APIKey string `env:"API_KEY" mapstructure:"API_KEY"`
-	SecretKey string `env:"SECRET_KEY" mapstructure:"SECRET_KEY"`
-	ProxyURL string `env:"PROXY_URL" mapstructure:"PROXY_URL"` // URL proxy jika diperlukan
+	APIKey      string `env:"API_KEY" mapstructure:"API_KEY"`
+	SecretKey   string `env:"SECRET_KEY" mapstructure:"SECRET_KEY"`
+	ProxyURL    string `env:"PROXY_URL" mapstructure:"PROXY_URL"` // URL proxy jika diperlukan
 }
 
 type PostgresConfig struct {
