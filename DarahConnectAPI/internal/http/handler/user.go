@@ -15,10 +15,10 @@ import (
 )
 
 type UserHandler struct {
-	userService       service.UserService
-	cloudinaryService *cloudinary.Service
-	GoogleOauthService   *googleoauth.Service
-}	
+	userService        service.UserService
+	cloudinaryService  *cloudinary.Service
+	GoogleOauthService *googleoauth.Service
+}
 
 func NewUserHandler(userService service.UserService, cloudinaryService *cloudinary.Service, GoogleOauthService *googleoauth.Service) UserHandler {
 	return UserHandler{userService, cloudinaryService, GoogleOauthService}
@@ -226,12 +226,14 @@ func (h *UserHandler) UpdateUser(ctx echo.Context) error {
 }
 
 func (h *UserHandler) LoginGoogleAuth(ctx echo.Context) error {
-	user, err := h.GoogleOauthService.Login(ctx)
+	// This will redirect to Google OAuth, so no JSON response needed
+	_, err := h.GoogleOauthService.Login(ctx)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully login", user))
+	// This will not be reached due to redirect
+	return nil
 }
 
 func (h *UserHandler) CallbackGoogleAuth(ctx echo.Context) error {
