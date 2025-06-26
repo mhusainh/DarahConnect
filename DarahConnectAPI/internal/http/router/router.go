@@ -126,7 +126,7 @@ func PrivateRoutes(
 		// Donor Registration - User Only
 		{
 			Method:  http.MethodPost,
-			Path:    "/admin/users/:id",
+			Path:    "/donor-registration",
 			Handler: donorRegistrationHandler.CreateDonorRegistration,
 			Roles:   userOnly,
 		},
@@ -180,7 +180,7 @@ func PrivateRoutes(
 		},
 		{
 			Method:  http.MethodPost,
-			Path:    "/admin/campaign/:id",
+			Path:    "/create-blood-request",
 			Handler: bloodRequestHandler.CreateBloodRequest,
 			Roles:   userOnly,
 		},

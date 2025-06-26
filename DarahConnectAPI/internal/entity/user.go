@@ -15,7 +15,7 @@ type User struct {
 	Role               string    `json:"role"`
 	ResetPasswordToken string    `json:"reset_password_token"`
 	VerifyEmailToken   string    `json:"verify_email_token"`
-	IsVerified         int       `json:"is_verified"`
+	IsVerified         bool       `json:"is_verified"`
 	LastDonationDate   time.Time `json:"last_donation_date"`
 	DonationCount      int       `json:"donation_count"`
 	PublicId           string    `json:"public_id"`

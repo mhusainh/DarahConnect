@@ -55,7 +55,7 @@ type GetUserByIdByUserRequest struct {
 }
 
 type ResetPasswordRequest struct {
-	Token    string `param:"token" validate:"required"`
+	Token    string `query:"token"`
 	Password string `json:"password" validate:"required"`
 }
 

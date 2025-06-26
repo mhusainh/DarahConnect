@@ -46,10 +46,6 @@ func (h *DonationHandler) CreateTransaction(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
 
-	if err := ctx.Validate(req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
-	}
-
 	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {
 		return ctx.JSON(http.StatusInternalServerError, "unable to get user claims")

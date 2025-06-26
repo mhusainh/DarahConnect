@@ -40,9 +40,13 @@ func InitMidtrans(cfg *configs.MidtransConfig) (MidtransService, error) {
 }
 
 func NewMidtransService(cfg *configs.MidtransConfig) *midtransService {
-	return &midtransService{
-		cfg: cfg,
-	}
+    snapClient := snap.Client{}
+    snapClient.New(cfg.ServerKey, midtrans.Sandbox)
+    
+    return &midtransService{
+        cfg: cfg,
+        snapClient: snapClient,
+    }
 }
 
 func (s *midtransService) CreateTransaction(ctx context.Context, req dto.PaymentRequest) (string, error) {

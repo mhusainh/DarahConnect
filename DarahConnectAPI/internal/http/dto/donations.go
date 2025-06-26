@@ -8,9 +8,9 @@ type DonationsCreate struct {
 }
 
 type PaymentRequest struct {
-	OrderID  string `json:"order_id" validate:"required"`
+	OrderID  string `json:"order_id"`
 	Amount   int64 `json:"amount" validate:"required"`
-	Fullname string `json:"fullname" validate:"required"`
-	Email    string `json:"email" validate:"required"`
-	Phone    string `json:"phone" validate:"required"`
+	Fullname string `json:"fullname"`
+	Email    string `json:"email"`
+	Phone    string `json:"phone"`
 }

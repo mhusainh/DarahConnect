@@ -130,9 +130,12 @@ func (h *UserHandler) DeleteUser(ctx echo.Context) error {
 
 func (h *UserHandler) ResetPassword(ctx echo.Context) error {
 	var req dto.ResetPasswordRequest
-
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+	req.Token = ctx.QueryParam("token")
+	if req.Token == "" {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "token is required"))
 	}
 
 	err := h.userService.ResetPassword(ctx.Request().Context(), req)
@@ -159,10 +162,15 @@ func (h *UserHandler) ResetPasswordRequest(ctx echo.Context) error {
 }
 
 func (h *UserHandler) VerifyEmail(ctx echo.Context) error {
-	var req dto.VerifyEmailRequest
+	// Get token directly from query parameter instead of using Bind
+	token := ctx.QueryParam("token")
+	if token == "" {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "token is required"))
+	}
 
-	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	// Create the request with the token
+	req := dto.VerifyEmailRequest{
+		Token: token,
 	}
 
 	err := h.userService.VerifyEmail(ctx.Request().Context(), req)
@@ -205,11 +213,8 @@ func (h *UserHandler) UpdateUser(ctx echo.Context) error {
 	if !ok {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user information from claims"))
 	}
-
-	// Set user ID dari token
-	if req.Id != claimsData.Id {
-		return ctx.JSON(http.StatusUnauthorized, response.ErrorResponse(http.StatusUnauthorized, "unauthorized"))
-	}
+	
+	req.Id = claimsData.Id 
 
 	// Update user data
 	err := h.userService.Update(ctx.Request().Context(), req)
