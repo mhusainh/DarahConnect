@@ -61,6 +61,10 @@ type ResetPasswordRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
+type ResendTokenVerifyEmailRequest struct {
+	Email string `json:"email" validate:"required"`
+}
+
 type RequestResetPassword struct {
 	Email string `json:"email" validate:"required"`
 }

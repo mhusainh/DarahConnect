@@ -20,6 +20,8 @@ type User struct {
 	DonationCount      int       `json:"donation_count"`
 	PublicId           string    `json:"public_id"`
 	UrlFile            string    `json:"url_file"`
+	WalletAddress      string    `json:"wallet_address"`
+	TokenExpiresAt     time.Time `json:"token_expires_at"`
 	CreatedAt          time.Time `json:"created_at"`
 	UpdatedAt          time.Time `json:"updated_at"`
 }

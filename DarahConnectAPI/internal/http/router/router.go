@@ -58,6 +58,11 @@ func PublicRoutes(
 			Path:    "verify-email",
 			Handler: userHandler.VerifyEmail,
 		},
+		{
+			Method:  http.MethodPost,
+			Path:    "/resend-token-verify-email",
+			Handler: userHandler.ResendTokenVerifyEmail,
+		},
 		// Blood Request/Campaign Handler
 		{
 			Method:  http.MethodGet,
