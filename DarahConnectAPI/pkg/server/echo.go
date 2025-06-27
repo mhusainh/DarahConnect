@@ -1,7 +1,10 @@
 package server
 
 import (
+	"mime/multipart"
 	"net/http"
+	"path/filepath"
+	"strings"
 
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/configs"
 
@@ -27,6 +30,83 @@ func (cv *CustomValidator) Validate(i interface{}) error {
 	return nil
 }
 
+// RegisterCustomValidators mendaftarkan validator kustom
+func RegisterCustomValidators(v *validator.Validate) {
+	// Validator untuk ekstensi file berdasarkan magic numbers
+	v.RegisterValidation("ext", validateFileExtension)
+}
+
+// validateFileExtension memvalidasi ekstensi file berdasarkan magic numbers
+func validateFileExtension(fl validator.FieldLevel) bool {
+	// Mendapatkan nilai field
+	field := fl.Field()
+
+	// Jika field kosong dan tag omitempty ada, validasi berhasil
+	if field.IsNil() {
+		return true
+	}
+
+	// Mendapatkan parameter dari tag validasi (ext=jpg|jpeg|png)
+	params := strings.Split(fl.Param(), "|")
+
+	// Mendapatkan file header dari field
+	fileHeader, ok := field.Interface().(*multipart.FileHeader)
+	if !ok {
+		return false
+	}
+
+	// Validasi berdasarkan ekstensi file
+	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
+	if ext == "" {
+		return false
+	}
+
+	// Hapus titik dari ekstensi
+	ext = strings.TrimPrefix(ext, ".")
+
+	// Periksa apakah ekstensi ada dalam parameter
+	validExt := false
+	for _, allowedExt := range params {
+		if ext == allowedExt {
+			validExt = true
+			break
+		}
+	}
+
+	// Jika ekstensi tidak valid, return false
+	if !validExt {
+		return false
+	}
+
+	// Validasi berdasarkan magic numbers
+	file, err := fileHeader.Open()
+	if err != nil {
+		return false
+	}
+	defer file.Close()
+
+	// Baca 512 byte pertama untuk deteksi tipe konten
+	buffer := make([]byte, 512)
+	_, err = file.Read(buffer)
+	if err != nil {
+		return false
+	}
+
+	// Deteksi tipe konten berdasarkan magic numbers
+	contentType := http.DetectContentType(buffer)
+
+	// Validasi tipe konten sesuai dengan ekstensi yang diizinkan
+	switch ext {
+	case "jpg", "jpeg":
+		return contentType == "image/jpeg"
+	case "png":
+		return contentType == "image/png"
+	default:
+		// Ekstensi tidak didukung dalam validasi konten
+		return false
+	}
+}
+
 type Server struct {
 	*echo.Echo
 }
@@ -35,7 +115,11 @@ func NewServer(cfg *configs.Config,
 	publicRoutes, privateRoutes []route.Route) *Server {
 	e := echo.New()
 	e.HideBanner = true
-	e.Validator = &CustomValidator{validator: validator.New()}
+	
+	// Inisialisasi validator
+	validator := validator.New()
+	RegisterCustomValidators(validator)
+	e.Validator = &CustomValidator{validator: validator}
 
 	// Add CORS middleware
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
@@ -48,7 +132,7 @@ func NewServer(cfg *configs.Config,
 	// Add logging middleware
 	e.Use(middleware.Logger())
 
-	v1 := e.Group("/api/v1")
+	v1 := e.Group("/api/v1/")
 
 	if len(publicRoutes) > 0 {
 		for _, route := range publicRoutes {

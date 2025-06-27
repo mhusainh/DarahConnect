@@ -6,8 +6,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"path/filepath"
-	"strings"
+
 
 	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/cloudinary/cloudinary-go/v2/api"
@@ -39,10 +38,6 @@ func NewService(config *configs.CloudinaryConfig) (*Service, error) {
 // Mengembalikan URL gambar dan public ID jika berhasil
 func (s *Service) UploadFile(fileHeader *multipart.FileHeader, folder string) (string, string, error) {
 	// Periksa ekstensi file
-	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
-	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
-		return "", "", errors.New("format file tidak didukung. Hanya .jpg, .jpeg, dan .png yang diizinkan")
-	}
 
 	// Buka file
 	file, err := fileHeader.Open()
