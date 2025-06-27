@@ -183,28 +183,26 @@ func (h *UserHandler) VerifyEmail(ctx echo.Context) error {
 
 func (h *UserHandler) UpdateUser(ctx echo.Context) error {
 	var req dto.UpdateUserRequest
-
-	// Manually bind the image file
-	if imageFile, err := ctx.FormFile("image"); err != nil {
-		// If the error is due to missing file, it means the image is optional
-		if err == http.ErrMissingFile {
-			req.Image = nil // Set image to nil if not provided
+	
+	if req.Image != nil{
+		// Manually bind the image file
+		if imageFile, err := ctx.FormFile("image"); err != nil {
+			// If the error is due to missing file, it means the image is optional
+			if err == http.ErrMissingFile {
+				req.Image = nil // Set image to nil if not provided
+			} else {
+				// Handle other errors (e.g., malformed multipart data)
+				return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+			}
 		} else {
-			// Handle other errors (e.g., malformed multipart data)
-			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+			req.Image = imageFile
 		}
-	} else {
-		req.Image = imageFile
 	}
-
 	// Bind form data terlebih dahulu
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
 
-	if err := ctx.Validate(req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
-	}
 	// Retrieve user claims from the JWT token
 	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {
