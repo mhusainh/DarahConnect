@@ -71,7 +71,6 @@ func (s *donorRegistrationService) GetById(ctx context.Context, id int64) (*enti
 	if err != nil {
 		return nil, errors.New("pendaftaran donor tidak ditemukan")
 	}
-
 	return donorRegistration, nil
 }
 
