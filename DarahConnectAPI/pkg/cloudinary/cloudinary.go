@@ -2,12 +2,7 @@ package cloudinary
 
 import (
 	"context"
-	"errors"
-	"io"
 	"mime/multipart"
-	"net/http"
-	"path/filepath"
-	"strings"
 
 	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/cloudinary/cloudinary-go/v2/api"
