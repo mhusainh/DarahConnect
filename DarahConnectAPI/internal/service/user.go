@@ -356,8 +356,6 @@ func (s *userService) VerifyEmail(ctx context.Context, req dto.VerifyEmailReques
 func (s *userService) CheckGoogleOAuth(ctx context.Context, email string, user *goth.User) (bool, error) {
 	existingUser, err := s.userRepository.GetByEmail(ctx, email)
 	if err != nil {
-		// User not found, create a new one
-		log.Printf("Creating new user from Google OAuth: %s", email)
 		newUser := new(entity.User)
 		newUser.Email = user.Email
 		newUser.Name = user.Name
@@ -369,8 +367,9 @@ func (s *userService) CheckGoogleOAuth(ctx context.Context, email string, user *
 		}
 		return true, nil
 	}
-	// User already exists
-	log.Printf("Existing user found for Google OAuth: %s (ID: %d)", existingUser.Email, existingUser.Id)
+	if existingUser.Name == "" {
+		return true, nil
+	}
 	return false, nil
 }
 
