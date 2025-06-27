@@ -3,7 +3,9 @@ package cloudinary
 import (
 	"context"
 	"errors"
+	"io"
 	"mime/multipart"
+	"net/http"
 	"path/filepath"
 	"strings"
 
@@ -48,6 +50,18 @@ func (s *Service) UploadFile(fileHeader *multipart.FileHeader, folder string) (s
 		return "", "", err
 	}
 	defer file.Close()
+
+	buffer := make([]byte, 512)
+	_, err = file.Read(buffer)
+	if err != nil {
+		return "", "", err
+	}
+	file.Seek(0, io.SeekStart)
+
+	mimeType := http.DetectContentType(buffer)
+	if mimeType != "image/jpeg" && mimeType != "image/png" && mimeType != "image/jpg" {
+		return "", "", errors.New("format file tidak didukung berdasarkan isi file")
+	}
 
 	// Set folder default jika tidak disediakan
 	if folder == "" {
