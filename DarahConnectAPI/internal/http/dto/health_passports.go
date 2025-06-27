@@ -6,7 +6,7 @@ type  HealthPassportUpdateRequest struct {
 }
 
 type  HealthPassportUpdateByUserRequest struct {
-	Id             int64     `param:"id" validate:"required"`
+	Id             int64     `json:"id" validate:"required"`
 }
 
 type GetAllHealthPassportRequest struct {

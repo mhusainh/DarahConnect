@@ -111,11 +111,6 @@ func (h *HealthPassportHandler) UpdateStatusHealthPassport(ctx echo.Context) err
 }
 
 func (h *HealthPassportHandler) UpdateHealthPassportByUser(ctx echo.Context) error {
-	var req dto.HealthPassportUpdateByUserRequest
-	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
-	}
-
 	// Retrieve user claims from the JWT token
 	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {

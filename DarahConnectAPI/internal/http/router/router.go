@@ -104,9 +104,9 @@ func PrivateRoutes(
 			Roles:   userOnly,
 		},
 		{
-			Method:  http.MethodPut,
+			Method:  http.MethodPost,
 			Path:    "/health-passport",
-			Handler: healthPassportHandler.UpdateHealthPassportByUser,
+			Handler: healthPassportHandler.CreateHealthPassport,
 			Roles:   userOnly,
 		},
 		// Notification - User Only
