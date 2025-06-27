@@ -1,5 +1,5 @@
 ENV: "dev"
-PORT: "8080"
+PORT: "8081"
 POSTGRES:
   HOST: "host.docker.internal"
   PORT: "5432"
