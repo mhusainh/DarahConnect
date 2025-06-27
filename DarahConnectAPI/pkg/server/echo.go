@@ -9,11 +9,11 @@ import (
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/route"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/token"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/go-playground/validator/v10"
 )
 
 type CustomValidator struct {

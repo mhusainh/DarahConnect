@@ -35,11 +35,18 @@ func (s *donorRegistrationService) Create(ctx context.Context, req dto.DonorRegi
 	donorRegistration.Status = "registered"
 	donorRegistration.Notes = req.Notes
 	
+	if existingReg, err := s.donorRegistrationRepository.GetByRequestId(ctx, req.RequestId); err != nil {
+		return errors.New("Event Tidak ditemukan")
+	}else if existingReg != nil {
+		return errors.New("Anda sudah mendaftar di event ini")
+	}
+
 	if err := s.donorRegistrationRepository.Create(ctx, donorRegistration); err != nil {
 		return errors.New("Gagal membuat pendaftaran donor")
 	}
 	return nil
 }
+
 
 func (s *donorRegistrationService) GetAll(ctx context.Context, req dto.GetAllDonorRegistrationRequest) ([]entity.DonorRegistration, int64 ,error) {
 	donorRegistrations, total, err := s.donorRegistrationRepository.GetAll(ctx, req)

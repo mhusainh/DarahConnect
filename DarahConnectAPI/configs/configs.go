@@ -10,7 +10,7 @@ import (
 
 type Config struct {
 	ENV              string           `env:"ENV" envDefault:"dev" mapstructure:"ENV"`
-	PORT             string           `env:"PORT" envDefault:"8081" mapstructure:"PORT"`
+	PORT             string           `env:"PORT" envDefault:"8080" mapstructure:"PORT"`
 	PostgresConfig   PostgresConfig   `envPrefix:"POSTGRES_" mapstructure:"POSTGRES"`
 	JWT              JWTConfig        `envPrefix:"JWT_" mapstructure:"JWT"`
 	RedisConfig      RedisConfig      `envPrefix:"REDIS_" mapstructure:"REDIS"`

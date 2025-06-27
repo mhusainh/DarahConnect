@@ -54,6 +54,16 @@ func (h *BloodRequestHandler) CreateBloodRequest(ctx echo.Context) error {
 	if err := h.bloodRequestService.CreateBloodRequest(ctx.Request().Context(), req); err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
+
+	notificationData := dto.NotificationCreateRequest{
+		UserId:      req.UserId,
+		Title:       "Pemberitahuan Permintaan Darah",
+		Message:	 "Anda telah membuat permintaan darah. Mohon tunggu konfirmasi dari pihak admin.",
+		NotificationType: "Request",
+	}
+	if err := h.notificationService.Create(ctx.Request().Context(),notificationData ); err != nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
 	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully create blood request", nil))
 }
 

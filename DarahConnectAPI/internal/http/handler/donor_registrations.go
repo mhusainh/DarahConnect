@@ -17,15 +17,18 @@ import (
 type DonorRegistrationHandler struct {
 	donorRegistrationService service.DonorRegistrationService
 	healthPassportService    service.HealthPassportService
+	notificationService service.NotificationService
 }
 
 func NewDonorRegistrationHandler(
 	donorRegistrationService service.DonorRegistrationService,
 	healthPassportService service.HealthPassportService,
+	notificationService service.NotificationService,
 ) DonorRegistrationHandler {
 	return DonorRegistrationHandler{
 		donorRegistrationService,
 		healthPassportService,
+		notificationService,
 	}
 }
 
@@ -109,6 +112,18 @@ func (h *DonorRegistrationHandler) CreateDonorRegistration(ctx echo.Context) err
 	if err := h.donorRegistrationService.Create(ctx.Request().Context(), req); err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
+
+	notificationData := dto.NotificationCreateRequest{
+		UserId: req.UserId,
+		Title:  "Registrasi donor darah",
+		Message:   "Registrasi donor darah anda telah berhasil, silahkan tunggu konfirmasi dari admin",
+		NotificationType: "Donor Registration",
+
+	}
+	if err := h.notificationService.Create(ctx.Request().Context(), notificationData); err != nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+	
 	return ctx.JSON(http.StatusCreated, response.SuccessResponse("successfully creating donor registration", nil))
 }
 

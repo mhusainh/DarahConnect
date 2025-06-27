@@ -16,6 +16,7 @@ type DonorScheduleRepository interface {
 	GetAll(ctx context.Context, UserId int64, req dto.GetAllDonorScheduleRequest) ([]entity.DonorSchedule, int64, error)
 	Update(ctx context.Context, donorSchedule *entity.DonorSchedule) error
 	Delete(ctx context.Context, donorSchedule *entity.DonorSchedule) error
+	GetByRequestId(ctx context.Context, requestId int64) (*entity.DonorSchedule, error)
 }
 
 type donorScheduleRepository struct {
@@ -24,6 +25,14 @@ type donorScheduleRepository struct {
 
 func NewDonorScheduleRepository(db *gorm.DB) DonorScheduleRepository {
 	return &donorScheduleRepository{db}
+}
+
+func (r *donorScheduleRepository) GetByRequestId(ctx context.Context, requestId int64) (*entity.DonorSchedule, error) {
+	result := new(entity.DonorSchedule)
+	if err := r.db.WithContext(ctx).Where("request_id = ?", requestId).First(result).Error; err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (r *donorScheduleRepository) applyFilters(query *gorm.DB, req dto.GetAllDonorScheduleRequest) (*gorm.DB, dto.GetAllDonorScheduleRequest) {

@@ -112,19 +112,19 @@ func PrivateRoutes(
 		// Notification - User Only
 		{
 			Method:  http.MethodGet,
-			Path:    "/notifications/user",
+			Path:    "user/notifications/",
 			Handler: notificationHandler.GetNotificationsByUser,
 			Roles:   userOnly,
 		},
 		{
 			Method:  http.MethodGet,
-			Path:    "/notifications/user/:id",
+			Path:    "user/notifications/:id",
 			Handler: notificationHandler.GetNotificationByUser,
 			Roles:   userOnly,
 		},
 		{
 			Method:  http.MethodGet,
-			Path:    "/notifications/user/count",
+			Path:    "user/notifications/count",
 			Handler: notificationHandler.GetUnreadNotificationCount,
 			Roles:   userOnly,
 		},

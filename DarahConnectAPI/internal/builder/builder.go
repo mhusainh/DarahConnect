@@ -9,12 +9,11 @@ import (
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/service"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cache"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cloudinary"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/googleOauth"
+	googleoauth "github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/googleOauth"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/mailer"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/midtrans"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/route"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/token"
-	
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
@@ -52,7 +51,7 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clou
 	bloodRequestHandler := handler.NewBloodRequestHandler(bloodRequestService,notificationService)
 	bloodDonationHandler := handler.NewBloodDonationHandler(bloodDonationService, notificationService, certificateService)
 	certificateHandler := handler.NewCertificateHandler(certificateService)
-	donationHandler := handler.NewDonationHandler(midtransService)
+	donationHandler := handler.NewDonationHandler(midtransService, notificationService)
 	//end
 
 	return router.PublicRoutes(userHandler, bloodRequestHandler, bloodDonationHandler, certificateHandler, donationHandler)
@@ -97,12 +96,13 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clo
 	notificationHandler := handler.NewNotificationHandler(notificationService)
 	healthPassportHandler := handler.NewHealthPassportHandler(healthPassportService)
 	bloodRequestHandler := handler.NewBloodRequestHandler(bloodRequestService,notificationService)
-	donorRegistrationHandler := handler.NewDonorRegistrationHandler(donorRegistrationService,healthPassportService)
+	donorRegistrationHandler := handler.NewDonorRegistrationHandler(donorRegistrationService,healthPassportService,notificationService)
+
 	donorScheduleHandler := handler.NewDonorScheduleHandler(donorScheduleService)
 	hospitalHandler := handler.NewHospitalHandler(hospitalService)
 	bloodDonationHandler := handler.NewBloodDonationHandler(bloodDonationService, notificationService, certificateService)
 	certificateHandler := handler.NewCertificateHandler(certificateService)
-	donationHandler := handler.NewDonationHandler(midtransService)
+	donationHandler := handler.NewDonationHandler(midtransService, notificationService)
 	//end
 
 	return router.PrivateRoutes(userHandler, notificationHandler, healthPassportHandler, bloodRequestHandler, donorRegistrationHandler, donorScheduleHandler, hospitalHandler, bloodDonationHandler, certificateHandler, donationHandler)
