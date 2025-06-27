@@ -5,10 +5,6 @@ type  HealthPassportUpdateRequest struct {
 	Status         string    `json:"status"`          //'Active', 'Expired', 'Suspended'
 }
 
-type  HealthPassportUpdateByUserRequest struct {
-	Id             int64     `json:"id" validate:"required"`
-}
-
 type GetAllHealthPassportRequest struct {
 	Page      int64  `query:"page"`
 	Limit     int64  `query:"limit"`
