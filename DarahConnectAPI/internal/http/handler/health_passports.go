@@ -73,6 +73,24 @@ func (h *HealthPassportHandler) GetHealthPassportByUser(ctx echo.Context) error 
 		response.SuccessResponse("successfully showing health passport", healthPassport))
 }
 
+func (h *HealthPassportHandler) CreateHealthPassport(ctx echo.Context) error {
+	// Retrieve user claims from the JWT token
+	claims, ok := ctx.Get("user").(*jwt.Token)
+	if !ok {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user claims"))
+	}
+	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
+	if !ok {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user information from claims"))
+	}
+	
+	if err := h.healthPassportService.Create(ctx.Request().Context(), claimsData.Id); err != nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully create health passport", nil))	
+}
+
+
 func (h *HealthPassportHandler) UpdateStatusHealthPassport(ctx echo.Context) error {
 	var req dto.HealthPassportUpdateRequest
 	if err := ctx.Bind(&req); err != nil {
@@ -93,7 +111,7 @@ func (h *HealthPassportHandler) UpdateStatusHealthPassport(ctx echo.Context) err
 }
 
 func (h *HealthPassportHandler) UpdateHealthPassportByUser(ctx echo.Context) error {
-	var req dto.HealthPassportUpdateRequest
+	var req dto.HealthPassportUpdateByUserRequest
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
@@ -116,7 +134,7 @@ func (h *HealthPassportHandler) UpdateHealthPassportByUser(ctx echo.Context) err
 			response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 
-	if err := h.healthPassportService.Update(ctx.Request().Context(), req, healthPassport); err != nil {
+	if err := h.healthPassportService.UpdateByUser(ctx.Request().Context(), healthPassport); err != nil {
 		return ctx.JSON(http.StatusInternalServerError,
 			response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}

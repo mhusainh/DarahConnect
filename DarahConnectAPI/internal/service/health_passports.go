@@ -14,10 +14,11 @@ import (
 )
 
 type HealthPassportService interface {
-	Create(ctx context.Context, req dto.HealthPassportCreateRequest) error
+	Create(ctx context.Context, userId int64) error
 	GetById(ctx context.Context, id int64) (*entity.HealthPassport, error)
 	GetAll(ctx context.Context, req dto.GetAllHealthPassportRequest) ([]entity.HealthPassport, int64, error)
 	GetByUserId(ctx context.Context, userId int64) (*entity.HealthPassport, error)
+	UpdateByUser(ctx context.Context, healthPassport *entity.HealthPassport) error
 	Update(ctx context.Context, req dto.HealthPassportUpdateRequest, healthPassport *entity.HealthPassport) error
 	Delete(ctx context.Context, id int64) error
 }
@@ -30,10 +31,10 @@ func NewHealthPassportService(healthPassportRepository repository.HealthPassport
 	return &healthPassportService{healthPassportRepository}
 }
 
-func (s *healthPassportService) Create(ctx context.Context, req dto.HealthPassportCreateRequest) error {
+func (s *healthPassportService) Create(ctx context.Context, userId int64) error {
 
 	healthPassport := new(entity.HealthPassport)
-	healthPassport.UserId = req.UserId
+	healthPassport.UserId = userId
 	healthPassport.ExpiryDate = time.Now().In(timezone.JakartaLocation).Add(24 * time.Hour)
 	healthPassport.Status = "active"
 
@@ -56,6 +57,9 @@ func (s *healthPassportService) Create(ctx context.Context, req dto.HealthPasspo
 	// Jika setelah 5 kali percobaan masih gagal
 	if err != nil {
 		return errors.New("Gagal membuat nomor paspor unik setelah beberapa percobaan")
+	}
+	if err := s.healthPassportRepository.Create(ctx, healthPassport); err != nil {
+		return errors.New("Gagal membuat riwayat kesehatan")
 	}
 
 	return nil
@@ -87,9 +91,18 @@ func (s *healthPassportService) GetByUserId(ctx context.Context, userId int64) (
 }
 
 func (s *healthPassportService) Update(ctx context.Context, req dto.HealthPassportUpdateRequest, healthPassport *entity.HealthPassport) error {
-	if req.PassportNumber != "" {
-		healthPassport.PassportNumber = req.PassportNumber
+	healthPassport.ExpiryDate = time.Now()
+	if req.Status != "" {
+		healthPassport.Status = req.Status
 	}
+
+	if err := s.healthPassportRepository.Update(ctx, healthPassport); err != nil {
+		return errors.New("Riwayat kesehatan gagal diperbarui")
+	}
+	return nil
+}
+
+func (s *healthPassportService) UpdateByUser(ctx context.Context, healthPassport *entity.HealthPassport) error {
 	healthPassport.ExpiryDate = time.Now().In(timezone.JakartaLocation).Add(24 * time.Hour)
 	healthPassport.Status = "active"
 
