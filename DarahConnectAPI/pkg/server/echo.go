@@ -48,7 +48,7 @@ func NewServer(cfg *configs.Config,
 	// Add logging middleware
 	e.Use(middleware.Logger())
 
-	v1 := e.Group("/api/v1")
+	v1 := e.Group("/api/v1/")
 
 	if len(publicRoutes) > 0 {
 		for _, route := range publicRoutes {

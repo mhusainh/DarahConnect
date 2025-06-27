@@ -2,17 +2,34 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { HeartHandshakeIcon, EyeIcon, EyeOffIcon, MailIcon, LockIcon, AlertCircleIcon } from 'lucide-react';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
+import { useApi } from '../hooks/useApi';
+import { decodeJWTToken, saveAuthData } from '../utils/jwt';
+
+interface LoginApiData {
+  email: string;
+  password: string;
+}
+
+interface LoginResponse {
+  meta: {
+    code: number;
+    message: string;
+  };
+  data: {
+    token: string;
+  };
+}
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const loginApi = useApi<LoginResponse>();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{email?: string; password?: string}>({});
-  const [isLoading, setIsLoading] = useState(false);
 
   // Get redirect info from location state
   const from = location.state?.from || '/dashboard';
@@ -49,20 +66,54 @@ const LoginPage: React.FC = () => {
     
     if (!validateForm()) return;
     
-    setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      // For demo purposes, accept any valid email/password
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('userEmail', formData.email);
-      localStorage.setItem('userName', formData.email.split('@')[0]);
-      localStorage.setItem('authMethod', 'email');
-      setIsLoading(false);
+    // Format data sesuai dengan API backend
+    const apiData: LoginApiData = {
+      email: formData.email,
+      password: formData.password
+    };
+
+    try {
+      const response = await loginApi.post('/login', apiData);
       
-      // Redirect to original destination or dashboard
-      navigate(from, { replace: true });
-    }, 1500);
+      if (response.success && response.data?.meta?.code === 200) {
+        const token = response.data.data?.token;
+        
+        if (token) {
+          // Decode JWT untuk mendapatkan user data
+          const userData = decodeJWTToken(token);
+          
+          if (userData) {
+            // Simpan auth data menggunakan utility function
+            saveAuthData(token, userData);
+            localStorage.setItem('authMethod', 'email');
+            
+            console.log('✅ Login berhasil:', userData);
+            
+            // Redirect to original destination or dashboard
+            navigate(from, { replace: true });
+          } else {
+            // Token invalid atau expired
+            setErrors({ 
+              email: 'Token login tidak valid. Silakan coba lagi.'
+            });
+          }
+        } else {
+          setErrors({ 
+            email: 'Token tidak ditemukan dalam response. Silakan coba lagi.'
+          });
+        }
+      } else {
+        // Handle error dari API
+        const errorMessage = response.data?.meta?.message || response.error || 'Email atau password salah. Silakan coba lagi.';
+        setErrors({ 
+          email: errorMessage
+        });
+      }
+    } catch (error: any) {
+      setErrors({ 
+        email: 'Terjadi kesalahan jaringan. Silakan coba lagi.' 
+      });
+    }
   };
 
   const handleGoogleSuccess = (user: any) => {
@@ -179,10 +230,10 @@ const LoginPage: React.FC = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={loginApi.loading}
               className="w-full bg-primary-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? (
+              {loginApi.loading ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                   Masuk...
@@ -206,7 +257,7 @@ const LoginPage: React.FC = () => {
             <GoogleSignInButton
               onSuccess={handleGoogleSuccess}
               onError={handleGoogleError}
-              disabled={isLoading}
+              disabled={loginApi.loading}
             />
 
             {/* Demo Accounts */}

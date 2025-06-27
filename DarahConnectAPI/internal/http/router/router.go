@@ -25,37 +25,37 @@ func PublicRoutes(
 		// User Handler
 		{
 			Method:  http.MethodPost,
-			Path:    "/login",
+			Path:    "login",
 			Handler: userHandler.Login,
 		},
 		{
 			Method:  http.MethodGet,
-			Path:    "/login/:provider",
+			Path:    "login/:provider",
 			Handler: userHandler.LoginGoogleAuth,
 		},
 		{
 			Method:  http.MethodGet,
-			Path:    "/login/:provider/callback",
+			Path:    "login/:provider/callback",
 			Handler: userHandler.CallbackGoogleAuth,
 		},	
 		{
 			Method:  http.MethodPost,
-			Path:    "/register",
+			Path:    "register",
 			Handler: userHandler.Register,
 		},
 		{
 			Method:  http.MethodPost,
-			Path:    "/request-reset-password",
+			Path:    "request-reset-password",
 			Handler: userHandler.ResetPasswordRequest,
 		},
 		{
 			Method:  http.MethodPost,
-			Path:    "/reset-password",
+			Path:    "reset-password",
 			Handler: userHandler.ResetPassword,
 		},
 		{
 			Method:  http.MethodGet,
-			Path:    "/verify-email",
+			Path:    "verify-email",
 			Handler: userHandler.VerifyEmail,
 		},
 		{
@@ -66,18 +66,18 @@ func PublicRoutes(
 		// Blood Request/Campaign Handler
 		{
 			Method:  http.MethodGet,
-			Path:    "/campaign",
+			Path:    "campaign",
 			Handler: bloodRequestHandler.GetBloodRequests,
 		},
 		{
 			Method:  http.MethodGet,
-			Path:    "/campaign/:id",
+			Path:    "campaign/:id",
 			Handler: bloodRequestHandler.GetCampaigns,
 		},
 		// Donation Handler
 		{
 			Method:  http.MethodPost,
-			Path:    "/donation/webhook",
+			Path:    "donation/webhook",
 			Handler: donationHandler.WebHookTransaction,
 		},
 		// Certificate Handler
