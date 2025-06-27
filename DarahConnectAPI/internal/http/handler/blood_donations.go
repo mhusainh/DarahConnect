@@ -116,6 +116,11 @@ func (h *BloodDonationHandler) Create(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
 
+	// Validasi request
+	if err := ctx.Validate(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+
 	// Retrieve user claims from the JWT token
 	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {
@@ -141,8 +146,7 @@ func (h *BloodDonationHandler) Update(ctx echo.Context) error {
 	var req dto.BloodDonationUpdateRequest
 
 	// Manually bind the image file
-	imageFile, err := ctx.FormFile("image")
-	if err != nil {
+	if imageFile, err := ctx.FormFile("image"); err != nil {
 		// If the error is due to missing file, it means the image is optional
 		if err == http.ErrMissingFile {
 			req.Image = nil // Set image to nil if not provided
@@ -154,7 +158,12 @@ func (h *BloodDonationHandler) Update(ctx echo.Context) error {
 		req.Image = imageFile
 	}
 
-	if err = ctx.Bind(&req); err != nil {
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+
+	// Validasi request
+	if err := ctx.Validate(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
 

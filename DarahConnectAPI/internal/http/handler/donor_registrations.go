@@ -79,8 +79,8 @@ func (h *DonorRegistrationHandler) GetDonorRegistration(ctx echo.Context) error 
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-	
-	if claimsData.Role == "user" && donorRegistration.UserId != claimsData.Id {
+
+	if claimsData.Role == "User" && donorRegistration.UserId != claimsData.Id {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Anda tidak memiliki akses"))
 	}
 
