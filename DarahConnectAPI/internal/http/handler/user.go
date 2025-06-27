@@ -183,25 +183,39 @@ func (h *UserHandler) VerifyEmail(ctx echo.Context) error {
 
 func (h *UserHandler) UpdateUser(ctx echo.Context) error {
 	var req dto.UpdateUserRequest
-	
-	if req.Image != nil{
-		// Manually bind the image file
-		if imageFile, err := ctx.FormFile("image"); err != nil {
-			// If the error is due to missing file, it means the image is optional
-			if err == http.ErrMissingFile {
-				req.Image = nil // Set image to nil if not provided
-			} else {
-				// Handle other errors (e.g., malformed multipart data)
-				return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
-			}
-		} else {
-			req.Image = imageFile
-		}
-	}
-	// Bind form data terlebih dahulu
+
+	// --- PERUBAHAN LOGIKA DIMULAI DI SINI ---
+
+	// Langkah 1: Bind data form (non-file) terlebih dahulu.
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
+
+	// Langkah 2: Tangani file upload secara manual dan terpisah.
+	// Ini membuat penanganan file opsional menjadi lebih eksplisit dan aman.
+	if imageFile, err := ctx.FormFile("image");err != nil {
+		// Jika error bukan karena file tidak ada, berarti ada masalah lain.
+		if err != http.ErrMissingFile {
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "error processing image file: "+err.Error()))
+		}
+		// Jika errornya adalah http.ErrMissingFile, tidak apa-apa, karena gambar bersifat opsional.
+		// req.Image akan tetap nil.
+	} else {
+		// Jika file ada, masukkan ke dalam struct request.
+		req.Image = imageFile
+	}
+	var acceptedImages = map[string]struct{}{
+		"image/png":  {},
+		"image/jpeg": {},
+		"image/jpg": {},
+	}
+	if _, ok := acceptedImages[req.Image.Header.Get("Content-Type")]; !ok {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "unsupported image type"))
+	}
+	// Langkah 3: Validasi struct yang sudah terisi lengkap.
+	// if err := ctx.Validate(&req); err != nil {
+	// 	return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	// }
 
 	// Retrieve user claims from the JWT token
 	claims, ok := ctx.Get("user").(*jwt.Token)

@@ -2,11 +2,7 @@ package cloudinary
 
 import (
 	"context"
-	"errors"
-	"io"
 	"mime/multipart"
-	"net/http"
-
 
 	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/cloudinary/cloudinary-go/v2/api"
@@ -37,26 +33,12 @@ func NewService(config *configs.CloudinaryConfig) (*Service, error) {
 // Menerima file multipart, dan folder tujuan
 // Mengembalikan URL gambar dan public ID jika berhasil
 func (s *Service) UploadFile(fileHeader *multipart.FileHeader, folder string) (string, string, error) {
-	// Periksa ekstensi file
-
 	// Buka file
 	file, err := fileHeader.Open()
 	if err != nil {
 		return "", "", err
 	}
 	defer file.Close()
-
-	buffer := make([]byte, 512)
-	_, err = file.Read(buffer)
-	if err != nil {
-		return "", "", err
-	}
-	file.Seek(0, io.SeekStart)
-
-	mimeType := http.DetectContentType(buffer)
-	if mimeType != "image/jpeg" && mimeType != "image/png" && mimeType != "image/jpg" {
-		return "", "", errors.New("format file tidak didukung berdasarkan isi file")
-	}
 
 	// Set folder default jika tidak disediakan
 	if folder == "" {
