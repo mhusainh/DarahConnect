@@ -212,10 +212,6 @@ func (h *UserHandler) UpdateUser(ctx echo.Context) error {
 	if _, ok := acceptedImages[req.Image.Header.Get("Content-Type")]; !ok {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "unsupported image type"))
 	}
-	// Langkah 3: Validasi struct yang sudah terisi lengkap.
-	// if err := ctx.Validate(&req); err != nil {
-	// 	return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
-	// }
 
 	// Retrieve user claims from the JWT token
 	claims, ok := ctx.Get("user").(*jwt.Token)

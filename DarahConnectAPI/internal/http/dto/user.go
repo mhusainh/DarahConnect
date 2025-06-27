@@ -31,7 +31,7 @@ type UpdateUserRequest struct {
 	BloodType string                `json:"blood_type"`
 	BirthDate string                `json:"birth_date"`
 	Address   string                `json:"address"`
-	Image *multipart.FileHeader `form:"image" validate:"filetype=image/jpeg|image/png"`
+	Image     *multipart.FileHeader `json:"image" form:"image"`
 
 }
 
