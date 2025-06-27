@@ -23,16 +23,18 @@ type UserRegisterRequest struct {
 
 type UpdateUserRequest struct {
 	Id        int64                 `param:"id"`
-	Name      string                `json:"name" form:"name"`
-	Gender    string                `json:"gender" form:"gender"`
-	Email     string                `json:"email" form:"email"`
-	Password  string                `json:"password" form:"password"`
-	Phone     string                `json:"phone" form:"phone"`
-	BloodType string                `json:"blood_type" form:"blood_type"`
-	BirthDate string                `json:"birth_date" form:"birth_date"`
-	Address   string                `json:"address" form:"address"`
-	Image     *multipart.FileHeader `json:"image" validate:"omitempty,ext=jpg|jpeg|png"`
+	Name      string                `json:"name"`
+	Gender    string                `json:"gender"`
+	Email     string                `json:"email"`
+	Password  string                `json:"password"`
+	Phone     string                `json:"phone"`
+	BloodType string                `json:"blood_type"`
+	BirthDate string                `json:"birth_date"`
+	Address   string                `json:"address"`
+	Image     *multipart.FileHeader `json:"image" form:"image"`
+
 }
+
 
 type UpdateImageUserRequest struct {
 	// Untuk file upload, kita tidak menggunakan json tag karena file akan dikirim melalui multipart/form-data
@@ -57,6 +59,10 @@ type GetUserByIdByUserRequest struct {
 type ResetPasswordRequest struct {
 	Token    string `query:"token"`
 	Password string `json:"password" validate:"required"`
+}
+
+type ResendTokenVerifyEmailRequest struct {
+	Email string `json:"email" validate:"required"`
 }
 
 type RequestResetPassword struct {

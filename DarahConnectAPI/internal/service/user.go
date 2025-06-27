@@ -14,6 +14,7 @@ import (
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cache"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cloudinary"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/mailer"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/timezone"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/token"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/utils"
 
@@ -29,6 +30,7 @@ type UserService interface {
 	CheckGoogleOAuth(ctx context.Context, email string, user *goth.User) (bool, error)
 	Update(ctx context.Context, req dto.UpdateUserRequest) error
 	Delete(ctx context.Context, user *entity.User) error
+	ResendTokenVerifyEmail(ctx context.Context, email string) (string, error)
 	VerifyEmail(ctx context.Context, req dto.VerifyEmailRequest) error
 	RequestResetPassword(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, req dto.ResetPasswordRequest) error
@@ -65,7 +67,8 @@ func (s *userService) Login(ctx context.Context, email string, password string) 
 	}
 
 	if !user.IsVerified {
-		return "", errors.New("Silahkan verifikasi email terlebih dahulu")
+		TokenExpiresAt := user.TokenExpiresAt.Format(time.RFC3339)
+		return TokenExpiresAt, nil
 	}
 
 	expiredTime := time.Now().Add(time.Hour * 12)
@@ -106,6 +109,7 @@ func (s *userService) Register(ctx context.Context, req dto.UserRegisterRequest)
 	user.Role = "User"
 	user.VerifyEmailToken = utils.RandomString(16)
 	user.IsVerified = false
+	user.TokenExpiresAt = time.Now().In(timezone.JakartaLocation).Add(1 * time.Hour)
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -129,7 +133,7 @@ func (s *userService) Register(ctx context.Context, req dto.UserRegisterRequest)
 	// Gunakan path relatif terhadap root project
 	templatePath := "./templates/email/verify-email.html"
 	if Senderr := s.mailer.SendEmail(templatePath, emailData); Senderr != nil {
-		return err
+		return errors.New("gagal mengirim email")
 	}
 
 	// Create user in database
@@ -294,6 +298,50 @@ func (s *userService) RequestResetPassword(ctx context.Context, email string) er
 	}
 
 	return nil
+}
+
+func (s *userService) ResendTokenVerifyEmail(ctx context.Context, email string) (string, error) {
+
+	user, err := s.userRepository.GetByEmail(ctx, email)
+	if err != nil {
+		return "", errors.New("Email tidak ditemukan")
+	}
+	
+	if user.IsVerified {
+		return "", errors.New("Email sudah diverifikasi")
+	}
+
+	if time.Now().In(timezone.JakartaLocation).Before(user.TokenExpiresAt) {
+		return user.TokenExpiresAt.Format(time.RFC3339), nil
+	}
+
+	user.VerifyEmailToken = utils.RandomString(16)
+	user.TokenExpiresAt = time.Now().In(timezone.JakartaLocation).Add(1 * time.Hour)
+
+	// Prepare email data
+	emailData := mailer.EmailData{
+		To:       user.Email,
+		Subject:  "Darah Connect : Verifikasi Email!",
+		Template: "verify-email.html",
+		Data: struct {
+			Token string
+		}{
+			Token: user.VerifyEmailToken,
+		},
+	}
+
+	// Gunakan path relatif terhadap root project
+	templatePath := "./templates/email/verify-email.html"
+	if Senderr := s.mailer.SendEmail(templatePath, emailData); Senderr != nil {
+		return "", errors.New("gagal mengirim email")
+
+	}
+
+	if err := s.userRepository.Update(ctx, user); err != nil {
+		return "", errors.New("gagal mengupdate user")
+	}
+	TokenExpiresAt := user.TokenExpiresAt.Format(time.RFC3339)
+	return TokenExpiresAt, nil
 }
 
 func (s *userService) VerifyEmail(ctx context.Context, req dto.VerifyEmailRequest) error {

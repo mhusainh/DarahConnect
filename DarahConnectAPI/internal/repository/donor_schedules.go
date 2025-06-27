@@ -16,6 +16,7 @@ type DonorScheduleRepository interface {
 	GetAll(ctx context.Context, UserId int64, req dto.GetAllDonorScheduleRequest) ([]entity.DonorSchedule, int64, error)
 	Update(ctx context.Context, donorSchedule *entity.DonorSchedule) error
 	Delete(ctx context.Context, donorSchedule *entity.DonorSchedule) error
+	GetByRequestId(ctx context.Context, requestId int64) (*entity.DonorSchedule, error)
 }
 
 type donorScheduleRepository struct {
@@ -26,19 +27,21 @@ func NewDonorScheduleRepository(db *gorm.DB) DonorScheduleRepository {
 	return &donorScheduleRepository{db}
 }
 
+func (r *donorScheduleRepository) GetByRequestId(ctx context.Context, requestId int64) (*entity.DonorSchedule, error) {
+	result := new(entity.DonorSchedule)
+	if err := r.db.WithContext(ctx).Where("request_id = ?", requestId).First(result).Error; err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (r *donorScheduleRepository) applyFilters(query *gorm.DB, req dto.GetAllDonorScheduleRequest) (*gorm.DB, dto.GetAllDonorScheduleRequest) {
 	// Filter berdasarkan EventDate
 	if req.StartDate != "" && req.EndDate != "" {
 		query = query.Where("event_date BETWEEN ? AND ?", req.StartDate, req.EndDate)
 	}
 
-	if req.SlotsAvailable != nil {
-		if *req.SlotsAvailable {
-			query = query.Where("slots_available > ?", 0)
-		} else {
-			query = query.Where("slots_available = ?", 0)
-		}
-	}
+
 	if req.Status != "" {
 		query = query.Where("LOWER(status) = ?", req.Status)
 	}
@@ -47,8 +50,8 @@ func (r *donorScheduleRepository) applyFilters(query *gorm.DB, req dto.GetAllDon
 	if req.Search != "" {
 		search := strings.ToLower(req.Search)
 		query = query.Joins("LEFT JOIN hospitals ON hospitals.id = donor_schedules.hospital_id").
-		Where("LOWER(donor_schedules.event_name) LIKE ? OR LOWER(hospitals.name) LIKE ? OR LOWER(donor_schedules.description) LIKE ? OR LOWER(donor_schedules.start_time) LIKE ? OR LOWER(donor_schedules.end_time) LIKE ?",
-			"%"+search+"%", "%"+search+"%", "%"+search+"%", "%"+search+"%", "%"+search+"%")
+		Where("LOWER(donor_schedules.event_name) LIKE ? OR LOWER(hospitals.name) LIKE ? OR LOWER(donor_schedules.description) LIKE ?",
+			"%"+search+"%", "%"+search+"%", "%"+search+"%")
 	}
 
 	// Set default values jika tidak ada
@@ -92,8 +95,7 @@ func (r *donorScheduleRepository) GetAll(ctx context.Context, UserId int64, req 
 	var donorSchedule []entity.DonorSchedule
 	var total int64
 
-	// Hitung total item sebelum pagination
-	dataQuery := r.db.WithContext(ctx).Model(&entity.DonorSchedule{}).Where("user_id = ?", UserId).Preload("Hospital").Preload("Request")
+	dataQuery := r.db.WithContext(ctx).Model(&entity.DonorSchedule{}).Where("user_id = ?", UserId).Preload("Hospital").Preload("BloodRequest")
 	dataQuery, req = r.applyFilters(dataQuery, req)
 	if err := dataQuery.Count(&total).Error; err != nil {
 		return nil, 0, err

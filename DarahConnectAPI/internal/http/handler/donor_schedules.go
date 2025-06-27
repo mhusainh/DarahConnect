@@ -39,6 +39,7 @@ func (h *DonorScheduleHandler) GetDonorSchedules(ctx echo.Context) error {
 	if !ok {
 		return ctx.JSON(http.StatusInternalServerError, "unable to get user information from claims")
 	}
+	
 
 	donorSchedules, total, err := h.donorScheduleService.GetAll(ctx.Request().Context(), claimsData.Id, req)
 	if err != nil {

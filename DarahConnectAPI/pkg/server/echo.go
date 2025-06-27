@@ -9,11 +9,23 @@ import (
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/route"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/token"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
+
+type CustomValidator struct {
+	validator *validator.Validate
+}
+
+func (cv *CustomValidator) Validate(i interface{}) error {
+	if err := cv.validator.Struct(i); err != nil {
+		return err
+	}
+	return nil
+}
 
 type Server struct {
 	*echo.Echo
@@ -23,6 +35,7 @@ func NewServer(cfg *configs.Config,
 	publicRoutes, privateRoutes []route.Route) *Server {
 	e := echo.New()
 	e.HideBanner = true
+	e.Validator = &CustomValidator{validator: validator.New()}
 
 	// Add CORS middleware
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
@@ -35,7 +48,7 @@ func NewServer(cfg *configs.Config,
 	// Add logging middleware
 	e.Use(middleware.Logger())
 
-	v1 := e.Group("/api/v1")
+	v1 := e.Group("/api/v1/")
 
 	if len(publicRoutes) > 0 {
 		for _, route := range publicRoutes {

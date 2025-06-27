@@ -3,8 +3,9 @@ package dto
 import "time"
 
 type BloodRequestCreateRequest struct {
-	UserId       int64     `json:"user_id" validate:"required"`
+	UserId       int64     `json:"user_id"`
 	HospitalId   int64     `json:"hospital_id" validate:"required"`
+	PatientName  string    `json:"patient_name" validate:"required"`
 	EventName    string    `json:"event_name"`
 	EventDate    time.Time `json:"event_date"`
 	BloodType    string    `json:"blood_type"` // Unique identifier for the health passport
@@ -26,6 +27,7 @@ type CampaignCreateRequest struct {
 
 type BloodRequestUpdateRequest struct {
 	Id           int64     `param:"id" validate:"required"`
+	PatientName  string    `json:"patient_name"`
 	EventName    string    `json:"event_name"`
 	EventDate    time.Time `json:"event_date"`
 	BloodType    string    `json:"blood_type"` // Unique identifier for the health passport
