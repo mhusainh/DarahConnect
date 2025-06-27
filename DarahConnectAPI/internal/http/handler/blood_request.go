@@ -33,6 +33,10 @@ func (h *BloodRequestHandler) CreateBloodRequest(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
 
+	if err := ctx.Validate(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+
 	// Retrieve user claims from the JWT token
 	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {
@@ -59,8 +63,13 @@ func (h *BloodRequestHandler) CreateCampaign(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
 
+	if err := ctx.Validate(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+	
+
 	// Retrieve user claims from the JWT token
-	claims, ok := ctx.Get("user").(*jwt.Token)
+	claims, ok := ctx.Get("User").(*jwt.Token)
 	if !ok {
 		return ctx.JSON(http.StatusInternalServerError, "unable to get user claims")
 	}
@@ -140,14 +149,14 @@ func (h *BloodRequestHandler) UpdateBloodRequest(ctx echo.Context) error {
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-	if claimsData.Role == "user" {
+	if claimsData.Role == "User" {
 		if claimsData.Id != bloodRequest.UserId {
 			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "You are not authorized to update this request"))
 		}
-		if bloodRequest.Status == "completed" || bloodRequest.Status == "verified" {
+		if bloodRequest.Status == "Completed" || bloodRequest.Status == "Verified" {
 			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Permintaan Sudah tidak bisa diupdate"))
 		}
-		if req.Status != "canceled" {
+		if req.Status != "Canceled" {
 			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Kamu hanya bisa membatalkan permintaan"))
 		}
 	}

@@ -25,6 +25,5 @@ type GetAllDonorScheduleRequest struct {
 	Order          string `query:"order"`
 	StartDate      string `query:"start_date"`
 	EndDate        string `query:"end_date"`
-	SlotsAvailable *bool  `query:"slots_available"`
 	Status         string `query:"status"`
 }

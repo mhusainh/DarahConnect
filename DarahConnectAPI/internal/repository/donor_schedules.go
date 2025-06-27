@@ -32,13 +32,7 @@ func (r *donorScheduleRepository) applyFilters(query *gorm.DB, req dto.GetAllDon
 		query = query.Where("event_date BETWEEN ? AND ?", req.StartDate, req.EndDate)
 	}
 
-	if req.SlotsAvailable != nil {
-		if *req.SlotsAvailable {
-			query = query.Where("slots_available > ?", 0)
-		} else {
-			query = query.Where("slots_available = ?", 0)
-		}
-	}
+
 	if req.Status != "" {
 		query = query.Where("LOWER(status) = ?", req.Status)
 	}
@@ -47,8 +41,8 @@ func (r *donorScheduleRepository) applyFilters(query *gorm.DB, req dto.GetAllDon
 	if req.Search != "" {
 		search := strings.ToLower(req.Search)
 		query = query.Joins("LEFT JOIN hospitals ON hospitals.id = donor_schedules.hospital_id").
-		Where("LOWER(donor_schedules.event_name) LIKE ? OR LOWER(hospitals.name) LIKE ? OR LOWER(donor_schedules.description) LIKE ? OR LOWER(donor_schedules.start_time) LIKE ? OR LOWER(donor_schedules.end_time) LIKE ?",
-			"%"+search+"%", "%"+search+"%", "%"+search+"%", "%"+search+"%", "%"+search+"%")
+		Where("LOWER(donor_schedules.event_name) LIKE ? OR LOWER(hospitals.name) LIKE ? OR LOWER(donor_schedules.description) LIKE ?",
+			"%"+search+"%", "%"+search+"%", "%"+search+"%")
 	}
 
 	// Set default values jika tidak ada
@@ -92,8 +86,7 @@ func (r *donorScheduleRepository) GetAll(ctx context.Context, UserId int64, req 
 	var donorSchedule []entity.DonorSchedule
 	var total int64
 
-	// Hitung total item sebelum pagination
-	dataQuery := r.db.WithContext(ctx).Model(&entity.DonorSchedule{}).Where("user_id = ?", UserId).Preload("Hospital").Preload("Request")
+	dataQuery := r.db.WithContext(ctx).Model(&entity.DonorSchedule{}).Where("user_id = ?", UserId).Preload("Hospital").Preload("BloodRequest")
 	dataQuery, req = r.applyFilters(dataQuery, req)
 	if err := dataQuery.Count(&total).Error; err != nil {
 		return nil, 0, err

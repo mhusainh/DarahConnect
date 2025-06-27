@@ -33,6 +33,7 @@ func NewBloodRequestService(bloodRequestRepository repository.BloodRequestReposi
 func (s *bloodRequestService) CreateBloodRequest(ctx context.Context, req dto.BloodRequestCreateRequest) error {
 	bloodRequest := new(entity.BloodRequest)
 	bloodRequest.UserId = req.UserId
+	bloodRequest.PatientName = req.PatientName
 	bloodRequest.HospitalId = req.HospitalId
 	bloodRequest.EventName = req.EventName
 	bloodRequest.BloodType = req.BloodType
@@ -102,6 +103,9 @@ func (s *bloodRequestService) UpdateBloodRequest(ctx context.Context, req dto.Bl
 	}
 	if req.BloodType != "" {
 		bloodRequest.BloodType = req.BloodType
+	}
+	if req.PatientName != "" {
+		bloodRequest.PatientName = req.PatientName
 	}
 	if req.Quantity != 0 {
 		bloodRequest.Quantity = req.Quantity

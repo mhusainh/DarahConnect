@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
@@ -30,7 +31,7 @@ func NewDonorScheduleService(donorScheduleRepository repository.DonorScheduleRep
 func (s *donorScheduleService) GetAll(ctx context.Context, UserId int64, req dto.GetAllDonorScheduleRequest) ([]entity.DonorSchedule, int64, error) {
 	donorSchedules, total, err := s.donorScheduleRepository.GetAll(ctx, UserId, req)
 	if err != nil {
-		return nil, 0, errors.New("Gagal mendapatkan jadwal donor")
+		return nil, 0, errors.New(fmt.Sprintf("Gagal mendapatkan jadwal donor: %v", err))
 	}
 	return donorSchedules, total, nil
 }

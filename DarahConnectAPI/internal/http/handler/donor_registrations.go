@@ -99,7 +99,7 @@ func (h *DonorRegistrationHandler) CreateDonorRegistration(ctx echo.Context) err
 	req.UserId = claimsData.Id
 	healthPassport, err := h.healthPassportService.GetByUserId(ctx.Request().Context(), req.UserId)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Anda belum memiliki health passport, silahkan untuk mengisi health passport terlebih dahulu"))
 	}
 
 	if time.Now().In(timezone.JakartaLocation).After(healthPassport.ExpiryDate) {
