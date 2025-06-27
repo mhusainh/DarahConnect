@@ -68,9 +68,7 @@ func (h *UserHandler) Login(ctx echo.Context) error {
 		return ctx.JSON(http.StatusUnauthorized, response.ErrorResponse(http.StatusUnauthorized, err.Error()))
 	}
 
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully login", map[string]interface{}{
-		"token": token,
-	}))
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully login", token))
 }
 
 func (h *UserHandler) Register(ctx echo.Context) error {
@@ -161,6 +159,23 @@ func (h *UserHandler) ResetPasswordRequest(ctx echo.Context) error {
 	}
 
 	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully request reset password", nil))
+}
+
+func (h *UserHandler) ResendTokenVerifyEmail(ctx echo.Context) error {
+	var req dto.ResendTokenVerifyEmailRequest
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+
+	if err := ctx.Validate(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+
+	user, err := h.userService.ResendTokenVerifyEmail(ctx.Request().Context(), req.Email)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("Resend token verify email", user))
 }
 
 func (h *UserHandler) VerifyEmail(ctx echo.Context) error {
