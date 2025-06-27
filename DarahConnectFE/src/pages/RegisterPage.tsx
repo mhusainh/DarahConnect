@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { HeartHandshakeIcon, EyeIcon, EyeOffIcon, UserIcon, MailIcon, LockIcon, PhoneIcon } from 'lucide-react';
+import { HeartHandshakeIcon, EyeIcon, EyeOffIcon, UserIcon, MailIcon, LockIcon, PhoneIcon, CalendarIcon, UsersIcon } from 'lucide-react';
 import { BloodType } from '../types';
 import LocationPicker from '../components/LocationPicker';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
+import { useApi } from '../hooks/useApi';
 
 interface RegisterFormData {
   name: string;
@@ -12,10 +13,11 @@ interface RegisterFormData {
   password: string;
   confirmPassword: string;
   bloodType: BloodType;
+  gender: 'Male' | 'Female';
+  birth_date: string;
   age: number;
   weight: number;
   location: string;
-  emergencyContact: string;
   agreedToTerms: boolean;
 }
 
@@ -26,20 +28,33 @@ interface FormErrors {
   password?: string;
   confirmPassword?: string;
   bloodType?: string;
+  gender?: string;
+  birth_date?: string;
   age?: string;
   weight?: string;
   location?: string;
-  emergencyContact?: string;
   agreedToTerms?: string;
+}
+
+interface RegisterApiData {
+  name: string;
+  gender: string;
+  email: string;
+  password: string;
+  phone: string;
+  blood_type: string;
+  birth_date: string;
+  address: string;
 }
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const registerApi = useApi<any>();
   const [currentStep, setCurrentStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showEmailSentModal, setShowEmailSentModal] = useState(false);
 
   const [formData, setFormData] = useState<RegisterFormData>({
     name: '',
@@ -48,10 +63,11 @@ const RegisterPage: React.FC = () => {
     password: '',
     confirmPassword: '',
     bloodType: 'O+',
+    gender: 'Male',
+    birth_date: '',
     age: 18,
     weight: 50,
     location: '',
-    emergencyContact: '',
     agreedToTerms: false
   });
 
@@ -92,10 +108,10 @@ const RegisterPage: React.FC = () => {
   const validateStep2 = () => {
     const newErrors: FormErrors = {};
     
+    if (!formData.birth_date) newErrors.birth_date = 'Tanggal lahir wajib diisi';
     if (formData.age < 17 || formData.age > 65) newErrors.age = 'Usia harus antara 17-65 tahun';
     if (formData.weight < 45) newErrors.weight = 'Berat badan minimal 45 kg';
     if (!formData.location.trim()) newErrors.location = 'Lokasi wajib diisi';
-    if (!formData.emergencyContact.trim()) newErrors.emergencyContact = 'Kontak darurat wajib diisi';
     if (!formData.agreedToTerms) newErrors.agreedToTerms = 'Anda harus menyetujui syarat dan ketentuan';
 
     setErrors(newErrors);
@@ -112,22 +128,47 @@ const RegisterPage: React.FC = () => {
     setCurrentStep(1);
   };
 
+  const formatBirthDate = (birthDate: string) => {
+    // Convert from YYYY-MM-DD to ISO string format
+    if (!birthDate) return '';
+    const date = new Date(birthDate + 'T00:00:00.000Z');
+    return date.toISOString();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateStep2()) return;
     
-    setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('userEmail', formData.email);
-      localStorage.setItem('userName', formData.name);
-      localStorage.setItem('authMethod', 'email');
-      setIsLoading(false);
-      setShowSuccessModal(true);
-    }, 2000);
+    // Format data sesuai dengan API backend
+    const apiData: RegisterApiData = {
+      name: formData.name,
+      gender: formData.gender,
+      email: formData.email,
+      password: formData.password,
+      phone: formData.phone,
+      blood_type: formData.bloodType,
+      birth_date: formatBirthDate(formData.birth_date),
+      address: formData.location
+    };
+
+    try {
+      const response = await registerApi.post('/register', apiData);
+      
+      if (response.success) {
+        // Tampilkan modal email sent untuk instruksi verifikasi
+        setShowEmailSentModal(true);
+      } else {
+        // Handle error dari API
+        setErrors({ 
+          email: response.error || 'Terjadi kesalahan saat mendaftar. Silakan coba lagi.'
+        });
+      }
+    } catch (error: any) {
+      setErrors({ 
+        email: 'Terjadi kesalahan jaringan. Silakan coba lagi.' 
+      });
+    }
   };
 
   const handleGoogleSuccess = (user: any) => {
@@ -148,6 +189,22 @@ const RegisterPage: React.FC = () => {
   const handleGoogleError = (error: any) => {
     console.error('Google register error:', error);
     setErrors({ email: 'Gagal mendaftar dengan Google. Silakan coba lagi.' });
+  };
+
+  const handleResendVerification = async () => {
+    try {
+      const response = await registerApi.post('/resend-verification', { 
+        email: formData.email 
+      });
+      
+      if (response.success) {
+        alert('Email verifikasi telah dikirim ulang. Silakan cek inbox Anda.');
+      } else {
+        alert('Gagal mengirim ulang email verifikasi. Silakan coba lagi.');
+      }
+    } catch (error: any) {
+      alert('Terjadi kesalahan jaringan. Silakan coba lagi.');
+    }
   };
 
   const handleGoToDashboard = () => {
@@ -356,7 +413,7 @@ const RegisterPage: React.FC = () => {
                   text="Daftar dengan Google"
                   onSuccess={handleGoogleSuccess}
                   onError={handleGoogleError}
-                  disabled={isLoading}
+                  disabled={registerApi.loading}
                 />
               </div>
             )}
@@ -365,6 +422,48 @@ const RegisterPage: React.FC = () => {
             {currentStep === 2 && (
               <div className="space-y-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-6">Profil Donor</h3>
+                
+                {/* Gender and Birth Date */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Gender */}
+                  <div>
+                    <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-2">
+                      Jenis Kelamin
+                    </label>
+                    <div className="relative">
+                      <UsersIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                      <select
+                        id="gender"
+                        value={formData.gender}
+                        onChange={(e) => handleInputChange('gender', e.target.value as 'Male' | 'Female')}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      >
+                        <option value="Male">Laki-laki</option>
+                        <option value="Female">Perempuan</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Birth Date */}
+                  <div>
+                    <label htmlFor="birth_date" className="block text-sm font-medium text-gray-700 mb-2">
+                      Tanggal Lahir
+                    </label>
+                    <div className="relative">
+                      <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                      <input
+                        id="birth_date"
+                        type="date"
+                        value={formData.birth_date}
+                        onChange={(e) => handleInputChange('birth_date', e.target.value)}
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                          errors.birth_date ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      />
+                    </div>
+                    {errors.birth_date && <p className="mt-1 text-sm text-red-600">{errors.birth_date}</p>}
+                  </div>
+                </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Blood Type */}
@@ -432,24 +531,6 @@ const RegisterPage: React.FC = () => {
                   />
                 </div>
 
-                {/* Emergency Contact */}
-                <div>
-                  <label htmlFor="emergencyContact" className="block text-sm font-medium text-gray-700 mb-2">
-                    Kontak Darurat
-                  </label>
-                  <input
-                    id="emergencyContact"
-                    type="tel"
-                    value={formData.emergencyContact}
-                    onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
-                    className={`w-full px-3 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.emergencyContact ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="Nomor telepon keluarga/kerabat"
-                  />
-                  {errors.emergencyContact && <p className="mt-1 text-sm text-red-600">{errors.emergencyContact}</p>}
-                </div>
-
                 {/* Terms Agreement */}
                 <div className="flex items-start">
                   <input
@@ -500,10 +581,10 @@ const RegisterPage: React.FC = () => {
                 ) : (
                   <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={registerApi.loading}
                     className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isLoading ? (
+                    {registerApi.loading ? (
                       <div className="flex items-center">
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                         Mendaftar...
@@ -541,6 +622,71 @@ const RegisterPage: React.FC = () => {
           </Link>
         </div>
       </div>
+
+      {/* Email Sent Modal */}
+      {showEmailSentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-8 max-w-lg mx-4 shadow-2xl">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MailIcon className="w-8 h-8 text-blue-600" />
+              </div>
+              
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                Verifikasi Email Anda
+              </h3>
+              
+              <p className="text-gray-600 mb-6">
+                Kami telah mengirimkan link verifikasi ke email <strong>{formData.email}</strong>. 
+                Silakan cek inbox Anda dan klik link verifikasi untuk mengaktifkan akun.
+              </p>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <p className="text-blue-800 text-sm">
+                  🔗 <strong>Link verifikasi akan membawa Anda kembali ke aplikasi</strong><br/>
+                  Setelah klik link di email, Anda akan otomatis login dan dapat menggunakan semua fitur DarahConnect.
+                </p>
+              </div>
+              
+              <div className="space-y-3">
+                <button
+                  onClick={() => window.open('https://gmail.com', '_blank')}
+                  className="w-full bg-primary-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-primary-700 transition-colors"
+                >
+                  📧 Buka Gmail
+                </button>
+                
+                <button
+                  onClick={() => setShowEmailSentModal(false)}
+                  className="w-full border border-gray-300 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Tutup
+                </button>
+                
+                <div className="text-center">
+                  <p className="text-sm text-gray-600 mb-2">
+                    Tidak menerima email?
+                  </p>
+                  <button
+                    onClick={handleResendVerification}
+                    disabled={registerApi.loading}
+                    className="text-sm text-primary-600 hover:text-primary-700 font-medium disabled:opacity-50"
+                  >
+                    {registerApi.loading ? 'Mengirim...' : 'Kirim Ulang Email'}
+                  </button>
+                </div>
+              </div>
+              
+              <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-xs text-yellow-800">
+                  💡 <strong>Tips:</strong> Pastikan untuk memeriksa folder spam/junk email Anda. 
+                  Setelah klik link verifikasi, Anda dapat langsung login ke akun Anda.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Success Modal */}
       {showSuccessModal && (

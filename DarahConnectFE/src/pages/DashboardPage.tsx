@@ -38,6 +38,7 @@ import {
 } from '../components/ui/ChartComponents';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import WalletConnectBanner from '../components/WalletConnectBanner';
 import { campaigns, donationRequests } from '../data/dummy';
 import { BloodCampaign, DonationRequest } from '../types';
 
@@ -118,12 +119,17 @@ const DashboardPage: React.FC = () => {
   // Don't render dashboard if not logged in
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <HeartBeatLoader size={60} />
-          <p className="mt-4 text-gray-600 text-lg">Mengalihkan ke halaman login...</p>
+      <>
+        <WalletConnectBanner />
+        <Header />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <HeartBeatLoader size={60} />
+            <p className="mt-4 text-gray-600 text-lg">Mengalihkan ke halaman login...</p>
+          </div>
         </div>
-      </div>
+        <Footer />
+      </>
     );
   }
 
@@ -373,6 +379,10 @@ const DashboardPage: React.FC = () => {
     setActiveTab('achievements');
   };
 
+  const handleCreateBloodRequest = () => {
+    navigate('/create-blood-request');
+  };
+
   const handleScheduleSelect = (schedule: any) => {
     alert(`Anda akan diarahkan ke form pendaftaran untuk jadwal donor di ${schedule.hospital} pada ${schedule.date}`);
     navigate('/donor-register');
@@ -381,6 +391,7 @@ const DashboardPage: React.FC = () => {
   if (!isPageLoaded) {
     return (
       <>
+        <WalletConnectBanner />
         <Header />
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
@@ -395,6 +406,7 @@ const DashboardPage: React.FC = () => {
 
   return (
     <>
+      <WalletConnectBanner />
       <Header />
       <FadeIn direction="up" duration={0.8}>
         <div className="min-h-screen bg-gray-50 p-6">
@@ -714,21 +726,34 @@ const DashboardPage: React.FC = () => {
                           <ZapIcon className="w-6 h-6 text-orange-500" />
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-4">
-                          <button
-                            onClick={handleScheduleDonation}
-                            className="bg-gradient-to-r from-primary-500 to-primary-600 text-white p-4 rounded-lg text-center hover:from-primary-600 hover:to-primary-700 transition-all duration-300 hover:scale-105"
-                          >
-                            <CalendarIcon className="w-6 h-6 mx-auto mb-2" />
-                            <span className="text-sm font-medium">Jadwalkan Donasi</span>
-                          </button>
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <button
+                              onClick={handleScheduleDonation}
+                              className="bg-gradient-to-r from-primary-500 to-primary-600 text-white p-4 rounded-lg text-center hover:from-primary-600 hover:to-primary-700 transition-all duration-300 hover:scale-105"
+                            >
+                              <CalendarIcon className="w-6 h-6 mx-auto mb-2" />
+                              <span className="text-sm font-medium">Jadwalkan Donasi</span>
+                            </button>
+                            
+                            <button
+                              onClick={handleJoinNow}
+                              className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg text-center hover:from-blue-600 hover:to-blue-700 transition-all duration-300 hover:scale-105"
+                            >
+                              <UserPlusIcon className="w-6 h-6 mx-auto mb-2" />
+                              <span className="text-sm font-medium">Bergabung Sekarang</span>
+                            </button>
+                          </div>
                           
                           <button
-                            onClick={handleJoinNow}
-                            className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg text-center hover:from-blue-600 hover:to-blue-700 transition-all duration-300 hover:scale-105"
+                            onClick={handleCreateBloodRequest}
+                            className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white p-4 rounded-lg text-center hover:from-red-600 hover:to-red-700 transition-all duration-300 hover:scale-105 border border-red-300"
                           >
-                            <UserPlusIcon className="w-6 h-6 mx-auto mb-2" />
-                            <span className="text-sm font-medium">Bergabung Sekarang</span>
+                            <div className="flex items-center justify-center space-x-2">
+                              <HeartIcon className="w-6 h-6" />
+                              <PlusCircleIcon className="w-5 h-5" />
+                            </div>
+                            <span className="text-sm font-medium mt-2 block">Buat Request Donor Darah</span>
                           </button>
                         </div>
                       </div>
