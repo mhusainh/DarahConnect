@@ -66,7 +66,9 @@ func (h *UserHandler) Login(ctx echo.Context) error {
 		return ctx.JSON(http.StatusUnauthorized, response.ErrorResponse(http.StatusUnauthorized, err.Error()))
 	}
 
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully login", token))
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully login", map[string]interface{}{
+		"token": token,
+	}))
 }
 
 func (h *UserHandler) Register(ctx echo.Context) error {
