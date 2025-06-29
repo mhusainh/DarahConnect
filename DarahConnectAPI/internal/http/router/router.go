@@ -66,13 +66,18 @@ func PublicRoutes(
 		// Blood Request/Campaign Handler
 		{
 			Method:  http.MethodGet,
-			Path:    "campaign",
+			Path:    "blood-request",
 			Handler: bloodRequestHandler.GetBloodRequests,
 		},
 		{
 			Method:  http.MethodGet,
-			Path:    "campaign/:id",
+			Path:    "campaign",
 			Handler: bloodRequestHandler.GetCampaigns,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "campaign-bloodRequest/:id",
+			Handler: bloodRequestHandler.GetById,
 		},
 		// Donation Handler
 		{
@@ -200,6 +205,12 @@ func PrivateRoutes(
 			Handler: bloodRequestHandler.UpdateBloodRequest,
 			Roles:   userOnly,
 		},
+		{
+			Method:  http.MethodGet,
+			Path:    "user/blood-donations",
+			Handler: bloodDonationHandler.GetByUser,
+			Roles:   userOnly,
+		},
 		// =============================================
 		// ADMIN ONLY ROUTES
 		// =============================================
@@ -303,6 +314,12 @@ func PrivateRoutes(
 			Handler: donorRegistrationHandler.DeleteDonorRegistration,
 			Roles:   adminOnly,
 		},
+		{
+			Method:  http.MethodGet,
+			Path:    "blood-donations",
+			Handler: bloodDonationHandler.GetAll,
+			Roles:   adminOnly,
+		},
 
 		// =============================================
 		// ALL ROLES ROUTES (Admin & User)
@@ -348,7 +365,7 @@ func PrivateRoutes(
 		// Hospital - All Roles
 		{
 			Method:  http.MethodGet,
-			Path:    "hospital/",
+			Path:    "hospital",
 			Handler: hospitalHandler.GetAll,
 			Roles:   allRoles,
 		},
@@ -359,18 +376,6 @@ func PrivateRoutes(
 			Roles:   allRoles,
 		},
 		// Blood Donation - All Roles
-		{
-			Method:  http.MethodGet,
-			Path:    "blood-donations",
-			Handler: bloodDonationHandler.GetAll,
-			Roles:   allRoles,
-		},
-		{
-			Method:  http.MethodGet,
-			Path:    "blood-donations/user",
-			Handler: bloodDonationHandler.GetByUser,
-			Roles:   allRoles,
-		},
 		{
 			Method:  http.MethodGet,
 			Path:    "blood-donation/:id",
@@ -384,10 +389,10 @@ func PrivateRoutes(
 			Roles:   allRoles,
 		},
 		{
-			Method:  http.MethodPut,
+			Method:  http.MethodPost,
 			Path:    "blood-donation/:id",
 			Handler: bloodDonationHandler.Update,
-			Roles:   allRoles,
+			Roles:   userOnly,
 		},
 		{
 			Method:  http.MethodPut,

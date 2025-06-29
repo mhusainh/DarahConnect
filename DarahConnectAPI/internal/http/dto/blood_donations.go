@@ -19,7 +19,7 @@ type BloodDonationUpdateRequest struct {
 	DonationDate time.Time             `json:"donation_date"`
 	BloodType    string                `json:"blood_type"` // e.g., "A+", "O-", etc.
 	Status       string                `json:"status"`     //'Completed', 'Rejected', 'Deferred'
-	Image        *multipart.FileHeader `json:"image" validate:"omitempty,ext=jpg|jpeg|png"`
+	Image        *multipart.FileHeader `json:"image" validate:"omitempty"`
 }
 
 type BloodDonationByIdRequest struct {
