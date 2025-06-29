@@ -89,6 +89,7 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clo
 	// Set donationsRepository
 	midtransService.DonationsRepository = donationsRepository
 	googleAuthService := googleoauth.NewGoogleOAuthService(tokenUseCase, userService)
+	dashboardService := service.NewDashboardService(bloodDonationRepository)
 	//end
 
 	//handler
@@ -97,14 +98,13 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clo
 	healthPassportHandler := handler.NewHealthPassportHandler(healthPassportService)
 	bloodRequestHandler := handler.NewBloodRequestHandler(bloodRequestService,notificationService)
 	donorRegistrationHandler := handler.NewDonorRegistrationHandler(donorRegistrationService,healthPassportService,notificationService, bloodRequestService)
-
-
 	donorScheduleHandler := handler.NewDonorScheduleHandler(donorScheduleService)
 	hospitalHandler := handler.NewHospitalHandler(hospitalService)
 	bloodDonationHandler := handler.NewBloodDonationHandler(bloodDonationService, notificationService, certificateService)
 	certificateHandler := handler.NewCertificateHandler(certificateService)
 	donationHandler := handler.NewDonationHandler(midtransService, notificationService)
+	dashboardHandler := handler.NewDashboardHandler(dashboardService)
 	//end
 
-	return router.PrivateRoutes(userHandler, notificationHandler, healthPassportHandler, bloodRequestHandler, donorRegistrationHandler, donorScheduleHandler, hospitalHandler, bloodDonationHandler, certificateHandler, donationHandler)
+	return router.PrivateRoutes(userHandler, notificationHandler, healthPassportHandler, bloodRequestHandler, donorRegistrationHandler, donorScheduleHandler, hospitalHandler, bloodDonationHandler, certificateHandler, donationHandler, dashboardHandler)
 }

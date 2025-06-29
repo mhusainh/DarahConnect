@@ -17,6 +17,7 @@ type BloodDonationRepository interface {
 	GetByUserId(ctx context.Context, userId int64, req dto.GetAllBloodDonationRequest) ([]entity.BloodDonation, int64, error)
 	Update(ctx context.Context, bloodDonation *entity.BloodDonation) error
 	Delete(ctx context.Context, bloodDonation *entity.BloodDonation) error
+	GetByUser(ctx context.Context, userId int64) ([]entity.BloodDonation, error)
 }
 
 type bloodDonationRepository struct {
@@ -138,4 +139,12 @@ func (r *bloodDonationRepository) Update(ctx context.Context, bloodDonation *ent
 
 func (r *bloodDonationRepository) Delete(ctx context.Context, bloodDonation *entity.BloodDonation) error {
 	return r.db.WithContext(ctx).Model(&entity.BloodDonation{}).Delete(bloodDonation).Error
+}
+
+func (r *bloodDonationRepository) GetByUser(ctx context.Context, userId int64) ([]entity.BloodDonation, error) {
+	result := make([]entity.BloodDonation, 0)
+	if err := r.db.WithContext(ctx).Where("user_id = ?", userId).Find(&result).Error; err != nil {
+		return nil, err
+	}
+	return result, nil
 }

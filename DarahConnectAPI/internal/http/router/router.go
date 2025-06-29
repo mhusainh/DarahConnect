@@ -101,11 +101,19 @@ func PrivateRoutes(
 	bloodDonationHandler handler.BloodDonationHandler,
 	certificateHandler handler.CertificateHandler,
 	donationHandler *handler.DonationHandler,
+	dashboardHandler handler.Dashboard,
 ) []route.Route {
 	return []route.Route{
 		// =============================================
 		// USER ONLY ROUTES
 		// =============================================
+		// Dashboard - User Only
+		{
+			Method:  http.MethodGet,
+			Path:    "user/dashboard",
+			Handler: dashboardHandler.DashboardUser,
+			Roles:   userOnly,
+		},
 		// Health Passport - User Only
 		{
 			Method:  http.MethodGet,
