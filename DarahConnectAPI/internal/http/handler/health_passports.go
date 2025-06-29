@@ -84,14 +84,13 @@ func (h *HealthPassportHandler) CreateHealthPassport(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user information from claims"))
 	}
 
-	healthPassport, err := h.healthPassportService.GetByUserId(ctx.Request().Context(), claimsData.Id)
+	healthPassport,_ := h.healthPassportService.GetByUserId(ctx.Request().Context(), claimsData.Id)
+	
 	if healthPassport != nil {
-		if err = h.healthPassportService.UpdateByUser(ctx.Request().Context(), healthPassport); err != nil {
+		if err := h.healthPassportService.UpdateByUser(ctx.Request().Context(), healthPassport); err != nil {
 			return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 		}
 		return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully update health passport", nil))
-	} else if healthPassport != nil && err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 
 	if err := h.healthPassportService.Create(ctx.Request().Context(), claimsData.Id); err != nil {
