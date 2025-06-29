@@ -414,6 +414,13 @@ func PrivateRoutes(
 			Handler: bloodDonationHandler.Delete,
 			Roles:   allRoles,
 		},
+		// Blood Request - All Roles
+		{
+			Method:  http.MethodGet,
+			Path:    "blood-requests",
+			Handler: bloodRequestHandler.GetBloodRequestsByAdmin,
+			Roles:   allRoles,
+		},
 		// Certificate - All Roles
 		{
 			Method:  http.MethodGet,

@@ -14,6 +14,7 @@ type BloodRequestService interface {
 	CreateBloodRequest(ctx context.Context, req dto.BloodRequestCreateRequest) error
 	CreateCampaign(ctx context.Context, req dto.CampaignCreateRequest) error
 	GetAllBloodRequest(ctx context.Context, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error)
+	GetAllAdminBloodRequest(ctx context.Context, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error)
 	GetAllCampaign(ctx context.Context, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error)
 	GetById(ctx context.Context, id int64) (*entity.BloodRequest, error)
 	UpdateCampaign(ctx context.Context, req dto.CampaignUpdateRequest, bloodRequest *entity.BloodRequest) error
@@ -102,6 +103,15 @@ func (s *bloodRequestService) CreateCampaign(ctx context.Context, req dto.Campai
 
 func (s *bloodRequestService) GetAllBloodRequest(ctx context.Context, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error) {
 	bloodRequests, total, err := s.bloodRequestRepository.GetAllBloodRequest(ctx, req)
+	if err != nil {
+		return nil, 0, errors.New("Gagal mendapatkan permintaan darah")
+	}
+
+	return bloodRequests, total, nil
+}
+
+func (s *bloodRequestService) GetAllAdminBloodRequest(ctx context.Context, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error) {
+	bloodRequests, total, err := s.bloodRequestRepository.GetAllAdminBloodRequest(ctx, req)
 	if err != nil {
 		return nil, 0, errors.New("Gagal mendapatkan permintaan darah")
 	}
