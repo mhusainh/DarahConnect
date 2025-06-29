@@ -144,7 +144,7 @@ func (h *BloodDonationHandler) Create(ctx echo.Context) error {
 // hanya untuk user
 func (h *BloodDonationHandler) Update(ctx echo.Context) error {
 	var req dto.BloodDonationUpdateRequest
-	req.Status=""
+	req.Status="pending"
 	// Manually bind the image file
 	if imageFile, err := ctx.FormFile("image"); err != nil {
 		// If the error is due to missing file, it means the image is optional
@@ -186,9 +186,10 @@ func (h *BloodDonationHandler) Update(ctx echo.Context) error {
 		return ctx.JSON(http.StatusForbidden, response.ErrorResponse(http.StatusForbidden, "forbidden"))
 	}
 
-	if bloodDonation.Status != "pending" {
+	if bloodDonation.Status == "completed" {
 		return ctx.JSON(http.StatusForbidden, response.ErrorResponse(http.StatusForbidden, "Donasi darah tidak bisa diubah"))
 	}
+
 	var acceptedImages = map[string]struct{}{
 		"image/png":  {},
 		"image/jpeg": {},
@@ -197,6 +198,7 @@ func (h *BloodDonationHandler) Update(ctx echo.Context) error {
 	if _, ok := acceptedImages[req.Image.Header.Get("Content-Type")]; !ok {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "unsupported image type"))
 	}
+
 	updatedBloodDonation, err := h.bloodDonationService.Update(ctx.Request().Context(), req, bloodDonation)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
