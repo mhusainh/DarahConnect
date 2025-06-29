@@ -68,7 +68,7 @@ func (h *HealthPassportHandler) GetHealthPassportByUser(ctx echo.Context) error 
 		return ctx.JSON(http.StatusInternalServerError,
 			response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-	
+
 	return ctx.JSON(http.StatusOK,
 		response.SuccessResponse("successfully showing health passport", healthPassport))
 }
@@ -89,17 +89,16 @@ func (h *HealthPassportHandler) CreateHealthPassport(ctx echo.Context) error {
 		if err = h.healthPassportService.UpdateByUser(ctx.Request().Context(), healthPassport); err != nil {
 			return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 		}
-		return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully update health passport", nil))	
-	} else if err != nil {
+		return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully update health passport", nil))
+	} else if healthPassport != nil && err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-	
+
 	if err := h.healthPassportService.Create(ctx.Request().Context(), claimsData.Id); err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-	return ctx.JSON(http.StatusCreated, response.SuccessResponse("successfully create health passport", nil))	
+	return ctx.JSON(http.StatusCreated, response.SuccessResponse("successfully create health passport", nil))
 }
-
 
 func (h *HealthPassportHandler) UpdateStatusHealthPassport(ctx echo.Context) error {
 	var req dto.HealthPassportUpdateRequest
