@@ -6,19 +6,19 @@ import (
 )
 
 type UserLoginRequest struct {
-	Email    string `json:"email" validate:"required"`
-	Password string `json:"password" validate:"required"`
+	Email    string `json:"email" form:"email" validate:"required"`
+	Password string `json:"password" form:"password" validate:"required"`
 }
 
 type UserRegisterRequest struct {
-	Name      string    `json:"name" validate:"required"`
-	Gender    string    `json:"gender" validate:"required"`
-	Email     string    `json:"email" validate:"required"`
-	Password  string    `json:"password" validate:"required"`
-	Phone     string    `json:"phone" validate:"required"`
-	BloodType string    `json:"blood_type" validate:"required"`
-	BirthDate time.Time `json:"birth_date" validate:"required"`
-	Address   string    `json:"address" validate:"required"`
+	Name      string    `json:"name" form:"name" validate:"required"`
+	Gender    string    `json:"gender" form:"gender" validate:"required"`
+	Email     string    `json:"email" form:"email" validate:"required"`
+	Password  string    `json:"password" form:"password" validate:"required"`
+	Phone     string    `json:"phone" form:"phone" validate:"required"`
+	BloodType string    `json:"blood_type" form:"blood_type" validate:"required"`
+	BirthDate time.Time `json:"birth_date" form:"birth_date" validate:"required"`
+	Address   string    `json:"address" form:"address" validate:"required"`
 }
 
 type UpdateUserRequest struct {
@@ -32,7 +32,6 @@ type UpdateUserRequest struct {
 	BirthDate string                `json:"birth_date" form:"birth_date"`
 	Address   string                `json:"address" form:"address"`
 	Image     *multipart.FileHeader `json:"image" form:"image"`
-
 }
 
 
@@ -51,22 +50,22 @@ type GetUserByIdRequest struct {
 
 type GetUserByIdByUserRequest struct {
 	Id     int64  `param:"id" validate:"required"`
-	Name   string `json:"name" validate:"required"`
-	Gender string `json:"gender" validate:"required"`
-	Email  string `json:"email" validate:"required"`
+	Name   string `json:"name" form:"name" validate:"required"`
+	Gender string `json:"gender" form:"gender" validate:"required"`
+	Email  string `json:"email" form:"email" validate:"required"`
 }
 
 type ResetPasswordRequest struct {
 	Token    string `query:"token"`
-	Password string `json:"password" validate:"required"`
+	Password string `json:"password" form:"password" validate:"required"`
 }
 
 type ResendTokenVerifyEmailRequest struct {
-	Email string `json:"email" validate:"required"`
+	Email string `json:"email" form:"email" validate:"required"`
 }
 
 type RequestResetPassword struct {
-	Email string `json:"email" validate:"required"`
+	Email string `json:"email" form:"email" validate:"required"`
 }
 
 type VerifyEmailRequest struct {

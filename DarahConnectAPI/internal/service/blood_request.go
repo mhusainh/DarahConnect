@@ -7,6 +7,7 @@ import (
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/repository"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cloudinary"
 )
 
 type BloodRequestService interface {
@@ -22,11 +23,13 @@ type BloodRequestService interface {
 
 type bloodRequestService struct {
 	bloodRequestRepository repository.BloodRequestRepository
+	cloudinaryService     cloudinary.Service
 }
 
-func NewBloodRequestService(bloodRequestRepository repository.BloodRequestRepository) BloodRequestService {
+func NewBloodRequestService(bloodRequestRepository repository.BloodRequestRepository, cloudinaryService cloudinary.Service) BloodRequestService {
 	return &bloodRequestService{
 		bloodRequestRepository,
+		cloudinaryService,
 	}
 }
 
@@ -44,7 +47,21 @@ func (s *bloodRequestService) CreateBloodRequest(ctx context.Context, req dto.Bl
 	bloodRequest.EventDate = req.EventDate
 	bloodRequest.EventType = "blood_request"
 
+	// Upload gambar jika ada
+	if req.Image != nil {
+		UrlFile, publicId, err := s.cloudinaryService.UploadFile(req.Image, "BloodRequests")
+		if err != nil {
+			return errors.New("Gagal mengupload gambar")
+		}
+		bloodRequest.UrlFile = UrlFile
+		bloodRequest.PublicId = publicId
+	}
+
 	if err := s.bloodRequestRepository.Create(ctx, bloodRequest); err != nil {
+		// Jika gagal menyimpan ke database, hapus gambar yang sudah diupload
+		if bloodRequest.PublicId != "" {
+			_ = s.cloudinaryService.DeleteFile(bloodRequest.PublicId)
+		}
 		return errors.New("Gagal membuat permintaan darah")
 	}
 
@@ -63,7 +80,20 @@ func (s *bloodRequestService) CreateCampaign(ctx context.Context, req dto.Campai
 	bloodRequest.EventDate = req.EventDate
 	bloodRequest.EventType = "campaign"
 
+	if req.Image != nil {
+		UrlFile, publicId, err := s.cloudinaryService.UploadFile(req.Image, "BloodRequests")
+		if err != nil {
+			return errors.New("Gagal mengupload gambar")
+		}
+		bloodRequest.UrlFile = UrlFile
+		bloodRequest.PublicId = publicId
+	}
+
 	if err := s.bloodRequestRepository.Create(ctx, bloodRequest); err != nil {
+		// Jika gagal menyimpan ke database, hapus gambar yang sudah diupload
+		if bloodRequest.PublicId != "" {
+			_ = s.cloudinaryService.DeleteFile(bloodRequest.PublicId)
+		}
 		return errors.New("Gagal membuat permintaan darah")
 	}
 
@@ -123,8 +153,32 @@ func (s *bloodRequestService) UpdateBloodRequest(ctx context.Context, req dto.Bl
 		bloodRequest.EventDate = req.EventDate
 	}
 
+	// Simpan publicId lama sebelum mengubahnya
+	oldPublicId := bloodRequest.PublicId
+	var newPublicId string
+
+	// Upload gambar baru jika ada
+	if req.Image != nil {
+		UrlFile, publicId, err := s.cloudinaryService.UploadFile(req.Image, "BloodRequests")
+		if err != nil {
+			return errors.New("Gagal mengupload gambar")
+		}
+		newPublicId = publicId
+		bloodRequest.UrlFile = UrlFile
+		bloodRequest.PublicId = publicId
+	}
+
 	if err := s.bloodRequestRepository.Update(ctx, bloodRequest); err != nil {
+		// Jika gagal update database dan ada gambar baru yang diupload, hapus gambar baru
+		if newPublicId != "" {
+			_ = s.cloudinaryService.DeleteFile(newPublicId)
+		}
 		return errors.New("Gagal mengupdate permintaan darah")
+	}
+
+	// Jika berhasil update database dan ada gambar baru, hapus gambar lama
+	if oldPublicId != "" && newPublicId != "" {
+		_ = s.cloudinaryService.DeleteFile(oldPublicId)
 	}
 
 	return nil
@@ -146,8 +200,32 @@ func (s *bloodRequestService) UpdateCampaign(ctx context.Context, req dto.Campai
 	bloodRequest.SlotsAvailable = req.SlotsAvailable
 	bloodRequest.SlotsBooked = req.SlotsBooked
 
+	// Simpan publicId lama sebelum mengubahnya
+	oldPublicId := bloodRequest.PublicId
+	var newPublicId string
+
+	// Upload gambar baru jika ada
+	if req.Image != nil {
+		UrlFile, publicId, err := s.cloudinaryService.UploadFile(req.Image, "BloodRequests")
+		if err != nil {
+			return errors.New("Gagal mengupload gambar")
+		}
+		newPublicId = publicId
+		bloodRequest.UrlFile = UrlFile
+		bloodRequest.PublicId = publicId
+	}
+
 	if err := s.bloodRequestRepository.Update(ctx, bloodRequest); err != nil {
+		// Jika gagal update database dan ada gambar baru yang diupload, hapus gambar baru
+		if newPublicId != "" {
+			_ = s.cloudinaryService.DeleteFile(newPublicId)
+		}
 		return errors.New("Gagal mengupdate permintaan darah")
+	}
+
+	// Jika berhasil update database dan ada gambar baru, hapus gambar lama
+	if oldPublicId != "" && newPublicId != "" {
+		_ = s.cloudinaryService.DeleteFile(oldPublicId)
 	}
 
 	return nil
@@ -159,8 +237,16 @@ func (s *bloodRequestService) Delete(ctx context.Context, id int64) error {
 		return errors.New("Permintaan darah tidak ditemukan")
 	}
 
+	// Simpan publicId untuk dihapus setelah data dihapus dari database
+	publicId := bloodRequest.PublicId
+
 	if err := s.bloodRequestRepository.Delete(ctx, bloodRequest); err != nil {
 		return errors.New("Gagal menghapus permintaan darah")
+	}
+
+	// Hapus gambar dari cloudinary jika ada
+	if publicId != "" {
+		_ = s.cloudinaryService.DeleteFile(publicId)
 	}
 
 	return nil

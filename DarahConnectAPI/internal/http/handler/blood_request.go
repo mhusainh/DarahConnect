@@ -37,6 +37,28 @@ func (h *BloodRequestHandler) CreateBloodRequest(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
 
+	if imageFile, err := ctx.FormFile("image");err != nil {
+		// Jika error bukan karena file tidak ada, berarti ada masalah lain.
+		if err != http.ErrMissingFile {
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "error processing image file: "+err.Error()))
+		}
+		// Jika errornya adalah http.ErrMissingFile, tidak apa-apa, karena gambar bersifat opsional.
+		// req.Image akan tetap nil.
+	} else {
+		// Jika file ada, masukkan ke dalam struct request.
+		req.Image = imageFile
+	}
+	var acceptedImages = map[string]struct{}{
+		"image/png":  {},
+		"image/jpeg": {},
+		"image/jpg": {},
+	}
+	if req.Image != nil {
+		if _, ok := acceptedImages[req.Image.Header.Get("Content-Type")]; !ok {
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "unsupported image type"))
+		}
+	}	
+
 	// Retrieve user claims from the JWT token
 	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {
@@ -76,8 +98,28 @@ func (h *BloodRequestHandler) CreateCampaign(ctx echo.Context) error {
 	if err := ctx.Validate(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
+	if imageFile, err := ctx.FormFile("image");err != nil {
+		// Jika error bukan karena file tidak ada, berarti ada masalah lain.
+		if err != http.ErrMissingFile {
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "error processing image file: "+err.Error()))
+		}
+		// Jika errornya adalah http.ErrMissingFile, tidak apa-apa, karena gambar bersifat opsional.
+		// req.Image akan tetap nil.
+	} else {
+		// Jika file ada, masukkan ke dalam struct request.
+		req.Image = imageFile
+	}
+	var acceptedImages = map[string]struct{}{
+		"image/png":  {},
+		"image/jpeg": {},
+		"image/jpg": {},
+	}
+	if req.Image != nil {
+		if _, ok := acceptedImages[req.Image.Header.Get("Content-Type")]; !ok {
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "unsupported image type"))
+		}
+	}
 	
-
 	// Retrieve user claims from the JWT token
 	claims, ok := ctx.Get("User").(*jwt.Token)
 	if !ok {
@@ -143,6 +185,28 @@ func (h *BloodRequestHandler) UpdateBloodRequest(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
 
+	if imageFile, err := ctx.FormFile("image");err != nil {
+		// Jika error bukan karena file tidak ada, berarti ada masalah lain.
+		if err != http.ErrMissingFile {
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "error processing image file: "+err.Error()))
+		}
+		// Jika errornya adalah http.ErrMissingFile, tidak apa-apa, karena gambar bersifat opsional.
+		// req.Image akan tetap nil.
+	} else {
+		// Jika file ada, masukkan ke dalam struct request.
+		req.Image = imageFile
+	}
+	var acceptedImages = map[string]struct{}{
+		"image/png":  {},
+		"image/jpeg": {},
+		"image/jpg": {},
+	}
+	if req.Image != nil {
+		if _, ok := acceptedImages[req.Image.Header.Get("Content-Type")]; !ok {
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "unsupported image type"))
+		}
+	}
+
 	// Retrieve user claims from the JWT token
 	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {
@@ -181,6 +245,28 @@ func (h *BloodRequestHandler) UpdateCampaign(ctx echo.Context) error {
 	var req dto.CampaignUpdateRequest
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+
+	if imageFile, err := ctx.FormFile("image");err != nil {
+		// Jika error bukan karena file tidak ada, berarti ada masalah lain.
+		if err != http.ErrMissingFile {
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "error processing image file: "+err.Error()))
+		}
+		// Jika errornya adalah http.ErrMissingFile, tidak apa-apa, karena gambar bersifat opsional.
+		// req.Image akan tetap nil.
+	} else {
+		// Jika file ada, masukkan ke dalam struct request.
+		req.Image = imageFile
+	}
+	var acceptedImages = map[string]struct{}{
+		"image/png":  {},
+		"image/jpeg": {},
+		"image/jpg": {},
+	}
+	if req.Image != nil {
+		if _, ok := acceptedImages[req.Image.Header.Get("Content-Type")]; !ok {
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "unsupported image type"))
+		}
 	}
 
 	bloodRequest, err := h.bloodRequestService.GetById(ctx.Request().Context(), req.Id)

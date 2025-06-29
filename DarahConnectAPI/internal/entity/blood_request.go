@@ -21,6 +21,8 @@ type BloodRequest struct {
 	SlotsBooked    int64     `json:"slots_booked"`
 	Status         string    `json:"status"` //'Pending', 'Verified', 'Fulfilled', 'Cancelled', 'Expired'
 	EventType      string    `json:"event_type"`
+	UrlFile        string    `json:"url_file"`
+	PublicId       string    `json:"public_id"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
 }

@@ -1,15 +1,15 @@
 package dto
 
 type DonorRegistrationCreateRequest struct {
-	UserId    int64  `json:"user_id" validate:"required"`
-	RequestId int64  `json:"request_id" validate:"required"`
-	Notes     string `json:"notes"` // Additional notes for the registration
+	UserId    int64  `json:"user_id" form:"user_id" validate:"required"`
+	RequestId int64  `json:"request_id" form:"request_id" validate:"required"`
+	Notes     string `json:"notes" form:"notes"` // Additional notes for the registration
 }
 
 type DonorRegistrationUpdateRequest struct {
 	Id     int64  `param:"id" validate:"required"`
-	Status string `json:"status"` //'Registered', 'Completed', 'Cancelled', 'No-show'
-	Notes  string `json:"notes"`  // Additional notes for the registration
+	Status string `json:"status" form:"status"` //'Registered', 'Completed', 'Cancelled', 'No-show'
+	Notes  string `json:"notes" form:"notes"`  // Additional notes for the registration
 }
 
 type DonorRegistrationByIdRequest struct {

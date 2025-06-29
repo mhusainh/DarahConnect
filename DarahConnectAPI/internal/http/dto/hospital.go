@@ -1,22 +1,22 @@
 package dto
 
 type HospitalCreateRequest struct {
-	Name      string  `json:"name" validate:"required"`
-	Address   string  `json:"address" validate:"required"`
-	City      string  `json:"city" validate:"required"`
-	Province  string  `json:"province" validate:"required"`
-	Latitude  float64 `json:"latitude" validate:"required"`
-	Longitude float64 `json:"longitude" validate:"required"`
+	Name      string  `json:"name" form:"name" validate:"required"`
+	Address   string  `json:"address" form:"address" validate:"required"`
+	City      string  `json:"city" form:"city" validate:"required"`
+	Province  string  `json:"province" form:"province" validate:"required"`
+	Latitude  float64 `json:"latitude" form:"latitude" validate:"required"`
+	Longitude float64 `json:"longitude" form:"longitude" validate:"required"`
 }
 
 type HospitalUpdateRequest struct {
-	Id        int64   `json:"id" validate:"required"`
-	Name      string  `json:"name"`
-	Address   string  `json:"address"`
-	City      string  `json:"city"`
-	Province  string  `json:"province"`
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
+	Id        int64   `json:"id" form:"id" validate:"required"`
+	Name      string  `json:"name" form:"name"`
+	Address   string  `json:"address" form:"address"`
+	City      string  `json:"city" form:"city"`
+	Province  string  `json:"province" form:"province"`
+	Latitude  float64 `json:"latitude" form:"latitude"`
+	Longitude float64 `json:"longitude" form:"longitude"`
 }
 
 type HospitalDeleteRequest struct {
