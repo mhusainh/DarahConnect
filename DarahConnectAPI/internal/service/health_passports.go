@@ -58,9 +58,9 @@ func (s *healthPassportService) Create(ctx context.Context, userId int64) error 
 	if err != nil {
 		return errors.New("Gagal membuat nomor paspor unik setelah beberapa percobaan")
 	}
-	if err := s.healthPassportRepository.Create(ctx, healthPassport); err != nil {
-		return errors.New("Gagal membuat riwayat kesehatan")
-	}
+	// if err := s.healthPassportRepository.Create(ctx, healthPassport); err != nil {
+	// 	return errors.New("Gagal membuat riwayat kesehatan" + err.Error())
+	// }
 
 	return nil
 }

@@ -12,7 +12,7 @@ import ChatBot from './components/ChatBot';
 import ChatBotDemo from './components/ChatBotDemo';
 import { HomepageLoader } from './components/ui/LoadingComponents';
 import { PageLoader, DashboardLoader, CampaignListLoader, ErrorFallback } from './components/ui/LazyLoadingComponents';
-import { campaigns } from './data/dummy';
+import { useCampaignService } from './services/campaignService';
 import { BloodCampaign } from './types';
 import { NotificationProvider } from './contexts/NotificationContext';
 
@@ -31,6 +31,9 @@ const EnhancedDonorRegisterPage = lazy(() => import('./pages/EnhancedDonorRegist
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const EmailVerificationPage = lazy(() => import('./pages/EmailVerificationPage'));
 const CreateBloodRequestPage = lazy(() => import('./pages/CreateBloodRequestPage'));
+const HealthPassportPage = lazy(() => import('./pages/HealthPassportPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 
 // Lazy-loaded Admin Pages
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
@@ -46,6 +49,9 @@ const AdminNotificationsPage = lazy(() => import('./pages/AdminNotificationsPage
 // Homepage Component
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
+  const campaignService = useCampaignService();
+  const [campaigns, setCampaigns] = useState<BloodCampaign[]>([]);
+  const [campaignsLoading, setCampaignsLoading] = useState(true);
   const [selectedCampaign, setSelectedCampaign] = useState<BloodCampaign | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCryptoModalOpen, setIsCryptoModalOpen] = useState(false);
@@ -80,6 +86,23 @@ const HomePage: React.FC = () => {
   const handleLoaderComplete = () => {
     setShowLoader(false);
   };
+
+  // Load campaigns from API
+  React.useEffect(() => {
+    const loadCampaigns = async () => {
+      setCampaignsLoading(true);
+      try {
+        const campaignData = await campaignService.fetchCampaigns();
+        setCampaigns(campaignData);
+      } catch (error) {
+        console.error('Failed to load campaigns:', error);
+      } finally {
+        setCampaignsLoading(false);
+      }
+    };
+
+    loadCampaigns();
+  }, []);
 
   // Simplified loading - only show for 2 seconds
   React.useEffect(() => {
@@ -127,6 +150,9 @@ const HomePage: React.FC = () => {
 // Campaigns Page Component with Lazy Loading Support
 const CampaignsPage: React.FC = () => {
   const navigate = useNavigate();
+  const campaignService = useCampaignService();
+  const [campaigns, setCampaigns] = useState<BloodCampaign[]>([]);
+  const [campaignsLoading, setCampaignsLoading] = useState(true);
   const [selectedCampaign, setSelectedCampaign] = useState<BloodCampaign | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCryptoModalOpen, setIsCryptoModalOpen] = useState(false);
@@ -156,6 +182,23 @@ const CampaignsPage: React.FC = () => {
     alert(`Donasi crypto berhasil! Transaction Hash: ${txHash}`);
     setIsCryptoModalOpen(false);
   };
+
+  // Load campaigns from API
+  React.useEffect(() => {
+    const loadCampaigns = async () => {
+      setCampaignsLoading(true);
+      try {
+        const campaignData = await campaignService.fetchCampaigns();
+        setCampaigns(campaignData);
+      } catch (error) {
+        console.error('Failed to load campaigns:', error);
+      } finally {
+        setCampaignsLoading(false);
+      }
+    };
+
+    loadCampaigns();
+  }, []);
 
   return (
     <>
@@ -289,6 +332,16 @@ function App() {
                 <RegisterPage />
               </Suspense>
             } />
+            <Route path="/forgot-password" element={
+              <Suspense fallback={<PageLoader />}>
+                <ForgotPasswordPage />
+              </Suspense>
+            } />
+            <Route path="/reset-password" element={
+              <Suspense fallback={<PageLoader />}>
+                <ResetPasswordPage />
+              </Suspense>
+            } />
             <Route path="/verify-email" element={
               <Suspense fallback={<PageLoader />}>
                 <EmailVerificationPage />
@@ -342,6 +395,13 @@ function App() {
               <ProtectedRoute>
                 <Suspense fallback={<PageLoader />}>
                   <CreateBloodRequestPage />
+                </Suspense>
+              </ProtectedRoute>
+            } />
+            <Route path="/health-passport" element={
+              <ProtectedRoute>
+                <Suspense fallback={<PageLoader />}>
+                  <HealthPassportPage />
                 </Suspense>
               </ProtectedRoute>
             } />

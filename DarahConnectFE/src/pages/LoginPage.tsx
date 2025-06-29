@@ -4,6 +4,7 @@ import { HeartHandshakeIcon, EyeIcon, EyeOffIcon, MailIcon, LockIcon, AlertCircl
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
 import { useApi } from '../hooks/useApi';
 import { decodeJWTToken, saveAuthData } from '../utils/jwt';
+import { debugConsole } from '../config/api';
 
 interface LoginApiData {
   email: string;
@@ -11,13 +12,7 @@ interface LoginApiData {
 }
 
 interface LoginResponse {
-  meta: {
-    code: number;
-    message: string;
-  };
-  data: {
     token: string;
-  };
 }
 
 const LoginPage: React.FC = () => {
@@ -74,10 +69,8 @@ const LoginPage: React.FC = () => {
 
     try {
       const response = await loginApi.post('/login', apiData);
-      
-      if (response.success && response.data?.meta?.code === 200) {
-        const token = response.data.data?.token;
-        
+      if (response.data?.token) {
+        const token = response.data?.token
         if (token) {
           // Decode JWT untuk mendapatkan user data
           const userData = decodeJWTToken(token);
@@ -104,7 +97,7 @@ const LoginPage: React.FC = () => {
         }
       } else {
         // Handle error dari API
-        const errorMessage = response.data?.meta?.message || response.error || 'Email atau password salah. Silakan coba lagi.';
+        const errorMessage = response.error || 'Email atau password salah. Silakan coba lagi.';
         setErrors({ 
           email: errorMessage
         });

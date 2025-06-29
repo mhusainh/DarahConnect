@@ -27,7 +27,7 @@ import { FadeIn, StaggerContainer, StaggerItem, CountUp, Floating, HoverScale } 
 import { MorphingShape, GradientBackground } from '../components/ui/AdvancedAnimations';
 import { HeartBeatLoader, DotsLoader } from '../components/ui/LoadingComponents';
 import { AchievementBadge, CertificateCard } from '../components/ui/CertificateComponents';
-import { QuickScheduleWidget } from '../components/ui/ScheduleComponents';
+import { QuickScheduleWidget, DonationScheduleCalendar } from '../components/ui/ScheduleComponents';
 import { BloodRequestList, BloodRequestStats } from '../components/ui/BloodRequestComponents';
 import { 
   MonthlyDonationChart, 
@@ -141,45 +141,138 @@ const DashboardPage: React.FC = () => {
     points: 2450
   };
 
-  // Sample data untuk advanced features
-  const sampleSchedules = [
-    {
-      id: 'SCH-001',
-      date: '2024-02-15',
-      time: '08:00 - 12:00',
-      location: 'Jl. Sudirman No. 123',
-      hospital: 'RS Hasan Sadikin',
-      capacity: 50,
-      registered: 35,
-      bloodTypesNeeded: ['O+', 'A+', 'B+'],
-      status: 'upcoming' as const,
-      requirements: ['Usia 17-65 tahun', 'Berat minimal 45kg']
-    },
-    {
-      id: 'SCH-002',
-      date: '2024-02-18',
-      time: '09:00 - 15:00',
-      location: 'Jl. Asia Afrika No. 456',
-      hospital: 'RS Santo Borromeus',
-      capacity: 30,
-      registered: 28,
-      bloodTypesNeeded: ['AB+', 'O-'],
-      status: 'upcoming' as const,
-      requirements: ['Usia 17-65 tahun', 'Tidak sedang sakit']
-    },
-    {
-      id: 'SCH-003',
-      date: '2024-02-20',
-      time: '07:30 - 14:00',
-      location: 'Jl. Dago No. 789',
-      hospital: 'RS Al Islam',
-      capacity: 40,
-      registered: 25,
-      bloodTypesNeeded: ['A-', 'B-', 'O+'],
-      status: 'upcoming' as const,
-      requirements: ['Usia 17-65 tahun', 'Puasa minimal 4 jam']
-    }
-  ];
+  // Generate realistic schedule dates for current and next month
+  const getRealisticSchedules = () => {
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    return [
+      {
+        id: 'SCH-001',
+        date: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-05`,
+        time: '08:00 - 12:00',
+        location: 'Jl. Sudirman No. 123',
+        hospital: 'RS Hasan Sadikin',
+        capacity: 50,
+        registered: 35,
+        bloodTypesNeeded: ['O+', 'A+', 'B+'],
+        status: 'upcoming' as const,
+        requirements: ['Usia 17-65 tahun', 'Berat minimal 45kg']
+      },
+      {
+        id: 'SCH-002',
+        date: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-08`,
+        time: '09:00 - 15:00',
+        location: 'Jl. Asia Afrika No. 456',
+        hospital: 'RS Santo Borromeus',
+        capacity: 30,
+        registered: 28,
+        bloodTypesNeeded: ['AB+', 'O-'],
+        status: 'upcoming' as const,
+        requirements: ['Usia 17-65 tahun', 'Tidak sedang sakit']
+      },
+      {
+        id: 'SCH-003',
+        date: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-12`,
+        time: '07:30 - 14:00',
+        location: 'Jl. Dago No. 789',
+        hospital: 'RS Al Islam',
+        capacity: 40,
+        registered: 25,
+        bloodTypesNeeded: ['A-', 'B-', 'O+'],
+        status: 'upcoming' as const,
+        requirements: ['Usia 17-65 tahun', 'Puasa minimal 4 jam']
+      },
+      {
+        id: 'SCH-004',
+        date: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-15`,
+        time: '08:30 - 13:00',
+        location: 'Jl. Pasteur No. 38',
+        hospital: 'RS Advent Bandung',
+        capacity: 35,
+        registered: 20,
+        bloodTypesNeeded: ['O+', 'A-', 'B+'],
+        status: 'upcoming' as const,
+        requirements: ['Usia 17-65 tahun', 'Tidak sedang hamil']
+      },
+      {
+        id: 'SCH-005',
+        date: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-18`,
+        time: '09:00 - 14:30',
+        location: 'Jl. Cihampelas No. 161',
+        hospital: 'RS Hermina Arcamanik',
+        capacity: 45,
+        registered: 32,
+        bloodTypesNeeded: ['AB-', 'O-', 'A+'],
+        status: 'upcoming' as const,
+        requirements: ['Usia 17-65 tahun', 'Berat minimal 45kg']
+      },
+      {
+        id: 'SCH-006',
+        date: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-22`,
+        time: '08:00 - 13:30',
+        location: 'Jl. Soekarno Hatta No. 644',
+        hospital: 'RS Immanuel',
+        capacity: 25,
+        registered: 18,
+        bloodTypesNeeded: ['B-', 'AB+', 'O+'],
+        status: 'upcoming' as const,
+        requirements: ['Usia 17-65 tahun', 'Tidak minum alkohol 24 jam sebelumnya']
+      },
+      {
+        id: 'SCH-007',
+        date: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-25`,
+        time: '07:00 - 12:00',
+        location: 'Jl. Djuanda No. 95',
+        hospital: 'RS Rajawali',
+        capacity: 60,
+        registered: 45,
+        bloodTypesNeeded: ['O+', 'A+', 'B+', 'AB+'],
+        status: 'upcoming' as const,
+        requirements: ['Usia 17-65 tahun', 'Istirahat cukup']
+      },
+      {
+        id: 'SCH-008',
+        date: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-28`,
+        time: '09:30 - 15:00',
+        location: 'Jl. Buah Batu No. 212',
+        hospital: 'RS Santosa',
+        capacity: 38,
+        registered: 30,
+        bloodTypesNeeded: ['A-', 'B-', 'O-'],
+        status: 'upcoming' as const,
+        requirements: ['Usia 17-65 tahun', 'Sarapan ringan sebelum donor']
+      },
+      // Next month schedules
+      {
+        id: 'SCH-009',
+        date: `${currentYear}-${String(currentMonth + 2).padStart(2, '0')}-03`,
+        time: '08:00 - 13:00',
+        location: 'Jl. Riau No. 88',
+        hospital: 'RS Advent Bandung',
+        capacity: 42,
+        registered: 15,
+        bloodTypesNeeded: ['O+', 'A+'],
+        status: 'upcoming' as const,
+        requirements: ['Usia 17-65 tahun', 'Berat minimal 45kg']
+      },
+      {
+        id: 'SCH-010',
+        date: `${currentYear}-${String(currentMonth + 2).padStart(2, '0')}-07`,
+        time: '09:00 - 14:00',
+        location: 'Jl. Dipatiukur No. 35',
+        hospital: 'RS Al Islam',
+        capacity: 55,
+        registered: 20,
+        bloodTypesNeeded: ['AB+', 'AB-', 'O-'],
+        status: 'upcoming' as const,
+        requirements: ['Usia 17-65 tahun', 'Tidak sedang menstruasi']
+      }
+    ];
+  };
+
+  const sampleSchedules = getRealisticSchedules();
 
   const sampleBloodRequests = [
     {
@@ -381,6 +474,10 @@ const DashboardPage: React.FC = () => {
 
   const handleCreateBloodRequest = () => {
     navigate('/create-blood-request');
+  };
+
+  const handleHealthPassport = () => {
+    navigate('/health-passport');
   };
 
   const handleScheduleSelect = (schedule: any) => {
@@ -745,16 +842,30 @@ const DashboardPage: React.FC = () => {
                             </button>
                           </div>
                           
-                          <button
-                            onClick={handleCreateBloodRequest}
-                            className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white p-4 rounded-lg text-center hover:from-red-600 hover:to-red-700 transition-all duration-300 hover:scale-105 border border-red-300"
-                          >
-                            <div className="flex items-center justify-center space-x-2">
-                              <HeartIcon className="w-6 h-6" />
-                              <PlusCircleIcon className="w-5 h-5" />
-                            </div>
-                            <span className="text-sm font-medium mt-2 block">Buat Request Donor Darah</span>
-                          </button>
+                          <div className="grid grid-cols-2 gap-4">
+                            <button
+                              onClick={handleCreateBloodRequest}
+                              className="bg-gradient-to-r from-red-500 to-red-600 text-white p-4 rounded-lg text-center hover:from-red-600 hover:to-red-700 transition-all duration-300 hover:scale-105"
+                            >
+                              <div className="flex items-center justify-center space-x-1 mb-2">
+                                <HeartIcon className="w-5 h-5" />
+                                <PlusCircleIcon className="w-4 h-4" />
+                              </div>
+                              <span className="text-sm font-medium">Buat Request</span>
+                            </button>
+                            
+                            <button
+                              onClick={handleHealthPassport}
+                              className="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-lg text-center hover:from-green-600 hover:to-green-700 transition-all duration-300 hover:scale-105"
+                            >
+                              <div className="flex items-center justify-center mb-2">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                              </div>
+                              <span className="text-sm font-medium">Health Passport</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </FadeIn>
@@ -772,7 +883,10 @@ const DashboardPage: React.FC = () => {
                       </p>
                     </div>
                     
-                    <QuickScheduleWidget schedules={sampleSchedules} />
+                    <DonationScheduleCalendar 
+                      schedules={sampleSchedules}
+                      onScheduleSelect={handleScheduleSelect}
+                    />
                   </div>
                 </FadeIn>
               )}
@@ -894,7 +1008,8 @@ const DashboardPage: React.FC = () => {
                     <BloodRequestStats requests={sampleBloodRequests} />
                     <BloodRequestList 
                       requests={sampleBloodRequests} 
-                      onRespond={handleBloodRequestRespond} 
+                      onRespond={handleBloodRequestRespond}
+                      onCreateRequest={handleCreateBloodRequest}
                     />
                   </div>
                 </FadeIn>

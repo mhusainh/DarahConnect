@@ -1,22 +1,69 @@
+// API Response Types
+export interface User {
+  id: number;
+  name: string;
+  gender: string;
+  email: string;
+  phone: string;
+  blood_type: string;
+  birth_date: string;
+  address: string;
+  role: string;
+  is_verified: boolean;
+  last_donation_date: string;
+  donation_count: number;
+  url_file: string;
+  wallet_address: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Hospital {
+  id: number;
+  name: string;
+  address: string;
+  city: string;
+  province: string;
+  latitude: number;
+  longitude: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface BloodCampaign {
-  id: string;
-  title: string;
-  description: string;
-  hospital: string;
-  location: string;
-  targetDonors: number;
-  currentDonors: number;
-  bloodType: BloodType[];
-  urgencyLevel: 'low' | 'medium' | 'high' | 'critical';
-  deadline: string;
-  contactPerson: string;
-  contactPhone: string;
-  imageUrl: string;
-  createdAt: string;
-  organizer: {
-    name: string;
-    avatar: string;
-    verified: boolean;
+  id: number;
+  user_id: number;
+  user: User;
+  hospital_id: number;
+  hospital: Hospital;
+  patient_name: string;
+  blood_type: string;
+  quantity: number;
+  urgency_level: 'Low' | 'Medium' | 'High' | 'Critical';
+  diagnosis: string;
+  event_name: string;
+  event_date: string;
+  start_time: string;
+  end_time: string;
+  slots_available: number;
+  slots_booked: number;
+  status: 'pending' | 'approved' | 'completed' | 'Canceled';
+  event_type: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CampaignApiResponse {
+  meta: {
+    code: number;
+    message: string;
+  };
+  data: BloodCampaign[];
+  pagination: {
+    page: number;
+    per_page: number;
+    total_items: number;
+    total_pages: number;
   };
 }
 

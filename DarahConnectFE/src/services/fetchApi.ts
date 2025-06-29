@@ -32,7 +32,8 @@ const requiresAuth = (endpoint: string): boolean => {
     '/login',
     '/verify-email',
     '/forgot-password',
-    '/reset-password'
+    '/reset-password',
+    '/campaign'
   ];
   
   // Cek apakah endpoint adalah public endpoint
@@ -44,7 +45,7 @@ const requiresAuth = (endpoint: string): boolean => {
 // Helper untuk mendapatkan auth token dari localStorage
 const getAuthToken = (): string | null => {
   try {
-    return localStorage.getItem('token');
+    return localStorage.getItem('authToken');
   } catch (error) {
     debugConsole.error('Error getting auth token from localStorage', error);
     return null;
@@ -228,14 +229,17 @@ export const fetchApi = async <T = any>(
       if (shouldShowNotification(method)) {
         const action = getMethodDisplayName(method);
         notificationManager.showSuccess(
-          `${action} Berhasil`,
-          'Data berhasil diproses'
+          `SUCCESS`,
+          responseData.meta?.message || 'Request successful'
         );
       }
       
+      // Extract data from backend response format: {meta: {...}, data: {...}}
+      const extractedData = responseData?.data || responseData;
+      
       return {
         success: true,
-        data: responseData,
+        data: extractedData,
         status: response.status,
       };
     } else {
