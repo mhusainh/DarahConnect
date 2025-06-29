@@ -104,13 +104,13 @@ func PrivateRoutes(
 		// Health Passport - User Only
 		{
 			Method:  http.MethodGet,
-			Path:    "health-passport",
+			Path:    "user/health-passport",
 			Handler: healthPassportHandler.GetHealthPassportByUser,
 			Roles:   userOnly,
 		},
 		{
 			Method:  http.MethodPost,
-			Path:    "health-passport",
+			Path:    "user/health-passport",
 			Handler: healthPassportHandler.CreateHealthPassport,
 			Roles:   userOnly,
 		},
@@ -310,19 +310,19 @@ func PrivateRoutes(
 		// User Profile - All Roles
 		{
 			Method:  http.MethodGet,
-			Path:    "users/profile",
+			Path:    "user/profile",
 			Handler: userHandler.GetProfile,
 			Roles:   allRoles,
 		},
 		{
 			Method:  http.MethodPut,
-			Path:    "users/profile",
+			Path:    "user/profile",
 			Handler: userHandler.UpdateUser,
 			Roles:   allRoles,
 		},
 		{
 			Method:  http.MethodPost,
-			Path:    "users/profile/picture",
+			Path:    "user/profile/picture",
 			Handler: userHandler.UpdateUser,
 			Roles:   allRoles,
 		},
