@@ -1,5 +1,5 @@
 import { BloodCampaign as ApiCampaign } from '../types/index';
-import { BloodCampaign as ComponentCampaign } from '../types';
+import { BloodCampaign as ComponentCampaign, BloodType } from '../types';
 
 // Adapter untuk mengkonversi data API ke format yang diharapkan komponen
 export const adaptCampaignFromApi = (apiCampaign: ApiCampaign): ComponentCampaign => {
@@ -17,31 +17,36 @@ export const adaptCampaignFromApi = (apiCampaign: ApiCampaign): ComponentCampaig
     }
   };
 
-  // Format lokasi
-  const location = apiCampaign.hospital.address || 
-                  `${apiCampaign.hospital.city}, ${apiCampaign.hospital.province}`.replace(', ', '') ||
-                  'Lokasi tidak diketahui';
+  // Format lokasi - handle berbagai kemungkinan struktur
+  let location = 'Lokasi tidak diketahui';
+  if (apiCampaign.hospital?.address) {
+    location = apiCampaign.hospital.address;
+  } else if (apiCampaign.hospital?.city || apiCampaign.hospital?.province) {
+    const cityPart = apiCampaign.hospital.city || '';
+    const provincePart = apiCampaign.hospital.province || '';
+    location = [cityPart, provincePart].filter(Boolean).join(', ') || 'Lokasi tidak diketahui';
+  }
 
   return {
     id: apiCampaign.id.toString(),
-    title: apiCampaign.event_name || `Donor Darah untuk ${apiCampaign.patient_name}`,
+    title: apiCampaign.event_name || `Donor Darah untuk ${apiCampaign.patient_name || 'Pasien'}`,
     description: apiCampaign.diagnosis || 'Bantuan donor darah dibutuhkan',
-    hospital: apiCampaign.hospital.name || 'Rumah Sakit',
+    hospital: apiCampaign.hospital?.name || 'Rumah Sakit',
     location: location,
     targetDonors: apiCampaign.quantity || 1,
     currentDonors: apiCampaign.slots_booked || 0,
-    bloodType: [apiCampaign.blood_type] as any, // Convert single string to array
-    urgencyLevel: mapUrgencyLevel(apiCampaign.urgency_level),
-    deadline: apiCampaign.event_date,
-    contactPerson: apiCampaign.user.name || 'Contact Person',
-    contactPhone: apiCampaign.user.phone || '-',
-    imageUrl: apiCampaign.user.url_file || defaultImage,
-    createdAt: apiCampaign.created_at,
+    bloodType: apiCampaign.blood_type ? [apiCampaign.blood_type as BloodType] : ['O+' as BloodType], // Convert single string to array, default to O+
+    urgencyLevel: mapUrgencyLevel(apiCampaign.urgency_level || 'medium'),
+    deadline: apiCampaign.event_date || new Date().toISOString(),
+    contactPerson: apiCampaign.user?.name || 'Contact Person',
+    contactPhone: apiCampaign.user?.phone || '-',
+    imageUrl: apiCampaign.user?.url_file || defaultImage,
+    createdAt: apiCampaign.created_at || new Date().toISOString(),
     organizer: {
-      name: apiCampaign.user.name || 'Organizer',
-      avatar: apiCampaign.user.url_file || 'https://via.placeholder.com/40',
-      verified: apiCampaign.user.is_verified || false,
-      role: apiCampaign.user.role || 'User'
+      name: apiCampaign.user?.name || 'Organizer',
+      avatar: apiCampaign.user?.url_file || 'https://via.placeholder.com/40',
+      verified: apiCampaign.user?.is_verified || false,
+      role: apiCampaign.user?.role || 'User'
     }
   };
 };

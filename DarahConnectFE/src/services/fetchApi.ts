@@ -73,24 +73,41 @@ const logRequestData = (method: string, endpoint: string, data: any) => {
     console.group(`🔧 [${method}] ${endpoint} - Data yang dikirim:`);
     
     try {
-      // Parse JSON jika string
-      const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
-      
-      console.log('📦 Raw Data:', data);
-      console.log('📋 Parsed Data:', parsedData);
-      
-      // Show data structure
-      if (typeof parsedData === 'object' && parsedData !== null) {
-        console.log('🔍 Data Structure:');
-        Object.keys(parsedData).forEach(key => {
-          const value = parsedData[key];
-          const type = typeof value;
-          console.log(`  • ${key}: ${type}`, value);
-        });
+      if (data instanceof FormData) {
+        console.log('📦 Raw Data: FormData');
+        console.log('📋 FormData Entries:');
         
-        // Show data size
-        const dataSize = JSON.stringify(parsedData).length;
-        console.log(`📏 Data Size: ${dataSize} bytes`);
+        // Log all FormData entries
+        const entries = Array.from(data.entries());
+        if (entries.length > 0) {
+          entries.forEach(([key, value]) => {
+            const type = value instanceof File ? 'File' : typeof value;
+            console.log(`  • ${key}: ${type}`, value);
+          });
+          console.log(`📏 FormData Size: ${entries.length} entries`);
+        } else {
+          console.warn('⚠️ FormData is empty!');
+        }
+      } else {
+        // Parse JSON jika string
+        const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+        
+        console.log('📦 Raw Data:', data);
+        console.log('📋 Parsed Data:', parsedData);
+        
+        // Show data structure
+        if (typeof parsedData === 'object' && parsedData !== null) {
+          console.log('🔍 Data Structure:');
+          Object.keys(parsedData).forEach(key => {
+            const value = parsedData[key];
+            const type = typeof value;
+            console.log(`  • ${key}: ${type}`, value);
+          });
+          
+          // Show data size
+          const dataSize = JSON.stringify(parsedData).length;
+          console.log(`📏 Data Size: ${dataSize} bytes`);
+        }
       }
       
     } catch (error) {
@@ -120,11 +137,21 @@ export const fetchApi = async <T = any>(
     // Setup headers
     const headers: Record<string, string> = Object.assign(
       {
-        'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
       options.headers || {}
     );
+
+    // Only set Content-Type for non-FormData requests
+    if (!(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    } else {
+      // For FormData, let browser set the Content-Type header automatically
+      // Browser will set: Content-Type: multipart/form-data; boundary=...
+      if (API_CONFIG.DEBUG) {
+        console.log(`📤 [${method}] ${endpoint} - FormData detected, browser will auto-set Content-Type`);
+      }
+    }
     
     // Tambahkan Bearer token otomatis jika endpoint memerlukan auth
     if (requiresAuth(endpoint)) {
@@ -313,17 +340,24 @@ export const postApi = async <T = any>(
   
   // Debug POST data summary
   if (API_CONFIG.DEBUG) {
-    console.log(`📤 [POST] ${endpoint} - Summary:`, {
-      hasData: !!data,
-      dataKeys: data && typeof data === 'object' ? Object.keys(data) : [],
-      dataSize: data ? JSON.stringify(data).length : 0
-    });
+    if (data instanceof FormData) {
+      console.log(`📤 [POST] ${endpoint} - FormData Summary:`, {
+        hasData: !!data,
+        formDataEntries: Array.from(data.entries()),
+      });
+    } else {
+      console.log(`📤 [POST] ${endpoint} - JSON Summary:`, {
+        hasData: !!data,
+        dataKeys: data && typeof data === 'object' ? Object.keys(data) : [],
+        dataSize: data ? JSON.stringify(data).length : 0
+      });
+    }
   }
   
   return fetchApi<T>(endpoint, {
     ...options,
     method: 'POST',
-    body: data ? JSON.stringify(data) : undefined,
+    body: data instanceof FormData ? data : (data ? JSON.stringify(data) : undefined),
   });
 };
 
@@ -336,17 +370,24 @@ export const putApi = async <T = any>(
   
   // Debug PUT data summary
   if (API_CONFIG.DEBUG) {
-    console.log(`🔄 [PUT] ${endpoint} - Summary:`, {
-      hasData: !!data,
-      dataKeys: data && typeof data === 'object' ? Object.keys(data) : [],
-      dataSize: data ? JSON.stringify(data).length : 0
-    });
+    if (data instanceof FormData) {
+      console.log(`🔄 [PUT] ${endpoint} - FormData Summary:`, {
+        hasData: !!data,
+        formDataEntries: Array.from(data.entries()),
+      });
+    } else {
+      console.log(`🔄 [PUT] ${endpoint} - JSON Summary:`, {
+        hasData: !!data,
+        dataKeys: data && typeof data === 'object' ? Object.keys(data) : [],
+        dataSize: data ? JSON.stringify(data).length : 0
+      });
+    }
   }
   
   return fetchApi<T>(endpoint, {
     ...options,
     method: 'PUT',
-    body: data ? JSON.stringify(data) : undefined,
+    body: data instanceof FormData ? data : (data ? JSON.stringify(data) : undefined),
   });
 };
 

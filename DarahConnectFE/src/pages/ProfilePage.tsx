@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   User,
@@ -27,6 +27,7 @@ import MetaMaskWallet from '../components/MetaMaskWallet';
 import { FadeIn, HoverScale } from '../components/ui/AnimatedComponents';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import LocationPicker from '../components/LocationPicker';
 import { useApi } from '../hooks/useApi';
 import { useNotification } from '../hooks/useNotification';
 import { calculateAge } from '../utils/dateUtils';
@@ -44,6 +45,7 @@ interface UserProfile {
   is_verified: boolean;
   last_donation_date: string;
   donation_count: number;
+  url_file: string;
   created_at: string;
   updated_at: string;
 }
@@ -63,7 +65,7 @@ const ProfilePage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const { isConnected, account, balance, network, disconnect } = useMetaMask();
   const { addNotification } = useNotification();
-  const { data: profileData, loading, error, get } = useApi<UserProfile>();
+  const { data: profileData, loading, error, get, put, post } = useApi<UserProfile>();
   
   const [editedProfile, setEditedProfile] = useState<EditableProfile>({
     name: '',
@@ -74,6 +76,12 @@ const ProfilePage: React.FC = () => {
     gender: '',
     birth_date: ''
   });
+
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [profileImagePreview, setProfileImagePreview] = useState<string>('');
+  const [showImageModal, setShowImageModal] = useState<boolean>(false);
+
+
 
   useEffect(() => {
     // Check if user is logged in
@@ -98,10 +106,34 @@ const ProfilePage: React.FC = () => {
         gender: profileData.gender || 'Male',
         birth_date: profileData.birth_date || ''
       });
+
+
     } else {
       console.log('⏳ ProfilePage: Data profil belum tersedia:', { profileData, loading, error });
     }
   }, [profileData, loading, error]);
+
+  // Handle ESC key to close modal
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      setShowImageModal(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (showImageModal) {
+      document.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden'; // Prevent background scroll
+    } else {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'unset';
+    };
+  }, [showImageModal, handleKeyDown]);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -109,20 +141,64 @@ const ProfilePage: React.FC = () => {
 
   const handleSave = async () => {
     try {
-      // Here you would typically save to backend
-      // const response = await putApi('/profil', editedProfile);
-      setIsEditing(false);
-      addNotification({
-        type: 'success',
-        title: 'Profil Berhasil Diperbarui',
-        message: 'Data profil Anda telah berhasil disimpan'
-      });
-      // refetch(); // Uncomment when API is ready
-    } catch (error) {
+      console.log('📋 EditedProfile data before FormData:', editedProfile);
+      
+      // Format birth_date to simple date format (YYYY-MM-DD)
+      let formattedBirthDate = '';
+      if (editedProfile.birth_date) {
+        try {
+          // Handle different date formats
+          if (editedProfile.birth_date.includes('T')) {
+            // Format: "2003-06-27T07:00:00+07:00"
+            formattedBirthDate = editedProfile.birth_date.split('T')[0];
+          } else if (editedProfile.birth_date.includes('-')) {
+            // Format: "2003-06-27"
+            formattedBirthDate = editedProfile.birth_date;
+          } else {
+            // Fallback: try to parse as date
+            const date = new Date(editedProfile.birth_date);
+            formattedBirthDate = date.toISOString().split('T')[0];
+          }
+        } catch (error) {
+          console.error('❌ Date formatting error:', error);
+          formattedBirthDate = editedProfile.birth_date.split('T')[0]; // fallback
+        }
+      }
+      
+      console.log('📅 Original birth_date:', editedProfile.birth_date);
+      console.log('📅 Formatted birth_date:', formattedBirthDate);
+      
+      // Prepare form data
+      const formData = new FormData();
+      formData.append('name', editedProfile.name);
+      formData.append('gender', editedProfile.gender);
+      formData.append('phone', editedProfile.phone);
+      formData.append('birth_date', formattedBirthDate);
+      formData.append('address', editedProfile.address);
+
+      console.log('📤 FormData entries:', Array.from(formData.entries()));
+      console.log('📤 FormData object:', formData);
+
+      const response = await put('/user/profile', formData);
+      
+      if (response.success) {
+        setIsEditing(false);
+        addNotification({
+          type: 'success',
+          title: 'Profil Berhasil Diperbarui',
+          message: 'Data profil Anda telah berhasil disimpan'
+        });
+        // Refresh data after successful update
+        get('/user/profile');
+      } else {
+        throw new Error(response.error || 'Update failed');
+      }
+    } catch (error: any) {
+      console.error('❌ Profile update error:', error);
       addNotification({
         type: 'error',
         title: 'Gagal Memperbarui Profil',
-        message: 'Terjadi kesalahan saat menyimpan data profil'
+        message: error.message || 'Terjadi kesalahan saat menyimpan data profil'
       });
     }
   };
@@ -130,7 +206,7 @@ const ProfilePage: React.FC = () => {
   const handleCancel = () => {
     setIsEditing(false);
     if (profileData && profileData.name) {
-      setEditedProfile({
+      const resetData = {
         name: profileData.name || '',
         email: profileData.email || '',
         phone: profileData.phone || '',
@@ -138,7 +214,9 @@ const ProfilePage: React.FC = () => {
         address: profileData.address || '',
         gender: profileData.gender || 'Male',
         birth_date: profileData.birth_date || ''
-      });
+      };
+      console.log('🔄 Resetting edited profile to:', resetData);
+      setEditedProfile(resetData);
     }
   };
 
@@ -148,6 +226,113 @@ const ProfilePage: React.FC = () => {
       [field]: value
     }));
   };
+
+  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+      if (!allowedTypes.includes(file.type)) {
+        addNotification({
+          type: 'error',
+          title: 'Format File Tidak Didukung',
+          message: 'Harap pilih file gambar (JPG, PNG, atau GIF)'
+        });
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        addNotification({
+          type: 'error',
+          title: 'File Terlalu Besar',
+          message: 'Ukuran file maksimal 5MB'
+        });
+        return;
+      }
+
+      setProfileImage(file);
+      
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setProfileImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+
+      console.log('📸 Selected image file:', file);
+
+      // Auto upload immediately
+      await handleImageUpload(file);
+    }
+  };
+
+  const handleImageUpload = async (file?: File) => {
+    const imageFile = file || profileImage;
+    
+    if (!imageFile) {
+      addNotification({
+        type: 'warning',
+        title: 'Pilih Gambar',
+        message: 'Harap pilih gambar terlebih dahulu'
+      });
+      return;
+    }
+
+    try {
+      // Show uploading notification
+      addNotification({
+        type: 'info',
+        title: 'Mengupload Foto...',
+        message: 'Sedang mengupload foto profil Anda'
+      });
+
+      const formData = new FormData();
+      formData.append('image', imageFile);
+
+      console.log('📤 Uploading profile image:', imageFile);
+      console.log('📦 FormData contents:', Array.from(formData.entries()));
+      console.log('🔍 File details:', {
+        name: imageFile.name,
+        size: imageFile.size,
+        type: imageFile.type,
+        lastModified: imageFile.lastModified
+      });
+
+      const response = await post('/user/profile/picture', formData);
+
+      if (response.success) {
+        addNotification({
+          type: 'success',
+          title: 'Foto Profil Berhasil Diperbarui',
+          message: 'Foto profil Anda telah berhasil diubah'
+        });
+        
+        // Clear selected image
+        setProfileImage(null);
+        setProfileImagePreview('');
+        
+        // Refresh profile data to get updated image URL
+        get('/user/profile');
+      } else {
+        throw new Error(response.error || 'Upload failed');
+      }
+    } catch (error: any) {
+      console.error('❌ Image upload error:', error);
+      addNotification({
+        type: 'error',
+        title: 'Gagal Mengupload Foto',
+        message: error.message || 'Terjadi kesalahan saat mengupload foto profil'
+      });
+      
+      // Clear preview on error
+      setProfileImage(null);
+      setProfileImagePreview('');
+    }
+  };
+
+
 
   const getUserInitials = (name: string | undefined) => {
     if (!name || typeof name !== 'string') {
@@ -291,19 +476,52 @@ const ProfilePage: React.FC = () => {
                 <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-gray-200/50">
                   <div className="flex items-start space-x-6">
                     {/* Profile Image */}
-                    <div className="relative">
-                      <div className="w-24 h-24 bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-                        {getUserInitials(isEditing ? editedProfile.name : profileData?.name)}
-                      </div>
+                    <div className="relative group">
+                      {profileImagePreview || profileData?.url_file ? (
+                                                  <img
+                            src={profileImagePreview || profileData?.url_file}
+                            alt="Profile"
+                            onClick={() => setShowImageModal(true)}
+                            className="w-24 h-24 rounded-3xl object-cover shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+                      ) : (
+                        <div className="w-24 h-24 bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                          {getUserInitials(isEditing ? editedProfile.name : profileData?.name)}
+                        </div>
+                      )}
+                      
+                      {/* Camera Button - Only show in edit mode */}
                       {isEditing && (
-                        <button className="absolute -bottom-2 -right-2 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white hover:bg-blue-700 transition-colors shadow-lg">
-                          <Camera className="w-4 h-4" />
-                        </button>
+                        <div className="absolute -bottom-3 -right-3">
+                          <input
+                            type="file"
+                            id="profile-image-input"
+                            accept="image/*"
+                            onChange={handleImageChange}
+                            className="hidden"
+                          />
+                          <label
+                            htmlFor="profile-image-input"
+                            className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white hover:bg-blue-700 transition-colors shadow-lg cursor-pointer"
+                          >
+                            <Camera className="w-5 h-5" />
+                          </label>
+                        </div>
+                      )}
+                      
+                      {/* Loading indicator when uploading */}
+                      {profileImage && (
+                        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                          <div className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-lg whitespace-nowrap">
+                            ⏳ Uploading...
+                          </div>
+                        </div>
                       )}
                     </div>
 
                     {/* Basic Details */}
                     <div className="flex-1 space-y-4">
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -381,12 +599,14 @@ const ProfilePage: React.FC = () => {
                             Alamat
                           </label>
                           {isEditing ? (
-                            <textarea
-                              value={editedProfile.address}
-                              onChange={(e) => handleInputChange('address', e.target.value)}
-                              rows={2}
-                              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 resize-none"
-                            />
+                            <div className="space-y-3">
+                              <LocationPicker
+                                value={editedProfile.address}
+                                onChange={(location) => handleInputChange('address', location)}
+                                layout="horizontal"
+                                required={true}
+                              />
+                            </div>
                           ) : (
                             <p className="text-gray-900">{profileData?.address || 'Loading...'}</p>
                           )}
@@ -660,6 +880,45 @@ const ProfilePage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Image Modal */}
+      {showImageModal && (profileImagePreview || profileData?.url_file) && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50"
+          onClick={() => setShowImageModal(false)}
+        >
+          <div 
+            className="relative max-w-[90vw] max-h-[90vh] p-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setShowImageModal(false)}
+              className="absolute -top-3 -right-3 w-12 h-12 bg-white rounded-full flex items-center justify-center text-gray-800 hover:bg-gray-100 transition-colors shadow-xl z-10"
+            >
+              <X className="w-7 h-7" />
+            </button>
+            
+            {/* Image */}
+            <img
+              src={profileImagePreview || profileData?.url_file}
+              alt="Profile - Full Size"
+              className="w-full h-full object-contain rounded-3xl shadow-2xl min-w-[500px] min-h-[500px]"
+              onClick={() => setShowImageModal(false)}
+            />
+            
+            {/* Image Info */}
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-8 rounded-b-3xl">
+              <div className="text-white text-center">
+                {/* <h3 className="text-2xl font-bold mb-2">Foto Profil</h3> */}
+                <p className="text-lg opacity-90">{profileData?.name || 'Loading...'}</p>
+                <p className="text-sm opacity-75 mt-3">Klik di mana saja untuk menutup</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </>
   );

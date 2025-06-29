@@ -12,25 +12,84 @@ import {
   ShareIcon,
   HeartIcon
 } from 'lucide-react';
-import { campaigns } from '../data/dummy';
 import { BloodCampaign } from '../types';
-import DonationModal from '../components/DonationModal';
+import { useCampaignService } from '../services/campaignService';
+import DonorConfirmationModal from '../components/DonorConfirmationModal';
+import { useNotification } from '../hooks/useNotification';
 
 const CampaignDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const campaignService = useCampaignService();
+  const { addNotification } = useNotification();
   const [campaign, setCampaign] = useState<BloodCampaign | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate loading campaign data
-    setTimeout(() => {
-      const foundCampaign = campaigns.find(c => c.id === id);
-      setCampaign(foundCampaign || null);
-      setIsLoading(false);
-    }, 500);
+    const loadCampaignDetail = async () => {
+      if (!id) {
+        setError('ID campaign tidak valid');
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const campaignData = await campaignService.getCampaignDetail(id);
+        if (campaignData) {
+          setCampaign(campaignData);
+        } else {
+          setError('Campaign tidak ditemukan');
+        }
+      } catch (err) {
+        setError('Gagal memuat data campaign');
+        console.error('Error loading campaign detail:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadCampaignDetail();
   }, [id]);
+
+  const handleDonorRegistration = async (notes: string) => {
+    if (!campaign) return;
+    
+    try {
+      const success = await campaignService.registerAsDonor(Number(campaign.id), notes);
+      if (success) {
+        addNotification({
+          type: 'success',
+          title: 'Pendaftaran Berhasil!',
+          message: 'Anda telah berhasil mendaftar sebagai donor. Tim akan menghubungi Anda segera.',
+          duration: 5000
+        });
+        // Refresh campaign data to update donor count
+        const updatedCampaign = await campaignService.getCampaignDetail(campaign.id);
+        if (updatedCampaign) {
+          setCampaign(updatedCampaign);
+        }
+      } else {
+        addNotification({
+          type: 'error',
+          title: 'Pendaftaran Gagal',
+          message: 'Terjadi kesalahan saat mendaftar sebagai donor. Silakan coba lagi.',
+          duration: 5000
+        });
+      }
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Terjadi kesalahan sistem. Silakan coba lagi nanti.',
+        duration: 5000
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -43,21 +102,37 @@ const CampaignDetailPage: React.FC = () => {
     );
   }
 
-  if (!campaign) {
+  if (error || (!campaign && !isLoading)) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Campaign Tidak Ditemukan</h2>
-          <p className="text-gray-600 mb-6">Campaign yang Anda cari tidak tersedia.</p>
-          <button
-            onClick={() => navigate('/campaigns')}
-            className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors"
-          >
-            Kembali ke Campaigns
-          </button>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            {error || 'Campaign Tidak Ditemukan'}
+          </h2>
+          <p className="text-gray-600 mb-6">
+            {error || 'Campaign yang Anda cari tidak tersedia.'}
+          </p>
+          <div className="space-x-4">
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              Coba Lagi
+            </button>
+            <button
+              onClick={() => navigate('/campaigns')}
+              className="border border-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Kembali ke Campaigns
+            </button>
+          </div>
         </div>
       </div>
     );
+  }
+
+  if (!campaign) {
+    return null; // This will only happen during loading
   }
 
   const progress = (campaign.currentDonors / campaign.targetDonors) * 100;
@@ -289,7 +364,7 @@ const CampaignDetailPage: React.FC = () => {
                   className="w-full bg-primary-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-primary-700 transition-colors flex items-center justify-center"
                 >
                   <HeartIcon className="w-5 h-5 mr-2" />
-                  Donasi Sekarang
+                  Donor Sekarang
                 </button>
                 
                 <button
@@ -343,16 +418,12 @@ const CampaignDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Donation Modal */}
-      <DonationModal
+      {/* Donor Confirmation Modal */}
+      <DonorConfirmationModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         campaign={campaign}
-        onSubmit={(data) => {
-          console.log('Donation submitted:', data);
-          alert('Pendaftaran donasi berhasil! Kami akan menghubungi Anda segera.');
-          setIsModalOpen(false);
-        }}
+        onConfirm={handleDonorRegistration}
       />
     </div>
   );
