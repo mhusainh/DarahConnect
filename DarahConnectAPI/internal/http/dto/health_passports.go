@@ -2,7 +2,7 @@ package dto
 
 type  HealthPassportUpdateRequest struct {
 	Id             int64     `param:"id" validate:"required"`
-	Status         string    `json:"status"`          //'Active', 'Expired', 'Suspended'
+	Status         string    `json:"status" form:"status"`          //'Active', 'Expired', 'Suspended'
 }
 
 type GetAllHealthPassportRequest struct {

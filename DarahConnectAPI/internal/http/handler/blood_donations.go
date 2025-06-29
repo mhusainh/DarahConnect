@@ -281,7 +281,7 @@ func (h *BloodDonationHandler) Delete(ctx echo.Context) error {
 			return ctx.JSON(http.StatusForbidden, response.ErrorResponse(http.StatusForbidden, "unauthorized"))
 		}
 
-		if bloodDonation.Status != "pending" {
+		if bloodDonation.Status == "completed" {
 			return ctx.JSON(http.StatusForbidden, response.ErrorResponse(http.StatusForbidden, "Donasi darah tidak bisa dihapus"))
 		}
 	}

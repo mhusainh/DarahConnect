@@ -34,7 +34,7 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clou
 
 	//service
 	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg, mailer,cloudinaryService)
-	bloodRequestService := service.NewBloodRequestService(bloodRequestRepository)
+	bloodRequestService := service.NewBloodRequestService(bloodRequestRepository, *cloudinaryService)
 	notificationService := service.NewNotificationService(notificationRepository)
 	bloodDonationService := service.NewBloodDonationService(bloodDonationRepository, *cloudinaryService)
 	certificateService := service.NewCertificateService(certificateRepository)
@@ -78,7 +78,7 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clo
 	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg, mailer,cloudinaryService)
 	notificationService := service.NewNotificationService(notificationRepository)
 	healthPassportService := service.NewHealthPassportService(healthPassportRepository)
-	bloodRequestService := service.NewBloodRequestService(bloodRequestRepository)
+	bloodRequestService := service.NewBloodRequestService(bloodRequestRepository, *cloudinaryService)
 	donorRegistrationService := service.NewDonorRegistrationService(donorRegistrationRepository)
 	donorScheduleService := service.NewDonorScheduleService(donorScheduleRepository)
 	hospitalService := service.NewHospitalService(hospitalRepository)
