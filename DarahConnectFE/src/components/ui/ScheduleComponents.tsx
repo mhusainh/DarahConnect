@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Clock, MapPin, Users, AlertCircle, CheckCircle, Plus, Filter, Search } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, AlertCircle, CheckCircle, Plus, Filter, Search, X, Heart, Phone, User } from 'lucide-react';
 
 interface DonationSchedule {
   id: string;
@@ -19,10 +19,20 @@ interface ScheduleCalendarProps {
   onScheduleSelect: (schedule: DonationSchedule) => void;
 }
 
+interface CalendarDay {
+  date: Date;
+  isCurrentMonth: boolean;
+  schedules: DonationSchedule[];
+  isToday: boolean;
+  isSelected: boolean;
+}
+
 export const DonationScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ schedules, onScheduleSelect }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'list'>('month');
+  const [selectedSchedule, setSelectedSchedule] = useState<DonationSchedule | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('id-ID', { 
@@ -37,7 +47,7 @@ export const DonationScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ sche
     return schedules.filter(schedule => schedule.date === dateStr);
   };
 
-  const generateCalendarDays = () => {
+  const generateCalendarDays = (): CalendarDay[] => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const firstDay = new Date(year, month, 1);
@@ -45,7 +55,7 @@ export const DonationScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ sche
     const startDate = new Date(firstDay);
     startDate.setDate(startDate.getDate() - firstDay.getDay());
 
-    const days = [];
+    const days: CalendarDay[] = [];
     const currentDateObj = new Date(startDate);
 
     for (let i = 0; i < 42; i++) {
@@ -72,6 +82,25 @@ export const DonationScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ sche
   };
 
   const calendarDays = generateCalendarDays();
+
+  const handleScheduleClick = (schedule: DonationSchedule) => {
+    setSelectedSchedule(schedule);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedSchedule(null);
+  };
+
+  const handleRegister = () => {
+    if (selectedSchedule) {
+      onScheduleSelect(selectedSchedule);
+      handleCloseModal();
+      // Here you would typically call your registration API
+      alert(`Berhasil mendaftar untuk donor darah di ${selectedSchedule.hospital}!`);
+    }
+  };
 
   return (
     <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
@@ -147,20 +176,29 @@ export const DonationScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ sche
                 <div className="font-medium text-sm">{day.date.getDate()}</div>
                 {day.schedules.length > 0 && (
                   <div className="mt-1 space-y-1">
-                    {day.schedules.slice(0, 2).map((schedule, idx) => (
+                    {day.schedules.slice(0, 1).map((schedule, idx) => (
                       <div
                         key={idx}
                         onClick={(e) => {
                           e.stopPropagation();
-                          onScheduleSelect(schedule);
+                          handleScheduleClick(schedule);
                         }}
-                        className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full truncate hover:bg-red-200 transition-colors"
+                        className="bg-red-100 text-red-800 text-xs px-1 py-1 rounded cursor-pointer hover:bg-red-200 transition-colors"
                       >
-                        {schedule.time}
+                        <div className="font-medium truncate">{schedule.hospital}</div>
+                        <div className="text-[10px] opacity-75">{schedule.time}</div>
                       </div>
                     ))}
-                    {day.schedules.length > 2 && (
-                      <div className="text-xs text-gray-500">+{day.schedules.length - 2} lagi</div>
+                    {day.schedules.length > 1 && (
+                      <div 
+                        className="text-xs text-blue-600 cursor-pointer hover:text-blue-800 font-medium"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedDate(day.date);
+                        }}
+                      >
+                        +{day.schedules.length - 1} lagi
+                      </div>
                     )}
                   </div>
                 )}
@@ -178,7 +216,7 @@ export const DonationScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ sche
                 {getSchedulesForDate(selectedDate).map(schedule => (
                   <div
                     key={schedule.id}
-                    onClick={() => onScheduleSelect(schedule)}
+                    onClick={() => handleScheduleClick(schedule)}
                     className="bg-white p-4 rounded-lg border border-gray-200 hover:border-red-300 cursor-pointer transition-colors"
                   >
                     <div className="flex items-center justify-between">
@@ -207,8 +245,14 @@ export const DonationScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ sche
                             </span>
                           ))}
                         </div>
-                        <button className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors">
-                          Daftar
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleScheduleClick(schedule);
+                          }}
+                          className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+                        >
+                          Lihat Detail
                         </button>
                       </div>
                     </div>
@@ -229,7 +273,7 @@ export const DonationScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ sche
             {schedules.map(schedule => (
               <div
                 key={schedule.id}
-                onClick={() => onScheduleSelect(schedule)}
+                onClick={() => handleScheduleClick(schedule)}
                 className="bg-gray-50 p-6 rounded-xl border border-gray-200 hover:border-red-300 cursor-pointer transition-colors"
               >
                 <div className="flex items-center justify-between">
@@ -293,6 +337,10 @@ export const DonationScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ sche
 
                   <div className="ml-6">
                     <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleScheduleClick(schedule);
+                      }}
                       disabled={schedule.registered >= schedule.capacity}
                       className={`px-6 py-3 rounded-lg font-medium transition-colors ${
                         schedule.registered >= schedule.capacity
@@ -300,12 +348,138 @@ export const DonationScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ sche
                           : 'bg-red-600 text-white hover:bg-red-700'
                       }`}
                     >
-                      {schedule.registered >= schedule.capacity ? 'Penuh' : 'Daftar'}
+                      {schedule.registered >= schedule.capacity ? 'Penuh' : 'Lihat Detail'}
                     </button>
                   </div>
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Modal Detail Jadwal */}
+      {showModal && selectedSchedule && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            {/* Header Modal */}
+            <div className="bg-gradient-to-r from-red-600 to-pink-600 p-6 rounded-t-2xl text-white relative">
+              <button
+                onClick={handleCloseModal}
+                className="absolute top-4 right-4 p-2 hover:bg-white hover:bg-opacity-20 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <div className="flex items-center space-x-3 mb-2">
+                <Heart className="w-8 h-8" />
+                <h2 className="text-2xl font-bold">Detail Jadwal Donor</h2>
+              </div>
+              <p className="text-red-100">Informasi lengkap jadwal donor darah</p>
+            </div>
+
+            {/* Content Modal */}
+            <div className="p-6 space-y-6">
+              {/* Hospital Info */}
+              <div className="bg-gray-50 rounded-xl p-4">
+                <h3 className="font-bold text-lg text-gray-900 mb-3">{selectedSchedule.hospital}</h3>
+                <div className="grid grid-cols-1 gap-3 text-sm">
+                  <div className="flex items-center space-x-3">
+                    <Calendar className="w-5 h-5 text-red-600" />
+                    <span className="font-medium">Tanggal:</span>
+                    <span>{new Date(selectedSchedule.date).toLocaleDateString('id-ID', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Clock className="w-5 h-5 text-red-600" />
+                    <span className="font-medium">Waktu:</span>
+                    <span>{selectedSchedule.time}</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <MapPin className="w-5 h-5 text-red-600" />
+                    <span className="font-medium">Lokasi:</span>
+                    <span>{selectedSchedule.location}</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Users className="w-5 h-5 text-red-600" />
+                    <span className="font-medium">Peserta:</span>
+                    <span>{selectedSchedule.registered}/{selectedSchedule.capacity} orang</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Blood Types Needed */}
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3">Golongan Darah Dibutuhkan</h4>
+                <div className="flex flex-wrap gap-2">
+                  {selectedSchedule.bloodTypesNeeded.map(type => (
+                    <span key={type} className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium">
+                      {type}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Requirements */}
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3">Persyaratan</h4>
+                <ul className="space-y-2">
+                  {selectedSchedule.requirements.map((req, index) => (
+                    <li key={index} className="flex items-start space-x-2">
+                      <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm text-gray-700">{req}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Capacity Status */}
+              <div className="bg-blue-50 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-gray-900">Status Ketersediaan</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    selectedSchedule.registered >= selectedSchedule.capacity 
+                      ? 'bg-red-100 text-red-800' 
+                      : 'bg-green-100 text-green-800'
+                  }`}>
+                    {selectedSchedule.registered >= selectedSchedule.capacity ? 'Penuh' : 'Tersedia'}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-red-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${(selectedSchedule.registered / selectedSchedule.capacity) * 100}%` }}
+                  ></div>
+                </div>
+                <p className="text-xs text-gray-600 mt-1">
+                  {selectedSchedule.capacity - selectedSchedule.registered} slot tersisa
+                </p>
+              </div>
+            </div>
+
+            {/* Footer Modal */}
+            <div className="bg-gray-50 p-6 rounded-b-2xl flex space-x-3">
+              <button
+                onClick={handleCloseModal}
+                className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-100 transition-colors"
+              >
+                Tutup
+              </button>
+              <button
+                onClick={handleRegister}
+                disabled={selectedSchedule.registered >= selectedSchedule.capacity}
+                className={`flex-1 px-6 py-3 rounded-xl font-medium transition-colors ${
+                  selectedSchedule.registered >= selectedSchedule.capacity
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-red-600 to-pink-600 text-white hover:from-red-700 hover:to-pink-700'
+                }`}
+              >
+                {selectedSchedule.registered >= selectedSchedule.capacity ? 'Penuh' : 'Daftar Sekarang'}
+              </button>
+            </div>
           </div>
         </div>
       )}

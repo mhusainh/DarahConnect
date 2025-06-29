@@ -4,11 +4,12 @@ import { ArrowLeftIcon, MapPinIcon, PhoneIcon, CalendarIcon, AlertTriangleIcon, 
 import { useApi } from '../hooks/useApi';
 import { useQuickNotifications } from '../contexts/NotificationContext';
 import { getUserData } from '../utils/jwt';
+import { formatDateForBackend, formatDateForDisplay, isDateInFuture, EXAMPLE_FORMATTED_DATE } from '../utils/dateUtils';
 
 interface CreateBloodRequestForm {
   user_id: number;
   hospital_id: number;
-  event_name: string;
+  patient_name: string;
   event_date: string;
   blood_type: string;
   quantity: number;
@@ -17,7 +18,7 @@ interface CreateBloodRequestForm {
 }
 
 interface FormErrors {
-  event_name?: string;
+  patient_name?: string;
   event_date?: string;
   blood_type?: string;
   quantity?: string;
@@ -40,7 +41,7 @@ const CreateBloodRequestPage: React.FC = () => {
   const [formData, setFormData] = useState<CreateBloodRequestForm>({
     user_id: 0,
     hospital_id: 1,
-    event_name: '',
+    patient_name: '',
     event_date: '',
     blood_type: '',
     quantity: 1,
@@ -85,16 +86,12 @@ const CreateBloodRequestPage: React.FC = () => {
   const validateForm = () => {
     const newErrors: FormErrors = {};
     
-    if (!formData.event_name.trim()) newErrors.event_name = 'Nama event wajib diisi';
-    if (formData.event_name.length < 5) newErrors.event_name = 'Nama event minimal 5 karakter';
+    if (!formData.patient_name.trim()) newErrors.patient_name = 'Nama pasien wajib diisi';
+    if (formData.patient_name.length < 5) newErrors.patient_name = 'Nama pasien minimal 5 karakter';
     
-    if (!formData.event_date) newErrors.event_date = 'Tanggal event wajib diisi';
-    else {
-      const eventDate = new Date(formData.event_date);
-      const now = new Date();
-      if (eventDate <= now) {
-        newErrors.event_date = 'Tanggal event harus di masa depan';
-      }
+    if (!formData.event_date) newErrors.event_date = 'Tanggal dibutuhkan wajib diisi';
+    else if (!isDateInFuture(formData.event_date)) {
+      newErrors.event_date = 'Tanggal dibutuhkan harus di masa depan';
     }
     
     if (!formData.blood_type) newErrors.blood_type = 'Golongan darah wajib dipilih';
@@ -122,14 +119,21 @@ const CreateBloodRequestPage: React.FC = () => {
     }
 
     try {
-      console.log('🔧 Sending blood request:', formData);
+      // Format the date using utility function
+      const formattedData = {
+        ...formData,
+        event_date: formatDateForBackend(formData.event_date)
+      };
       
-      const response = await createRequestApi.post('/create-blood-request', formData);
+      console.log('🔧 Sending blood request with formatted data:', formattedData);
+      console.log('🔧 Expected format example:', EXAMPLE_FORMATTED_DATE);
+      
+      const response = await createRequestApi.post('/user/create-blood-request', formattedData);
       
       if (response.success) {
         notifications.success(
           'Request Berhasil!', 
-          `Request donor darah "${formData.event_name}" telah berhasil dibuat`
+          `Request donor darah untuk pasien "${formData.patient_name}" telah berhasil dibuat`
         );
         
         // Redirect to dashboard or requests list
@@ -138,11 +142,26 @@ const CreateBloodRequestPage: React.FC = () => {
         }, 2000);
       } else {
         const errorMessage = response.data?.meta?.message || response.error || 'Gagal membuat request';
+        console.error('❌ API Error Response:', response);
         notifications.error('Request Gagal', errorMessage);
       }
     } catch (error: any) {
       console.error('❌ Create blood request error:', error);
-      notifications.error('Koneksi Bermasalah', 'Tidak dapat terhubung ke server');
+      
+      // Check if it's a date formatting error
+      if (error.message && error.message.includes('parsing time')) {
+        notifications.error('Format Tanggal Bermasalah', 'Mohon pilih tanggal yang valid');
+      } else if (error.response) {
+        // Server responded with error status
+        const errorMessage = error.response.data?.message || 'Server error occurred';
+        notifications.error('Server Error', errorMessage);
+      } else if (error.request) {
+        // Network error
+        notifications.error('Koneksi Bermasalah', 'Tidak dapat terhubung ke server');
+      } else {
+        // Other error
+        notifications.error('Error', error.message || 'Terjadi kesalahan tidak terduga');
+      }
     }
   };
 
@@ -178,31 +197,31 @@ const CreateBloodRequestPage: React.FC = () => {
         {/* Form */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Event Name & Date */}
+            {/* Patient Name & Required Date */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="event_name" className="block text-sm font-medium text-gray-700 mb-2">
-                  Nama Event / Kegiatan *
+                <label htmlFor="patient_name" className="block text-sm font-medium text-gray-700 mb-2">
+                  Nama Pasien *
                 </label>
                 <div className="relative">
-                  <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                  <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                   <input
-                    id="event_name"
+                    id="patient_name"
                     type="text"
-                    value={formData.event_name}
-                    onChange={(e) => handleInputChange('event_name', e.target.value)}
+                    value={formData.patient_name}
+                    onChange={(e) => handleInputChange('patient_name', e.target.value)}
                     className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors ${
-                      errors.event_name ? 'border-red-500' : 'border-gray-300'
+                      errors.patient_name ? 'border-red-500' : 'border-gray-300'
                     }`}
-                    placeholder="Donor Darah Bulanan"
+                    placeholder="Contoh: Ahmad Budi Santoso"
                   />
                 </div>
-                {errors.event_name && <p className="mt-1 text-sm text-red-600">{errors.event_name}</p>}
+                {errors.patient_name && <p className="mt-1 text-sm text-red-600">{errors.patient_name}</p>}
               </div>
 
               <div>
                 <label htmlFor="event_date" className="block text-sm font-medium text-gray-700 mb-2">
-                  Tanggal & Waktu Event *
+                  Tanggal & Waktu Dibutuhkan *
                 </label>
                 <div className="relative">
                   <ClockIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -334,12 +353,12 @@ const CreateBloodRequestPage: React.FC = () => {
             </div>
 
             {/* Preview */}
-            {formData.event_name && formData.blood_type && (
+            {formData.patient_name && formData.blood_type && (
               <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
                 <h3 className="font-medium text-gray-900 mb-3">Preview Request</h3>
                 <div className="bg-white rounded-lg p-4 border">
                   <div className="flex items-start justify-between mb-3">
-                    <h4 className="font-semibold text-gray-900">{formData.event_name}</h4>
+                    <h4 className="font-semibold text-gray-900">Pasien: {formData.patient_name}</h4>
                     {selectedUrgency && (
                       <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center ${selectedUrgency.bgColor} ${selectedUrgency.color} border`}>
                         <AlertTriangleIcon className="w-3 h-3 mr-1" />
@@ -362,14 +381,26 @@ const CreateBloodRequestPage: React.FC = () => {
                     </p>
                     {formData.event_date && (
                       <p className="flex items-center">
-                        <CalendarIcon className="w-4 h-4 mr-2" />
-                        {new Date(formData.event_date).toLocaleString('id-ID')}
+                        <ClockIcon className="w-4 h-4 mr-2" />
+                        Dibutuhkan: {formatDateForDisplay(formData.event_date)}
                       </p>
                     )}
                     {formData.diagnosis && (
                       <p className="mt-2 italic">"{formData.diagnosis.substring(0, 100)}{formData.diagnosis.length > 100 ? '...' : ''}"</p>
                     )}
                   </div>
+                  
+                  {/* Debug Info - Only show in development */}
+                  {process.env.NODE_ENV === 'development' && formData.event_date && (
+                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-xs font-medium text-blue-900 mb-1">🔧 Debug Format Tanggal:</p>
+                      <div className="text-xs text-blue-700 space-y-1">
+                        <div><strong>Input:</strong> {formData.event_date}</div>
+                        <div><strong>Formatted:</strong> {formatDateForBackend(formData.event_date)}</div>
+                        <div><strong>Expected:</strong> {EXAMPLE_FORMATTED_DATE}</div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

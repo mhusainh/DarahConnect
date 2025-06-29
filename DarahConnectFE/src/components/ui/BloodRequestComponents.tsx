@@ -21,9 +21,10 @@ interface BloodRequest {
 interface BloodRequestListProps {
   requests: BloodRequest[];
   onRespond: (requestId: string) => void;
+  onCreateRequest?: () => void;
 }
 
-export const BloodRequestList: React.FC<BloodRequestListProps> = ({ requests, onRespond }) => {
+export const BloodRequestList: React.FC<BloodRequestListProps> = ({ requests, onRespond, onCreateRequest }) => {
   const [filter, setFilter] = useState<'all' | 'critical' | 'urgent' | 'normal'>('all');
   const [bloodTypeFilter, setBloodTypeFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -65,7 +66,10 @@ export const BloodRequestList: React.FC<BloodRequestListProps> = ({ requests, on
             <h2 className="text-2xl font-bold mb-2">Request Darah Darurat</h2>
             <p className="text-red-100">Bantuan segera dibutuhkan untuk menyelamatkan nyawa</p>
           </div>
-          <button className="bg-white text-red-600 px-4 py-2 rounded-lg font-medium hover:bg-red-50 transition-colors flex items-center space-x-2">
+          <button 
+            onClick={onCreateRequest}
+            className="bg-white text-red-600 px-4 py-2 rounded-lg font-medium hover:bg-red-50 transition-colors flex items-center space-x-2 cursor-pointer"
+          >
             <Plus className="w-4 h-4" />
             <span>Buat Request</span>
           </button>
