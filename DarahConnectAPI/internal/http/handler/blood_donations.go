@@ -145,6 +145,7 @@ func (h *BloodDonationHandler) Create(ctx echo.Context) error {
 func (h *BloodDonationHandler) Update(ctx echo.Context) error {
 	var req dto.BloodDonationUpdateRequest
 	req.Status="pending"
+
 	// Manually bind the image file
 	if imageFile, err := ctx.FormFile("image"); err != nil {
 		// If the error is due to missing file, it means the image is optional
@@ -195,8 +196,11 @@ func (h *BloodDonationHandler) Update(ctx echo.Context) error {
 		"image/jpeg": {},
 		"image/jpg": {},
 	}
-	if _, ok := acceptedImages[req.Image.Header.Get("Content-Type")]; !ok {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "unsupported image type"))
+
+	if req.Image != nil {
+		if _, ok := acceptedImages[req.Image.Header.Get("Content-Type")]; !ok {
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "unsupported image type"))
+		}
 	}
 
 	updatedBloodDonation, err := h.bloodDonationService.Update(ctx.Request().Context(), req, bloodDonation)

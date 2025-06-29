@@ -226,8 +226,10 @@ func (h *UserHandler) UpdateUser(ctx echo.Context) error {
 		"image/jpeg": {},
 		"image/jpg": {},
 	}
-	if _, ok := acceptedImages[req.Image.Header.Get("Content-Type")]; !ok {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "unsupported image type"))
+	if req.Image != nil {
+		if _, ok := acceptedImages[req.Image.Header.Get("Content-Type")]; !ok {
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "unsupported image type"))
+		}
 	}
 
 	// Retrieve user claims from the JWT token
