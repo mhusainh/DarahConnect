@@ -18,17 +18,21 @@ type DonorRegistrationHandler struct {
 	donorRegistrationService service.DonorRegistrationService
 	healthPassportService    service.HealthPassportService
 	notificationService service.NotificationService
+	bloodRequestService service.BloodRequestService
 }
 
 func NewDonorRegistrationHandler(
 	donorRegistrationService service.DonorRegistrationService,
 	healthPassportService service.HealthPassportService,
 	notificationService service.NotificationService,
+	bloodRequestService service.BloodRequestService,
 ) DonorRegistrationHandler {
 	return DonorRegistrationHandler{
 		donorRegistrationService,
 		healthPassportService,
 		notificationService,
+		bloodRequestService,
+
 	}
 }
 
@@ -126,6 +130,14 @@ func (h *DonorRegistrationHandler) CreateDonorRegistration(ctx echo.Context) err
 	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
 	if !ok {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user information from claims"))
+	}
+
+	bloodRequest, err := h.bloodRequestService.GetById(ctx.Request().Context(), req.RequestId)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+	if bloodRequest.Status != "verified" {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Request blood masih/sudah" + bloodRequest.Status))
 	}
 
 	req.UserId = claimsData.Id

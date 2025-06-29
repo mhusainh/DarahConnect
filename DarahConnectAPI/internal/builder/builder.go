@@ -96,7 +96,8 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clo
 	notificationHandler := handler.NewNotificationHandler(notificationService)
 	healthPassportHandler := handler.NewHealthPassportHandler(healthPassportService)
 	bloodRequestHandler := handler.NewBloodRequestHandler(bloodRequestService,notificationService)
-	donorRegistrationHandler := handler.NewDonorRegistrationHandler(donorRegistrationService,healthPassportService,notificationService)
+	donorRegistrationHandler := handler.NewDonorRegistrationHandler(donorRegistrationService,healthPassportService,notificationService, bloodRequestService)
+
 
 	donorScheduleHandler := handler.NewDonorScheduleHandler(donorScheduleService)
 	hospitalHandler := handler.NewHospitalHandler(hospitalService)
