@@ -247,6 +247,13 @@ func PrivateRoutes(
 			Handler: healthPassportHandler.DeleteHealthPassport,
 			Roles:   adminOnly,
 		},
+		// Blood Request - Admin Only
+		{
+			Method:  http.MethodGet,
+			Path:    "blood-requests",
+			Handler: bloodRequestHandler.GetBloodRequestsByAdmin,
+			Roles:   adminOnly,
+		},
 		// Blood Request/Campaign - Admin Only
 		{
 			Method:  http.MethodPost,
@@ -412,13 +419,6 @@ func PrivateRoutes(
 			Method:  http.MethodDelete,
 			Path:    "blood-donation/:id",
 			Handler: bloodDonationHandler.Delete,
-			Roles:   allRoles,
-		},
-		// Blood Request - All Roles
-		{
-			Method:  http.MethodGet,
-			Path:    "blood-requests",
-			Handler: bloodRequestHandler.GetBloodRequestsByAdmin,
 			Roles:   allRoles,
 		},
 		// Certificate - All Roles
