@@ -137,5 +137,5 @@ func (r *bloodDonationRepository) Update(ctx context.Context, bloodDonation *ent
 }
 
 func (r *bloodDonationRepository) Delete(ctx context.Context, bloodDonation *entity.BloodDonation) error {
-	return r.db.WithContext(ctx).Delete(bloodDonation).Error
+	return r.db.WithContext(ctx).Model(&entity.BloodDonation{}).Delete(bloodDonation).Error
 }

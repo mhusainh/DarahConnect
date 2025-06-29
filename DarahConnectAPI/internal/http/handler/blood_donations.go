@@ -183,7 +183,7 @@ func (h *BloodDonationHandler) Update(ctx echo.Context) error {
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-	if claimsData.Role != "User" && bloodDonation.UserId != claimsData.Id {
+	if claimsData.Role == "User" && bloodDonation.UserId != claimsData.Id {
 		return ctx.JSON(http.StatusForbidden, response.ErrorResponse(http.StatusForbidden, "forbidden"))
 	}
 
@@ -203,11 +203,10 @@ func (h *BloodDonationHandler) Update(ctx echo.Context) error {
 		}
 	}
 
-	updatedBloodDonation, err := h.bloodDonationService.Update(ctx.Request().Context(), req, bloodDonation)
-	if err != nil {
+	if _,err := h.bloodDonationService.Update(ctx.Request().Context(), req, bloodDonation); err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully updating blood donation", updatedBloodDonation))
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully updating blood donation", nil))
 }
 
 // admin
