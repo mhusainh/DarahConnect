@@ -16,7 +16,7 @@ type DonorRegistrationRepository interface {
 	GetAll(ctx context.Context, req dto.GetAllDonorRegistrationRequest) ([]entity.DonorRegistration, int64, error)
 	GetAllByUserId(ctx context.Context, userId int64, req dto.GetAllDonorRegistrationRequest) ([]entity.DonorRegistration, int64, error)
 	GetAllByScheduleId(ctx context.Context, scheduleId int64, req dto.GetAllDonorRegistrationRequest) ([]entity.DonorRegistration, int64, error)
-	GetByRequestId(ctx context.Context, requestId int64, user_id int64) (*entity.DonorRegistration, error)
+	GetByRequestId(ctx context.Context, requestId int64, userId int64) (*entity.DonorRegistration, error)
 	Update(ctx context.Context, donorRegistration *entity.DonorRegistration) error
 	Delete(ctx context.Context, donorRegistration *entity.DonorRegistration) error
 }
@@ -124,9 +124,9 @@ func (r *donorRegistrationRepository) GetAllByUserId(ctx context.Context, userId
 	return donorRegistration, total, nil
 }
 
-func (r *donorRegistrationRepository) GetByRequestId(ctx context.Context, requestId int64, user_id int64) (*entity.DonorRegistration, error) {
+func (r *donorRegistrationRepository) GetByRequestId(ctx context.Context, requestId int64, userId int64) (*entity.DonorRegistration, error) {
 	result := new(entity.DonorRegistration)
-	if err := r.db.WithContext(ctx).Where("request_id = ?", requestId).Where("user_id", user_id).First(result).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("request_id = ?", requestId).Where("user_id", userId).First(result).Error; err != nil {
 		return nil, err
 	}
 	return result, nil

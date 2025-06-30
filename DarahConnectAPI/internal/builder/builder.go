@@ -29,6 +29,7 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clou
 	notificationRepository := repository.NewNotificationRepository(db)
 	bloodDonationRepository := repository.NewBloodDonationRepository(db)
 	certificateRepository := repository.NewCertificateRepository(db)
+	donorRegistrationRepository := repository.NewDonorRegistrationRepository(db)
 	donationsRepository := repository.NewDonationsRepository(db)
 	//end
 
@@ -38,6 +39,7 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clou
 	notificationService := service.NewNotificationService(notificationRepository)
 	bloodDonationService := service.NewBloodDonationService(bloodDonationRepository, *cloudinaryService)
 	certificateService := service.NewCertificateService(certificateRepository)
+	donorRegistrationService := service.NewDonorRegistrationService(donorRegistrationRepository)
 	// Buat instance midtransService
 	midtransService := midtrans.NewMidtransService(&cfg.MidtransConfig)
 	// Set donationsRepository
@@ -49,7 +51,8 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clou
 	//handler
 	userHandler := handler.NewUserHandler(userService, cloudinaryService, googleAuthService)
 	bloodRequestHandler := handler.NewBloodRequestHandler(bloodRequestService,notificationService)
-	bloodDonationHandler := handler.NewBloodDonationHandler(bloodDonationService, notificationService, certificateService)
+	bloodDonationHandler := handler.NewBloodDonationHandler(bloodDonationService, notificationService, certificateService, donorRegistrationService)
+
 	certificateHandler := handler.NewCertificateHandler(certificateService)
 	donationHandler := handler.NewDonationHandler(midtransService, notificationService)
 	//end
@@ -101,7 +104,7 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clo
 
 	donorScheduleHandler := handler.NewDonorScheduleHandler(donorScheduleService)
 	hospitalHandler := handler.NewHospitalHandler(hospitalService)
-	bloodDonationHandler := handler.NewBloodDonationHandler(bloodDonationService, notificationService, certificateService)
+	bloodDonationHandler := handler.NewBloodDonationHandler(bloodDonationService, notificationService, certificateService, donorRegistrationService)
 	certificateHandler := handler.NewCertificateHandler(certificateService)
 	donationHandler := handler.NewDonationHandler(midtransService, notificationService)
 	dashboardHandler := handler.NewDashboardHandler(dashboardService)

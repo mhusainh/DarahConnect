@@ -164,6 +164,8 @@ func (h *DonorRegistrationHandler) CreateDonorRegistration(ctx echo.Context) err
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 
+	_ = h.bloodRequestService.RegistrationDonate(ctx.Request().Context(), "registered", bloodRequest)
+
 	notificationData := dto.NotificationCreateRequest{
 		UserId: req.UserId,
 		Title:  "Registrasi donor darah",
@@ -209,7 +211,19 @@ func (h *DonorRegistrationHandler) UpdateDonorRegistration(ctx echo.Context) err
 		if donorRegistration.UserId != claimsData.Id {
 			return ctx.JSON(http.StatusUnauthorized, response.ErrorResponse(http.StatusUnauthorized, "unauthorized"))
 		}
-		req.Status = ""
+		if donorRegistration.Status != "registered" {
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Pendaftaran sudah tidak dapat diupdate"))
+		}
+		if req.Status == "cancelled" {
+			if !donorRegistration.BloodRequest.EventDate.Before(time.Now().In(timezone.JakartaLocation)) {
+				return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "tidak dapat membatalkan pendaftaran setelah event"))
+			}
+			bloodRequest, err := h.bloodRequestService.GetById(ctx.Request().Context(), donorRegistration.RequestId)
+			if err != nil {
+				return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+			}
+			_ = h.bloodRequestService.RegistrationDonate(ctx.Request().Context(), req.Status, bloodRequest)
+		}
 	} else {
 		req.Notes = ""
 	}
@@ -217,7 +231,6 @@ func (h *DonorRegistrationHandler) UpdateDonorRegistration(ctx echo.Context) err
 	if err := h.donorRegistrationService.Update(ctx.Request().Context(), req, donorRegistration); err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-
 	return ctx.JSON(http.StatusCreated, response.SuccessResponse("successfully updating donor registration", nil))
 }
 

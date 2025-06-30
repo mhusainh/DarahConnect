@@ -16,17 +16,20 @@ type BloodDonationHandler struct {
 	bloodDonationService service.BloodDonationService
 	notificationService  service.NotificationService
 	certificateService   service.CertificateService
+	donorRegistrationService service.DonorRegistrationService
 }
 
 func NewBloodDonationHandler(
 	bloodDonationService service.BloodDonationService,
 	notificationService service.NotificationService,
 	certificateService service.CertificateService,
+	donorRegistrationService service.DonorRegistrationService,
 ) BloodDonationHandler {
 	return BloodDonationHandler{
 		bloodDonationService,
 		notificationService,
 		certificateService,
+		donorRegistrationService,
 	}
 }
 
@@ -104,7 +107,7 @@ func (h *BloodDonationHandler) GetById(ctx echo.Context) error {
 // user
 func (h *BloodDonationHandler) Create(ctx echo.Context) error {
 	var req dto.BloodDonationCreateRequest
-
+	var regis dto.DonorRegistrationUpdateRequest
 	// Manually bind the image file
 	imageFile, err := ctx.FormFile("image")
 	if err != nil {
@@ -112,12 +115,12 @@ func (h *BloodDonationHandler) Create(ctx echo.Context) error {
 	}
 	req.Image = imageFile
 
-	if err := ctx.Bind(&req); err != nil {
+	if err = ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
 
 	// Validasi request
-	if err := ctx.Validate(&req); err != nil {
+	if err = ctx.Validate(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
 
@@ -134,6 +137,17 @@ func (h *BloodDonationHandler) Create(ctx echo.Context) error {
 	}
 
 	req.UserId = claimsData.Id
+
+	donorRegistration, err := h.donorRegistrationService.GetById(ctx.Request().Context(), req.RegistrationId)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+
+	regis.Status = "completed"
+
+	if err := h.donorRegistrationService.Update(ctx.Request().Context(), regis, donorRegistration); err != nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
 
 	if err := h.bloodDonationService.Create(ctx.Request().Context(), req); err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))

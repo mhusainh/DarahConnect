@@ -11,6 +11,7 @@ import (
 )
 
 type BloodRequestService interface {
+	RegistrationDonate(ctx context.Context, registrationStatus string, bloodRequest *entity.BloodRequest) error
 	CreateBloodRequest(ctx context.Context, req dto.BloodRequestCreateRequest) error
 	CreateCampaign(ctx context.Context, req dto.CampaignCreateRequest) error
 	GetAllBloodRequest(ctx context.Context, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error)
@@ -269,5 +270,26 @@ func (s *bloodRequestService) Delete(ctx context.Context, id int64) error {
 		_ = s.cloudinaryService.DeleteFile(publicId)
 	}
 
+	return nil
+}
+
+func (s *bloodRequestService) RegistrationDonate(ctx context.Context, registrationStatus string, bloodRequest *entity.BloodRequest) error {
+	switch registrationStatus {
+	case "registered":
+		bloodRequest.SlotsAvailable = bloodRequest.SlotsAvailable - 1
+		bloodRequest.SlotsBooked = bloodRequest.SlotsBooked + 1
+
+	case "cancelled":
+		bloodRequest.SlotsAvailable = bloodRequest.SlotsAvailable + 1
+		bloodRequest.SlotsBooked = bloodRequest.SlotsBooked - 1
+
+	default:
+		return errors.New("Status tidak valid")
+
+	}
+
+	if err := s.bloodRequestRepository.Update(ctx, bloodRequest); err != nil {
+		return errors.New("Gagal mengupdate permintaan darah")
+	}
 	return nil
 }

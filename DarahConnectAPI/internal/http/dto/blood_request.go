@@ -14,7 +14,7 @@ type BloodRequestCreateRequest struct {
 	BloodType    string                `json:"blood_type" form:"blood_type"` // Unique identifier for the health passport
 	Quantity     int64                 `json:"quantity" form:"quantity"`
 	UrgencyLevel string                `json:"urgency_level" form:"urgency_level"` // Unique identifier for the health passport
-	Diagnosis    string                `json:"diagnosis" form:"diagnosis"`     // Unique identifier for the health passport
+	Diagnosis    string                `json:"diagnosis" form:"diagnosis"`         // Unique identifier for the health passport
 	Image        *multipart.FileHeader `json:"image" form:"image"`
 }
 
@@ -38,7 +38,7 @@ type BloodRequestUpdateRequest struct {
 	BloodType    string                `json:"blood_type" form:"blood_type"` // Unique identifier for the health passport
 	Quantity     int64                 `json:"quantity" form:"quantity"`
 	UrgencyLevel string                `json:"urgency_level" form:"urgency_level"` // Unique identifier for the health passport
-	Diagnosis    string                `json:"diagnosis" form:"diagnosis"`     // Unique identifier for the health passport
+	Diagnosis    string                `json:"diagnosis" form:"diagnosis"`         // Unique identifier for the health passport
 	Status       string                `json:"status" form:"status"`
 	Image        *multipart.FileHeader `json:"image" form:"image"`
 }
@@ -50,8 +50,8 @@ type CampaignUpdateRequest struct {
 	StartTime      time.Time             `json:"start_time" form:"start_time"`
 	EndTime        time.Time             `json:"end_time" form:"end_time"`
 	Image          *multipart.FileHeader `json:"image" form:"image"`
-	SlotsAvailable int64     `json:"slots_available" form:"slots_available"`
-	SlotsBooked    int64     `json:"slots_booked" form:"slots_booked"`
+	SlotsAvailable int64                 `json:"slots_available" form:"slots_available"`
+	SlotsBooked    int64                 `json:"slots_booked" form:"slots_booked"`
 }
 
 type BloodRequestByIdRequest struct {
@@ -65,6 +65,7 @@ type BloodRequestByUserIdRequest struct {
 type BloodRequestByHospitalIdRequest struct {
 	HospitalId int64 `param:"hospital_id" validate:"required"`
 }
+
 
 type GetAllBloodRequestRequest struct {
 	Page         int64  `query:"page"`
