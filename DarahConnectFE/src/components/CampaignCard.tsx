@@ -185,7 +185,7 @@ const CampaignCard: React.FC<CampaignCardProps> = ({
                     onClick={() => onDonate?.(campaign)}
                     className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-primary-700 hover:to-primary-800 transform hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
                   >
-                    Donasi Sekarang
+                    Donor Sekarang
                   </button>
                 </RippleEffect>
               </div>

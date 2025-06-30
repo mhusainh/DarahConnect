@@ -62,9 +62,67 @@ export const useCampaignService = () => {
     }
   };
 
+  const getCampaignDetail = async (id: number | string): Promise<BloodCampaign | null> => {
+    try {
+      const response = await api.get(`/campaign-bloodRequest/${id}`);
+      
+      if (response.success && response.data) {
+        // Check if response.data is already the campaign object
+        if (typeof response.data === 'object' && response.data.id) {
+          const adaptedCampaign = adaptCampaignFromApi(response.data);
+          debugConsole.success(`Successfully fetched campaign detail for ID: ${id}`);
+          return adaptedCampaign;
+        }
+        
+        // Otherwise, check if it has the full API response structure
+        const apiData = response.data;
+        if (apiData.meta?.code === 200 && apiData.data) {
+          const adaptedCampaign = adaptCampaignFromApi(apiData.data);
+          debugConsole.success(`Successfully fetched campaign detail from API response for ID: ${id}`);
+          return adaptedCampaign;
+        } else {
+          debugConsole.error('Campaign detail response validation failed', {
+            metaCode: apiData.meta?.code,
+            metaMessage: apiData.meta?.message,
+            hasData: !!apiData.data
+          });
+          return null;
+        }
+      } else {
+        debugConsole.error('Campaign detail API call failed', response.error);
+        return null;
+      }
+    } catch (error) {
+      debugConsole.error('Error fetching campaign detail', error);
+      return null;
+    }
+  };
+
+  const registerAsDonor = async (requestId: number, notes: string = "Saya bersedia mendonorkan darah untuk kegiatan ini"): Promise<boolean> => {
+    try {
+      const response = await api.post('/user/donor-registration', {
+        request_id: requestId,
+        notes: notes
+      });
+      
+      if (response.success) {
+        debugConsole.success(`Successfully registered as donor for request ID: ${requestId}`);
+        return true;
+      } else {
+        debugConsole.error('Donor registration failed', response.error);
+        return false;
+      }
+    } catch (error) {
+      debugConsole.error('Error during donor registration', error);
+      return false;
+    }
+  };
+
   return {
     fetchCampaigns,
-    getCampaignById
+    getCampaignById,
+    getCampaignDetail,
+    registerAsDonor
   };
 };
 

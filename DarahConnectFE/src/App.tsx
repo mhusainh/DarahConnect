@@ -15,6 +15,8 @@ import { PageLoader, DashboardLoader, CampaignListLoader, ErrorFallback } from '
 import { useCampaignService } from './services/campaignService';
 import { BloodCampaign } from './types';
 import { NotificationProvider } from './contexts/NotificationContext';
+import DonorConfirmationModal from './components/DonorConfirmationModal';
+import { useNotification } from './hooks/useNotification';
 
 // Lazy-loaded Pages
 const LoginPage = lazy(() => import('./pages/LoginPage'));
@@ -31,6 +33,7 @@ const EnhancedDonorRegisterPage = lazy(() => import('./pages/EnhancedDonorRegist
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const EmailVerificationPage = lazy(() => import('./pages/EmailVerificationPage'));
 const CreateBloodRequestPage = lazy(() => import('./pages/CreateBloodRequestPage'));
+const BloodRequestsPage = lazy(() => import('./pages/BloodRequestsPage'));
 const HealthPassportPage = lazy(() => import('./pages/HealthPassportPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
@@ -50,6 +53,7 @@ const AdminNotificationsPage = lazy(() => import('./pages/AdminNotificationsPage
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const campaignService = useCampaignService();
+  const { addNotification } = useNotification();
   const [campaigns, setCampaigns] = useState<BloodCampaign[]>([]);
   const [campaignsLoading, setCampaignsLoading] = useState(true);
   const [selectedCampaign, setSelectedCampaign] = useState<BloodCampaign | null>(null);
@@ -66,10 +70,37 @@ const HomePage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDonationSubmit = (data: any) => {
-    console.log('Donation submitted:', data);
-    alert('Pendaftaran donasi berhasil! Kami akan menghubungi Anda segera.');
-    setIsModalOpen(false);
+  const handleDonorRegistration = async (notes: string) => {
+    if (!selectedCampaign) return;
+    
+    try {
+      const success = await campaignService.registerAsDonor(Number(selectedCampaign.id), notes);
+      if (success) {
+        addNotification({
+          type: 'success',
+          title: 'Pendaftaran Berhasil!',
+          message: 'Anda telah berhasil mendaftar sebagai donor. Tim akan menghubungi Anda segera.',
+          duration: 5000
+        });
+        // Refresh campaign data to update donor count
+        const campaignData = await campaignService.fetchCampaigns();
+        setCampaigns(campaignData);
+      } else {
+        addNotification({
+          type: 'error',
+          title: 'Pendaftaran Gagal',
+          message: 'Terjadi kesalahan saat mendaftar sebagai donor. Silakan coba lagi.',
+          duration: 5000
+        });
+      }
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Terjadi kesalahan sistem. Silakan coba lagi nanti.',
+        duration: 5000
+      });
+    }
   };
 
   const handleCryptoDonate = (campaign: BloodCampaign) => {
@@ -130,11 +161,11 @@ const HomePage: React.FC = () => {
       />
       <Footer />
       
-      <DonationModal
+      <DonorConfirmationModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         campaign={selectedCampaign}
-        onSubmit={handleDonationSubmit}
+        onConfirm={handleDonorRegistration}
       />
       
       <CryptoDonationModal
@@ -151,6 +182,7 @@ const HomePage: React.FC = () => {
 const CampaignsPage: React.FC = () => {
   const navigate = useNavigate();
   const campaignService = useCampaignService();
+  const { addNotification } = useNotification();
   const [campaigns, setCampaigns] = useState<BloodCampaign[]>([]);
   const [campaignsLoading, setCampaignsLoading] = useState(true);
   const [selectedCampaign, setSelectedCampaign] = useState<BloodCampaign | null>(null);
@@ -166,10 +198,37 @@ const CampaignsPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDonationSubmit = (data: any) => {
-    console.log('Donation submitted:', data);
-    alert('Pendaftaran donasi berhasil! Kami akan menghubungi Anda segera.');
-    setIsModalOpen(false);
+  const handleDonorRegistration = async (notes: string) => {
+    if (!selectedCampaign) return;
+    
+    try {
+      const success = await campaignService.registerAsDonor(Number(selectedCampaign.id), notes);
+      if (success) {
+        addNotification({
+          type: 'success',
+          title: 'Pendaftaran Berhasil!',
+          message: 'Anda telah berhasil mendaftar sebagai donor. Tim akan menghubungi Anda segera.',
+          duration: 5000
+        });
+        // Refresh campaign data to update donor count
+        const campaignData = await campaignService.fetchCampaigns();
+        setCampaigns(campaignData);
+      } else {
+        addNotification({
+          type: 'error',
+          title: 'Pendaftaran Gagal',
+          message: 'Terjadi kesalahan saat mendaftar sebagai donor. Silakan coba lagi.',
+          duration: 5000
+        });
+      }
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Terjadi kesalahan sistem. Silakan coba lagi nanti.',
+        duration: 5000
+      });
+    }
   };
 
   const handleCryptoDonate = (campaign: BloodCampaign) => {
@@ -222,11 +281,11 @@ const CampaignsPage: React.FC = () => {
       </div>
       <Footer />
       
-      <DonationModal
+      <DonorConfirmationModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         campaign={selectedCampaign}
-        onSubmit={handleDonationSubmit}
+        onConfirm={handleDonorRegistration}
       />
       
       <CryptoDonationModal
@@ -321,6 +380,11 @@ function App() {
                   <AboutPage />
                 </Suspense>
               </Layout>
+            } />
+            <Route path="/blood-requests" element={
+              <Suspense fallback={<PageLoader />}>
+                <BloodRequestsPage />
+              </Suspense>
             } />
             <Route path="/login" element={
               <Suspense fallback={<PageLoader />}>

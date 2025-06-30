@@ -21,8 +21,12 @@ import {
   UserCheckIcon,
   BadgeIcon,
   ZapIcon,
-  UserPlusIcon
+  UserPlusIcon,
+  Heart,
+  User,
+  Phone
 } from 'lucide-react';
+import { useApi } from '../hooks/useApi';
 import { FadeIn, StaggerContainer, StaggerItem, CountUp, Floating, HoverScale } from '../components/ui/AnimatedComponents';
 import { MorphingShape, GradientBackground } from '../components/ui/AdvancedAnimations';
 import { HeartBeatLoader, DotsLoader } from '../components/ui/LoadingComponents';
@@ -41,6 +45,63 @@ import Footer from '../components/Footer';
 import WalletConnectBanner from '../components/WalletConnectBanner';
 import { campaigns, donationRequests } from '../data/dummy';
 import { BloodCampaign, DonationRequest } from '../types';
+
+interface BloodRequestsResponse {
+  meta: {
+    code: number;
+    message: string;
+  };
+  data: BloodRequest[];
+  pagination: {
+    page: number;
+    per_page: number;
+    total_items: number;
+    total_pages: number;
+  };
+}
+
+interface BloodRequest {
+  id: number;
+  user_id: number;
+  user: {
+    id: number;
+    name: string;
+    gender: string;
+    email: string;
+    phone: string;
+    blood_type: string;
+    birth_date: string;
+    address: string;
+    role: string;
+    is_verified: boolean;
+    url_file: string;
+  };
+  hospital_id: number;
+  hospital: {
+    id: number;
+    name: string;
+    address: string;
+    city: string;
+    province: string;
+    latitude: number;
+    longitude: number;
+  };
+  patient_name: string;
+  blood_type: string;
+  quantity: number;
+  urgency_level: string;
+  diagnosis: string;
+  event_name: string;
+  event_date: string;
+  start_time: string;
+  end_time: string;
+  slots_available: number;
+  slots_booked: number;
+  status: string;
+  event_type: string;
+  created_at: string;
+  updated_at: string;
+}
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -115,6 +176,19 @@ const DashboardPage: React.FC = () => {
     setUserDonations(donationRequests);
     setActiveCampaigns(campaigns.slice(0, 3)); // Show first 3 campaigns
   }, []);
+
+  // Add API hook for blood requests
+  const { data: bloodRequestsData, loading: bloodRequestsLoading, error: bloodRequestsError, get: getBloodRequests } = useApi<BloodRequestsResponse>();
+
+  // Fetch blood requests for dashboard
+  useEffect(() => {
+    if (activeTab === 'requests') {
+      getBloodRequests('/blood-request');
+    }
+  }, [activeTab, getBloodRequests]);
+
+  // Extract blood requests data
+  const bloodRequests = Array.isArray(bloodRequestsData) ? bloodRequestsData : (bloodRequestsData?.data || []);
 
   // Don't render dashboard if not logged in
   if (!isLoggedIn) {
@@ -483,6 +557,65 @@ const DashboardPage: React.FC = () => {
   const handleScheduleSelect = (schedule: any) => {
     alert(`Anda akan diarahkan ke form pendaftaran untuk jadwal donor di ${schedule.hospital} pada ${schedule.date}`);
     navigate('/donor-register');
+  };
+
+  const getBloodTypeColor = (bloodType: string) => {
+    const colors = {
+      'A+': 'bg-red-500',
+      'A-': 'bg-red-400',
+      'B+': 'bg-blue-500',
+      'B-': 'bg-blue-400',
+      'AB+': 'bg-purple-500',
+      'AB-': 'bg-purple-400',
+      'O+': 'bg-green-500',
+      'O-': 'bg-green-400',
+    };
+    return colors[bloodType as keyof typeof colors] || 'bg-gray-500';
+  };
+
+  const getUrgencyColor = (urgency: string) => {
+    switch (urgency.toLowerCase()) {
+      case 'critical':
+        return 'bg-red-600 text-white';
+      case 'high':
+        return 'bg-orange-500 text-white';
+      case 'medium':
+        return 'bg-yellow-500 text-white';
+      case 'low':
+        return 'bg-green-500 text-white';
+      default:
+        return 'bg-gray-500 text-white';
+    }
+  };
+
+
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('id-ID', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const handleDonateToRequest = (request: BloodRequest) => {
+    // Navigate to donor registration with pre-filled data
+    navigate('/donor-register', { 
+      state: { 
+        bloodRequest: request,
+        prefilledData: {
+          blood_type: request.blood_type,
+          hospital_id: request.hospital_id,
+          event_name: request.event_name
+        }
+      }
+    });
+  };
+
+  const handleViewAllRequests = () => {
+    navigate('/blood-requests');
   };
 
   if (!isPageLoaded) {
@@ -1005,12 +1138,214 @@ const DashboardPage: React.FC = () => {
                       </p>
                     </div>
                     
-                    <BloodRequestStats requests={sampleBloodRequests} />
-                    <BloodRequestList 
-                      requests={sampleBloodRequests} 
-                      onRespond={handleBloodRequestRespond}
-                      onCreateRequest={handleCreateBloodRequest}
-                    />
+                    {/* Stats Overview */}
+                    <FadeIn direction="up" delay={0.2}>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                        <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
+                          <div className="text-2xl font-bold text-red-600">{bloodRequests.length}</div>
+                          <div className="text-sm text-gray-600">Total Permintaan</div>
+                        </div>
+                        <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
+                          <div className="text-2xl font-bold text-orange-600">
+                            {bloodRequests.filter(r => r.urgency_level === 'Critical').length}
+                          </div>
+                          <div className="text-sm text-gray-600">Kritis</div>
+                        </div>
+                        <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
+                          <div className="text-2xl font-bold text-yellow-600">
+                            {bloodRequests.filter(r => r.status === 'pending').length}
+                          </div>
+                          <div className="text-sm text-gray-600">Menunggu</div>
+                        </div>
+                        <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
+                          <div className="text-2xl font-bold text-green-600">
+                            {bloodRequests.filter(r => r.status === 'active').length}
+                          </div>
+                          <div className="text-sm text-gray-600">Aktif</div>
+                        </div>
+                      </div>
+                    </FadeIn>
+
+                    {/* Action Header */}
+                    <FadeIn direction="up" delay={0.3}>
+                      <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-2xl p-6 text-white mb-8">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-xl font-bold mb-2">Permintaan Darah Mendesak</h3>
+                            <p className="text-red-100">Bantuan segera dibutuhkan untuk menyelamatkan nyawa</p>
+                          </div>
+                          <div className="flex space-x-3">
+                            <button
+                              onClick={handleCreateBloodRequest}
+                              className="bg-white text-red-600 px-6 py-3 rounded-xl font-semibold hover:bg-red-50 transition-colors flex items-center space-x-2"
+                            >
+                              <PlusCircleIcon className="w-5 h-5" />
+                              <span>Buat Request</span>
+                            </button>
+                            <button
+                              onClick={handleViewAllRequests}
+                              className="bg-red-700 text-white px-6 py-3 rounded-xl font-semibold hover:bg-red-800 transition-colors flex items-center space-x-2"
+                            >
+                              <span>Lihat Semua</span>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </FadeIn>
+
+                    {/* Blood Requests Grid */}
+                    {bloodRequestsLoading ? (
+                      <div className="flex justify-center items-center py-12">
+                        <HeartBeatLoader size={60} />
+                      </div>
+                    ) : bloodRequestsError ? (
+                      <div className="text-center py-12">
+                        <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Gagal Memuat Data</h3>
+                        <p className="text-gray-600 mb-4">{bloodRequestsError}</p>
+                        <button
+                          onClick={() => getBloodRequests('/blood-request')}
+                          className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                        >
+                          Coba Lagi
+                        </button>
+                      </div>
+                    ) : bloodRequests.length === 0 ? (
+                      <div className="text-center py-12">
+                        <Heart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                          Tidak Ada Permintaan Saat Ini
+                        </h3>
+                        <p className="text-gray-600 mb-6">
+                          Belum ada permintaan darah darurat yang membutuhkan bantuan
+                        </p>
+                        <button
+                          onClick={handleCreateBloodRequest}
+                          className="bg-red-600 text-white px-6 py-3 rounded-xl hover:bg-red-700 transition-colors font-semibold"
+                        >
+                          Buat Permintaan Pertama
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {bloodRequests.slice(0, 6).map((request, index) => (
+                          <FadeIn key={request.id} direction="up" delay={0.1 * index}>
+                            <HoverScale scale={1.02}>
+                              <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-all duration-300">
+                                {/* Header */}
+                                <div className="bg-gradient-to-r from-red-500 to-red-600 p-4 text-white">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center space-x-2">
+                                      <div className={`w-8 h-8 ${getBloodTypeColor(request.blood_type)} rounded-full flex items-center justify-center text-white font-bold text-sm`}>
+                                        {request.blood_type}
+                                      </div>
+                                      <span className="font-semibold">{request.quantity} Kantong</span>
+                                    </div>
+                                    <div className={`px-2 py-1 rounded-full text-xs font-semibold ${getUrgencyColor(request.urgency_level)}`}>
+                                      {request.urgency_level}
+                                    </div>
+                                  </div>
+                                  <h3 className="font-bold text-lg">{request.event_name}</h3>
+                                </div>
+
+                                {/* Content */}
+                                <div className="p-4 space-y-4">
+                                  {/* Patient Info */}
+                                  <div className="space-y-2">
+                                    <div className="flex items-center space-x-2">
+                                      <UserCheckIcon className="w-4 h-4 text-gray-500" />
+                                      <span className="font-semibold text-gray-900">
+                                        {request.patient_name || 'Tidak disebutkan'}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-start space-x-2">
+                                      <AlertTriangle className="w-4 h-4 text-gray-500 mt-0.5" />
+                                      <span className="text-sm text-gray-600">{request.diagnosis}</span>
+                                    </div>
+                                  </div>
+
+                                  {/* Hospital Info */}
+                                  <div className="space-y-2">
+                                    <div className="flex items-center space-x-2">
+                                      <Database className="w-4 h-4 text-gray-500" />
+                                      <span className="font-medium text-gray-900">{request.hospital.name}</span>
+                                    </div>
+                                    <div className="flex items-start space-x-2">
+                                      <MapPinIcon className="w-4 h-4 text-gray-500 mt-0.5" />
+                                      <span className="text-sm text-gray-600">
+                                        {request.hospital.city}, {request.hospital.province}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Request Info */}
+                                  <div className="space-y-2">
+                                    <div className="flex items-center space-x-2">
+                                      <UserCheckIcon className="w-4 h-4 text-gray-500" />
+                                      <span className="text-sm text-gray-600">
+                                        Diminta oleh: {request.user.name}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <CalendarIcon className="w-4 h-4 text-gray-500" />
+                                      <span className="text-sm text-gray-600">
+                                        {formatDate(request.event_date)}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Status */}
+                                  <div className="flex items-center justify-between">
+                                    <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(request.status)}`}>
+                                      {request.status}
+                                    </span>
+                                    <span className="text-xs text-gray-500">
+                                      {formatDate(request.created_at)}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Actions */}
+                                <div className="p-4 bg-gray-50 border-t">
+                                  <button
+                                    onClick={() => handleDonateToRequest(request)}
+                                    disabled={request.status === 'completed' || request.status === 'canceled'}
+                                    className="w-full bg-red-600 text-white py-2 px-4 rounded-xl font-semibold hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                                  >
+                                    <HeartIcon className="w-4 h-4" />
+                                    <span>
+                                      {request.status === 'completed' ? 'Sudah Selesai' :
+                                       request.status === 'canceled' ? 'Dibatalkan' :
+                                       'Saya Bisa Donor'}
+                                    </span>
+                                  </button>
+                                </div>
+                              </div>
+                            </HoverScale>
+                          </FadeIn>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* View More Button */}
+                    {bloodRequests.length > 6 && (
+                      <FadeIn direction="up" delay={0.5}>
+                        <div className="text-center">
+                          <button
+                            onClick={handleViewAllRequests}
+                            className="inline-flex items-center space-x-2 bg-gradient-to-r from-red-600 to-red-700 text-white px-8 py-4 rounded-2xl font-semibold hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-lg"
+                          >
+                            <span>Lihat Semua Permintaan ({bloodRequests.length})</span>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </button>
+                        </div>
+                      </FadeIn>
+                    )}
                   </div>
                 </FadeIn>
               )}

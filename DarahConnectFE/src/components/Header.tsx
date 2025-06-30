@@ -75,6 +75,7 @@ const Header: React.FC = () => {
   const navigation = [
     { name: 'Beranda', href: '/' },
     { name: 'Kampanye', href: '/campaigns' },
+    { name: 'Permintaan Darah', href: '/blood-requests' },
     { name: 'Dashboard', href: '/dashboard' },
     { name: 'Tentang Kita', href: '/about' },
   ];
@@ -95,34 +96,34 @@ const Header: React.FC = () => {
 
   return (
     <FadeIn direction="down">
-      <header className="bg-white/95 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-gray-100">
+      <header className="bg-white/95 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            {/* Logo */}
-            <HoverScale scale={1.05} duration={0.2}>
-              <Link to="/" className="flex items-center space-x-3 group">
-                <div className="w-12 h-12 bg-gradient-to-r from-red-600 to-red-700 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-red-200/50 transition-all duration-300">
-                  <HeartIcon className="w-7 h-7 text-white fill-current" />
+          <div className="flex justify-between items-center py-3">
+            {/* Logo - More compact */}
+            <HoverScale scale={1.02} duration={0.2}>
+              <Link to="/" className="flex items-center space-x-2 group">
+                <div className="w-10 h-10 bg-gradient-to-r from-red-600 to-red-700 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-red-200/50 transition-all duration-300">
+                  <HeartIcon className="w-5 h-5 text-white fill-current" />
                 </div>
                 <div className="hidden sm:block">
-                  <h1 className="text-2xl font-bold text-gray-900 group-hover:text-red-700 transition-colors duration-300">
+                  <h1 className="text-xl font-bold text-gray-900 group-hover:text-red-700 transition-colors duration-300">
                     DarahConnect
                   </h1>
-                  <p className="text-sm text-gray-600 font-medium">Komunitas Donor Darah</p>
+                  <p className="text-xs text-gray-500 font-medium leading-tight">Komunitas Donor Darah</p>
                 </div>
               </Link>
             </HoverScale>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-1 bg-gray-50/80 backdrop-blur-sm rounded-2xl p-1 border border-gray-200/50">
+            {/* Desktop Navigation - More compact and clean */}
+            <nav className="hidden md:flex items-center space-x-0.5 bg-gray-50/60 backdrop-blur-sm rounded-xl p-0.5 border border-gray-200/50">
               {navigation.map((item) => (
                 <Link 
                   key={item.name}
                   to={item.href}
-                  className={`relative px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-300 ${
+                  className={`relative px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-300 whitespace-nowrap ${
                     isActive(item.href) 
-                      ? 'text-white bg-gradient-to-r from-red-600 to-red-700 shadow-lg' 
-                      : 'text-gray-700 hover:text-red-600 hover:bg-white/70'
+                      ? 'text-white bg-gradient-to-r from-red-600 to-red-700 shadow-md' 
+                      : 'text-gray-600 hover:text-red-600 hover:bg-white/80'
                   }`}
                 >
                   {item.name}
@@ -130,27 +131,27 @@ const Header: React.FC = () => {
               ))}
             </nav>
 
-            {/* Desktop Auth Buttons */}
-            <div className="hidden md:flex items-center space-x-4">
+            {/* Desktop Auth Buttons - More compact */}
+            <div className="hidden md:flex items-center space-x-3">
               {!isLoggedIn ? (
                 <>
-                  <HoverScale scale={1.05}>
+                  <HoverScale scale={1.02}>
                     <MagneticButton
                       onClick={handleDonateNow}
-                      className="group bg-gradient-to-r from-red-600 to-red-700 text-white px-8 py-3 rounded-2xl text-sm font-bold hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-lg hover:shadow-red-200/50"
+                      className="group bg-gradient-to-r from-red-600 to-red-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-md hover:shadow-red-200/50"
                       strength={0.3}
                     >
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1.5">
                         <HeartIcon className="w-4 h-4 fill-current group-hover:scale-110 transition-transform duration-300" />
                         <span>Daftar Donor</span>
                       </div>
                     </MagneticButton>
                   </HoverScale>
                   
-                  <HoverScale scale={1.05}>
+                  <HoverScale scale={1.02}>
                     <MagneticButton
                       onClick={handleLogin}
-                      className="group flex items-center space-x-2 bg-white/80 backdrop-blur-sm border border-gray-200 text-gray-700 px-6 py-3 rounded-2xl text-sm font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all duration-300 shadow-md"
+                      className="group flex items-center space-x-1.5 bg-white/80 backdrop-blur-sm border border-gray-200 text-gray-600 px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 hover:border-gray-300 transition-all duration-300 shadow-sm"
                       strength={0.2}
                     >
                       <UserIcon className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
@@ -160,50 +161,50 @@ const Header: React.FC = () => {
                 </>
               ) : (
                 <div className="flex items-center space-x-3">
-                  <HoverScale scale={1.05}>
+                  <HoverScale scale={1.02}>
                     <MagneticButton
                       onClick={handleDonateNow}
-                      className="group bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-3 rounded-2xl text-sm font-bold hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-lg hover:shadow-red-200/50"
+                      className="group bg-gradient-to-r from-red-600 to-red-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-md hover:shadow-red-200/50"
                       strength={0.3}
                     >
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1.5">
                         <HeartIcon className="w-4 h-4 fill-current group-hover:scale-110 transition-transform duration-300" />
                         <span>Daftar Donor</span>
                       </div>
                     </MagneticButton>
                   </HoverScale>
                   
-                  {/* Enhanced User Menu */}
+                  {/* Enhanced User Menu - More compact */}
                   <div className="relative">
-                    <HoverScale scale={1.05}>
+                    <HoverScale scale={1.02}>
                       <MagneticButton
                         onClick={() => setShowUserMenu(!showUserMenu)}
-                        className="group flex items-center space-x-3 bg-white/90 backdrop-blur-sm border border-gray-200 px-4 py-3 rounded-2xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-300 shadow-md"
+                        className="group flex items-center space-x-2 bg-white/90 backdrop-blur-sm border border-gray-200 px-3 py-2.5 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-300 shadow-sm"
                         strength={0.2}
                       >
-                        <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-sm">
+                        <div className="w-7 h-7 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white text-xs font-semibold shadow-sm">
                           {getUserInitials(userName)}
                         </div>
                         <div className="hidden lg:block text-left">
-                          <p className="text-sm font-semibold text-gray-900">Halo!</p>
-                          <p className="text-xs text-gray-600 truncate max-w-24">{userName}</p>
+                          <p className="text-xs font-semibold text-gray-900 leading-tight">Halo!</p>
+                          <p className="text-xs text-gray-500 truncate max-w-20">{userName}</p>
                         </div>
-                        <ChevronDownIcon className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${showUserMenu ? 'rotate-180' : ''}`} />
+                        <ChevronDownIcon className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-300 ${showUserMenu ? 'rotate-180' : ''}`} />
                       </MagneticButton>
                     </HoverScale>
 
-                    {/* User Dropdown Menu */}
+                    {/* User Dropdown Menu - Improved styling */}
                     {showUserMenu && (
                       <FadeIn direction="down" delay={0.1}>
-                        <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-gray-200 py-2 z-50">
-                          <div className="px-4 py-3 border-b border-gray-100">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold">
+                        <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-200 py-1.5 z-50">
+                          <div className="px-3 py-2.5 border-b border-gray-100">
+                            <div className="flex items-center space-x-2.5">
+                              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white text-sm font-semibold">
                                 {getUserInitials(userName)}
                               </div>
                               <div>
-                                <p className="font-semibold text-gray-900">{userName}</p>
-                                <p className="text-sm text-gray-600">Donor Aktif</p>
+                                <p className="text-sm font-semibold text-gray-900">{userName}</p>
+                                <p className="text-xs text-gray-500">Donor Aktif</p>
                               </div>
                             </div>
                           </div>
@@ -214,7 +215,7 @@ const Header: React.FC = () => {
                                 setShowUserMenu(false);
                                 navigate('/profile');
                               }}
-                              className="flex items-center space-x-3 w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                              className="flex items-center space-x-2.5 w-full px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                             >
                               <User className="w-4 h-4" />
                               <span>Profil Saya</span>
@@ -225,7 +226,7 @@ const Header: React.FC = () => {
                                 setShowUserMenu(false);
                                 navigate('/settings');
                               }}
-                              className="flex items-center space-x-3 w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                              className="flex items-center space-x-2.5 w-full px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                             >
                               <Settings className="w-4 h-4" />
                               <span>Pengaturan</span>
@@ -235,7 +236,7 @@ const Header: React.FC = () => {
                             
                             <button
                               onClick={handleLogout}
-                              className="flex items-center space-x-3 w-full px-4 py-3 text-sm text-red-700 hover:bg-red-50 transition-colors"
+                              className="flex items-center space-x-2.5 w-full px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
                             >
                               <LogOutIcon className="w-4 h-4" />
                               <span>Keluar</span>
@@ -249,35 +250,35 @@ const Header: React.FC = () => {
               )}
             </div>
 
-            {/* Mobile menu button */}
+            {/* Mobile menu button - More compact */}
             <div className="md:hidden">
               <MagneticButton
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-3 rounded-2xl text-gray-600 hover:text-red-600 bg-white/80 backdrop-blur-sm border border-gray-200/50 hover:bg-gray-50 transition-all duration-300 shadow-md"
+                className="p-2.5 rounded-xl text-gray-600 hover:text-red-600 bg-white/80 backdrop-blur-sm border border-gray-200/50 hover:bg-gray-50 transition-all duration-300 shadow-sm"
                 strength={0.2}
               >
                 {isMenuOpen ? (
-                  <XIcon className="w-6 h-6" />
+                  <XIcon className="w-5 h-5" />
                 ) : (
-                  <MenuIcon className="w-6 h-6" />
+                  <MenuIcon className="w-5 h-5" />
                 )}
               </MagneticButton>
             </div>
           </div>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile Navigation - Improved styling */}
         {isMenuOpen && (
           <FadeIn direction="down" delay={0.1}>
             <div className="md:hidden border-t border-gray-200/50 bg-white/95 backdrop-blur-md">
-              <div className="px-4 py-4 space-y-2">
+              <div className="px-4 py-3 space-y-1">
                 {navigation.map((item) => (
                   <Link
                     key={item.name}
                     to={item.href}
-                    className={`block px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                    className={`block px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${
                       isActive(item.href)
-                        ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg'
+                        ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-md'
                         : 'text-gray-700 hover:text-red-600 hover:bg-gray-50'
                     }`}
                     onClick={() => setIsMenuOpen(false)}
@@ -286,7 +287,7 @@ const Header: React.FC = () => {
                   </Link>
                 ))}
                 
-                <div className="pt-4 border-t border-gray-200/50 space-y-3">
+                <div className="pt-3 border-t border-gray-200/50 space-y-2">
                   {!isLoggedIn ? (
                     <>
                       <MagneticButton
@@ -294,7 +295,7 @@ const Header: React.FC = () => {
                           handleDonateNow();
                           setIsMenuOpen(false);
                         }}
-                        className="group flex items-center justify-center space-x-2 w-full bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-4 rounded-2xl text-sm font-bold hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-lg"
+                        className="group flex items-center justify-center space-x-2 w-full bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-3 rounded-xl text-sm font-semibold hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-md"
                         strength={0.3}
                       >
                         <HeartIcon className="w-4 h-4 fill-current group-hover:scale-110 transition-transform duration-300" />
@@ -306,7 +307,7 @@ const Header: React.FC = () => {
                           handleLogin();
                           setIsMenuOpen(false);
                         }}
-                        className="group flex items-center justify-center space-x-2 w-full bg-white/90 border border-gray-200 text-gray-700 px-4 py-4 rounded-2xl text-sm font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all duration-300 shadow-md"
+                        className="group flex items-center justify-center space-x-2 w-full bg-white/90 border border-gray-200 text-gray-700 px-4 py-3 rounded-xl text-sm font-medium hover:bg-gray-50 hover:border-gray-300 transition-all duration-300 shadow-sm"
                         strength={0.2}
                       >
                         <UserIcon className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
@@ -320,32 +321,32 @@ const Header: React.FC = () => {
                           handleDonateNow();
                           setIsMenuOpen(false);
                         }}
-                        className="group flex items-center justify-center space-x-2 w-full bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-4 rounded-2xl text-sm font-bold hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-lg"
+                        className="group flex items-center justify-center space-x-2 w-full bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-3 rounded-xl text-sm font-semibold hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-md"
                         strength={0.3}
                       >
                         <HeartIcon className="w-4 h-4 fill-current group-hover:scale-110 transition-transform duration-300" />
                         <span>Daftar Donor</span>
                       </MagneticButton>
                       
-                      {/* Mobile User Info */}
-                      <div className="bg-gray-50/80 backdrop-blur-sm rounded-2xl p-4 border border-gray-200/50">
-                        <div className="flex items-center space-x-3 mb-3">
-                          <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-sm">
+                      {/* Mobile User Info - More compact */}
+                      <div className="bg-gray-50/80 backdrop-blur-sm rounded-xl p-3 border border-gray-200/50">
+                        <div className="flex items-center space-x-2.5 mb-2.5">
+                          <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white text-sm font-semibold shadow-sm">
                             {getUserInitials(userName)}
                           </div>
                           <div className="flex-1">
                             <p className="text-sm font-semibold text-gray-900">Halo, {userName}!</p>
-                            <p className="text-xs text-gray-600">Donor Aktif</p>
+                            <p className="text-xs text-gray-500">Donor Aktif</p>
                           </div>
                         </div>
                         
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                           <button
                             onClick={() => {
                               navigate('/profile');
                               setIsMenuOpen(false);
                             }}
-                            className="flex items-center space-x-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-white/70 rounded-xl transition-colors"
+                            className="flex items-center space-x-2.5 w-full px-2.5 py-2 text-sm text-gray-700 hover:bg-white/70 rounded-lg transition-colors"
                           >
                             <User className="w-4 h-4" />
                             <span>Profil Saya</span>
@@ -356,20 +357,20 @@ const Header: React.FC = () => {
                               navigate('/settings');
                               setIsMenuOpen(false);
                             }}
-                            className="flex items-center space-x-3 w-full px-3 py-2 text-sm text-gray-700 hover:bg-white/70 rounded-xl transition-colors"
+                            className="flex items-center space-x-2.5 w-full px-2.5 py-2 text-sm text-gray-700 hover:bg-white/70 rounded-lg transition-colors"
                           >
                             <Settings className="w-4 h-4" />
                             <span>Pengaturan</span>
                           </button>
                           
-                          <div className="border-t border-gray-200/50 my-2"></div>
+                          <div className="border-t border-gray-200/50 my-1.5"></div>
                           
                           <button
                             onClick={() => {
                               handleLogout();
                               setIsMenuOpen(false);
                             }}
-                            className="flex items-center space-x-3 w-full px-3 py-2 text-sm text-red-700 hover:bg-red-50/70 rounded-xl transition-colors"
+                            className="flex items-center space-x-2.5 w-full px-2.5 py-2 text-sm text-red-600 hover:bg-red-50/70 rounded-lg transition-colors"
                           >
                             <LogOutIcon className="w-4 h-4" />
                             <span>Keluar</span>
@@ -385,36 +386,36 @@ const Header: React.FC = () => {
         )}
       </header>
 
-      {/* Login Prompt Modal */}
+      {/* Login Prompt Modal - Improved styling */}
       {showLoginPrompt && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <FadeIn>
-            <div className="bg-white/95 backdrop-blur-md rounded-3xl p-8 max-w-md w-full shadow-2xl border border-gray-200/50">
-              <div className="flex items-center space-x-4 mb-6">
-                <div className="w-14 h-14 bg-gradient-to-r from-red-600 to-red-700 rounded-2xl flex items-center justify-center shadow-lg">
-                  <AlertCircleIcon className="w-7 h-7 text-white" />
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl p-6 max-w-md w-full shadow-xl border border-gray-200/50">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-red-600 to-red-700 rounded-xl flex items-center justify-center shadow-md">
+                  <AlertCircleIcon className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">Login Diperlukan</h3>
-                  <p className="text-sm text-gray-600">Untuk mendaftar sebagai donor</p>
+                  <h3 className="text-lg font-bold text-gray-900">Login Diperlukan</h3>
+                  <p className="text-sm text-gray-500">Untuk mendaftar sebagai donor</p>
                 </div>
               </div>
               
-              <p className="text-gray-700 mb-8 leading-relaxed">
+              <p className="text-gray-700 mb-6 text-sm leading-relaxed">
                 Anda harus memiliki akun terlebih dahulu untuk mendaftar sebagai donor darah. 
                 Silakan login jika sudah punya akun, atau buat akun baru.
               </p>
               
-              <div className="flex space-x-3 mb-4">
+              <div className="flex space-x-2.5 mb-3">
                 <button
                   onClick={handleGoToLogin}
-                  className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white py-3 px-6 rounded-2xl font-semibold hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-lg hover:shadow-red-200/50"
+                  className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white py-2.5 px-4 rounded-xl font-semibold hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-md hover:shadow-red-200/50 text-sm"
                 >
                   Login
                 </button>
                 <button
                   onClick={handleGoToRegister}
-                  className="flex-1 bg-white/90 border border-red-200 text-red-700 py-3 px-6 rounded-2xl font-semibold hover:bg-red-50 hover:border-red-300 transition-all duration-300 shadow-md"
+                  className="flex-1 bg-white/90 border border-red-200 text-red-700 py-2.5 px-4 rounded-xl font-semibold hover:bg-red-50 hover:border-red-300 transition-all duration-300 shadow-sm text-sm"
                 >
                   Daftar Akun
                 </button>
