@@ -246,21 +246,19 @@ func (h *BloodDonationHandler) StatusBloodDonation(ctx echo.Context) error {
 	}
 
 	var certificateNumber string
+	notif.UserId = bloodDonation.UserId
+	notif.Title = "Status Donasi Darah"
 	if updatedBloodDonation.Status == "completed" {
 		certificate, err := h.certificateService.Create(ctx.Request().Context(), updatedBloodDonation)
 		if err != nil {
 			return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 		}
 		certificateNumber = certificate.CertificateNumber
-	}
-
-	notif.UserId = bloodDonation.UserId
-	notif.Title = "Status Donasi Darah"
-	if updatedBloodDonation.Status == "completed" {
 		notif.Message = "Status donasi darah anda telah " + req.Status + " dengan nomor sertifikat " + certificateNumber
 	} else {
 		notif.Message = "Status donasi darah anda telah " + req.Status
 	}
+
 	notif.NotificationType = "information"
 	if err := h.notificationService.Create(ctx.Request().Context(), notif); err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))

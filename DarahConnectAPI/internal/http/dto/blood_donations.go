@@ -11,6 +11,7 @@ type BloodDonationCreateRequest struct {
 	RegistrationId int64                 `json:"registration_id" form:"registration_id" validate:"required"`
 	DonationDate   time.Time             `json:"donation_date" form:"donation_date" validate:"required"`
 	BloodType      string                `json:"blood_type" form:"blood_type" validate:"required"` // e.g., "A+", "O-", etc.
+	Status         string                `json:"status" form:"status" validate:"required"`
 	Image          *multipart.FileHeader `json:"image" form:"image" validate:"required,ext=jpg|jpeg|png"`
 }
 
