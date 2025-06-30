@@ -25,7 +25,7 @@ import (
 type UserService interface {
 	GetAll(ctx context.Context, req dto.GetAllUserRequest) ([]entity.User, int64, error)
 	GetById(ctx context.Context, id int64) (*entity.User, error)
-	Login(ctx context.Context, email, password string) (string, error)
+	Login(ctx context.Context, email, password string) (string, bool, error)
 	Register(ctx context.Context, req dto.UserRegisterRequest) error
 	CheckGoogleOAuth(ctx context.Context, email string, user *goth.User) (bool, error)
 	Update(ctx context.Context, req dto.UpdateUserRequest) error
@@ -56,19 +56,19 @@ func NewUserService(
 	return &userService{userRepository, tokenUseCase, cacheable, mailer, cfg, cloudinaryService}
 }
 
-func (s *userService) Login(ctx context.Context, email string, password string) (string, error) {
+func (s *userService) Login(ctx context.Context, email string, password string) (string, bool, error) {
 	user, err := s.userRepository.GetByEmail(ctx, email)
 	if err != nil {
-		return "", errors.New("Email atau password salah")
+		return "", false, errors.New("Email atau password salah")
 	}
 
 	if bcryptErr := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); bcryptErr != nil {
-		return "", errors.New("Email atau password salah")
+		return "", false, errors.New("Email atau password salah")
 	}
 
 	if !user.IsVerified {
 		TokenExpiresAt := user.TokenExpiresAt.Format(time.RFC3339)
-		return TokenExpiresAt, nil
+		return TokenExpiresAt, false, nil
 	}
 
 	expiredTime := time.Now().Add(time.Hour * 12)
@@ -86,10 +86,10 @@ func (s *userService) Login(ctx context.Context, email string, password string) 
 
 	token, err := s.tokenUseCase.GenerateAccessToken(claims)
 	if err != nil {
-		return "", errors.New("ada kesalahan di server")
+		return "", false, errors.New("ada kesalahan di server")
 	}
 
-	return token, nil
+	return token, true, nil
 }
 
 func (s *userService) Register(ctx context.Context, req dto.UserRegisterRequest) error {
