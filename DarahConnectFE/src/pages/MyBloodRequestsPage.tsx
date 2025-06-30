@@ -12,8 +12,9 @@ import {
   Search,
   RefreshCw,
   Plus,
-  FileTextIcon,
-  Edit
+  Edit,
+  Trash2,
+  Clock
 } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 import { useNotification } from '../hooks/useNotification';
@@ -84,44 +85,38 @@ interface BloodRequestsResponse {
   };
 }
 
-const BloodRequestsPage: React.FC = () => {
+const MyBloodRequestsPage: React.FC = () => {
   const navigate = useNavigate();
   const { addNotification } = useNotification();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterUrgency, setFilterUrgency] = useState('all');
-  const [filterBloodType, setFilterBloodType] = useState('all');
   const [editRequestModalOpen, setEditRequestModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<BloodRequest | null>(null);
 
   const { data: bloodRequestsData, loading, error, get } = useApi<BloodRequestsResponse>();
 
-  // Fetch blood requests on component mount
+  // Fetch user's blood requests on component mount
   React.useEffect(() => {
-    get('/blood-request');
+    get('/user/blood-request');
   }, [get]);
 
   // Since fetchApi already extracts responseData.data, bloodRequestsData is the array directly
   const bloodRequests = Array.isArray(bloodRequestsData) ? bloodRequestsData : (bloodRequestsData?.data || []);
 
-
-
   // Filter logic
   const filteredRequests = bloodRequests.filter(request => {
     const matchesSearch = 
       request.patient_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.hospital.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.diagnosis.toLowerCase().includes(searchTerm.toLowerCase());
+      request.diagnosis.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.event_name.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = filterStatus === 'all' || request.status === filterStatus;
     const matchesUrgency = filterUrgency === 'all' || request.urgency_level === filterUrgency;
-    const matchesBloodType = filterBloodType === 'all' || request.blood_type === filterBloodType;
 
-    return matchesSearch && matchesStatus && matchesUrgency && matchesBloodType;
+    return matchesSearch && matchesStatus && matchesUrgency;
   });
-
-
 
   const getUrgencyColor = (urgency: string) => {
     switch (urgency.toLowerCase()) {
@@ -172,7 +167,7 @@ const BloodRequestsPage: React.FC = () => {
     switch (status.toLowerCase()) {
       case 'pending':
         return 'Menunggu';
-      case 'active':
+      case 'verified':
         return 'Verified';
       case 'completed':
         return 'Selesai';
@@ -208,30 +203,34 @@ const BloodRequestsPage: React.FC = () => {
   };
 
   const handleRefresh = () => {
-    get('/blood-request');
+    get('/user/blood-request');
     addNotification({
       type: 'success',
       title: 'Data Diperbarui',
-      message: 'Data permintaan darah berhasil diperbarui'
-    });
-  };
-
-  const handleDonate = (request: BloodRequest) => {
-    // Navigate to donor registration with pre-filled data
-    navigate('/donor-register', { 
-      state: { 
-        bloodRequest: request,
-        prefilledData: {
-          blood_type: request.blood_type,
-          hospital_id: request.hospital_id,
-          event_name: request.event_name
-        }
-      }
+      message: 'Data permintaan darah Anda berhasil diperbarui'
     });
   };
 
   const handleCreateBloodRequest = () => {
     navigate('/create-blood-request');
+  };
+
+  const handleEditRequest = (requestId: number) => {
+    // Navigate to edit page (you might need to create this)
+    navigate(`/edit-blood-request/${requestId}`);
+  };
+
+  const handleDeleteRequest = (requestId: number) => {
+    // Add delete confirmation and API call
+    const confirmed = window.confirm('Apakah Anda yakin ingin menghapus permintaan ini?');
+    if (confirmed) {
+      // TODO: Implement delete API call
+      addNotification({
+        type: 'info',
+        title: 'Fitur Belum Tersedia',
+        message: 'Fitur hapus permintaan belum tersedia'
+      });
+    }
   };
 
   const handleOpenEditRequestModal = (request: BloodRequest) => {
@@ -246,15 +245,18 @@ const BloodRequestsPage: React.FC = () => {
 
   const handleEditSuccess = () => {
     // Refresh the data after successful edit
-    get('/blood-request');
+    get('/user/blood-request');
   };
 
   if (loading) {
     return (
       <>
         <Header />
-        <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-blue-50 flex items-center justify-center">
-          <Spinner size="lg" />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <Spinner size="lg" />
+            <p className="mt-4 text-gray-600 text-lg">Memuat permintaan darah Anda...</p>
+          </div>
         </div>
         <Footer />
       </>
@@ -265,10 +267,10 @@ const BloodRequestsPage: React.FC = () => {
     return (
       <>
         <Header />
-        <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-blue-50 flex items-center justify-center">
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
             <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Gagal Memuat Data</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Gagal Memuat Data</h2>
             <p className="text-gray-600 mb-4">{error}</p>
             <button
               onClick={handleRefresh}
@@ -286,16 +288,16 @@ const BloodRequestsPage: React.FC = () => {
   return (
     <>
       <Header />
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-blue-50 py-8">
+      <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header Section */}
           <FadeIn direction="up">
             <div className="text-center mb-12">
               <h1 className="text-4xl font-bold text-gray-900 mb-4">
-                Permintaan Darah Darurat
+                Permintaan Darah Saya
               </h1>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-                Bantu menyelamatkan nyawa dengan merespons permintaan darah darurat dari rumah sakit dan pasien yang membutuhkan
+                Kelola dan pantau permintaan darah yang telah Anda buat
               </p>
               
               {/* Create Request CTA */}
@@ -306,7 +308,7 @@ const BloodRequestsPage: React.FC = () => {
                     className="inline-flex items-center space-x-3 bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:from-green-700 hover:to-green-800 transition-all duration-300 shadow-lg hover:shadow-xl"
                   >
                     <Plus className="w-6 h-6" />
-                    <span>Buat Permintaan Darah Darurat</span>
+                    <span>Buat Permintaan Baru</span>
                   </button>
                 </HoverScale>
               </div>
@@ -321,22 +323,22 @@ const BloodRequestsPage: React.FC = () => {
                 <div className="text-sm text-gray-600">Total Permintaan</div>
               </div>
               <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
-                <div className="text-2xl font-bold text-red-600">
-                  {bloodRequests.filter(r => r.urgency_level === 'critical').length}
+                <div className="text-2xl font-bold text-yellow-600">
+                  {bloodRequests.filter(r => r.status === 'pending').length}
                 </div>
-                <div className="text-sm text-gray-600">Sangat Mendesak</div>
-              </div>
-              <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
-                <div className="text-2xl font-bold text-orange-600">
-                  {bloodRequests.filter(r => r.urgency_level === 'high').length}
-                </div>
-                <div className="text-sm text-gray-600">Mendesak</div>
+                <div className="text-sm text-gray-600">Menunggu</div>
               </div>
               <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
                 <div className="text-2xl font-bold text-green-600">
-                  {bloodRequests.filter(r => r.urgency_level === 'low').length}
+                  {bloodRequests.filter(r => r.status === 'verified').length}
                 </div>
-                <div className="text-sm text-gray-600">Normal</div>
+                <div className="text-sm text-gray-600">Verified</div>
+              </div>
+              <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
+                <div className="text-2xl font-bold text-blue-600">
+                  {bloodRequests.filter(r => r.status === 'completed').length}
+                </div>
+                <div className="text-sm text-gray-600">Selesai</div>
               </div>
             </div>
           </FadeIn>
@@ -350,7 +352,7 @@ const BloodRequestsPage: React.FC = () => {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
-                    placeholder="Cari pasien, rumah sakit, atau diagnosis..."
+                    placeholder="Cari berdasarkan pasien, rumah sakit, atau diagnosis..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
@@ -366,7 +368,7 @@ const BloodRequestsPage: React.FC = () => {
                   >
                     <option value="all">Semua Status</option>
                     <option value="pending">Menunggu</option>
-                    <option value="active">Aktif</option>
+                    <option value="verified">Verified</option>
                     <option value="completed">Selesai</option>
                     <option value="canceled">Dibatalkan</option>
                   </select>
@@ -383,38 +385,6 @@ const BloodRequestsPage: React.FC = () => {
                     <option value="low">Normal</option>
                   </select>
 
-                  <select
-                    value={filterBloodType}
-                    onChange={(e) => setFilterBloodType(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
-                  >
-                    <option value="all">Semua Golongan</option>
-                    <option value="A+">A+</option>
-                    <option value="A-">A-</option>
-                    <option value="B+">B+</option>
-                    <option value="B-">B-</option>
-                    <option value="AB+">AB+</option>
-                    <option value="AB-">AB-</option>
-                    <option value="O+">O+</option>
-                    <option value="O-">O-</option>
-                  </select>
-
-                  <button
-                    onClick={handleCreateBloodRequest}
-                    className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-colors text-sm font-semibold"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Buat Permintaan</span>
-                  </button>
-
-                  <button
-                    onClick={() => navigate('/my-blood-requests')}
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-semibold"
-                  >
-                    <FileTextIcon className="w-4 h-4" />
-                    <span>Permintaan Saya</span>
-                  </button>
-
                   <button
                     onClick={handleRefresh}
                     className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors text-sm"
@@ -428,146 +398,27 @@ const BloodRequestsPage: React.FC = () => {
           </FadeIn>
 
           {/* Blood Requests Grid */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredRequests.map((request, index) => (
-              <FadeIn key={request.id} direction="up" delay={0.1 * index}>
-                <HoverScale scale={1.02}>
-                  <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-all duration-300">
-                    {/* Header */}
-                    <div className="bg-gradient-to-r from-red-500 to-red-600 p-4 text-white">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-8 h-8 ${getBloodTypeColor(request.blood_type)} rounded-full flex items-center justify-center text-white font-bold text-sm`}>
-                            {request.blood_type}
-                          </div>
-                          <span className="font-semibold">{request.quantity} Kantong</span>
-                        </div>
-                        <div className={`px-2 py-1 rounded-full text-xs font-semibold ${getUrgencyColor(request.urgency_level)}`}>
-                          {getUrgencyText(request.urgency_level)}
-                        </div>
-                      </div>
-                      <h3 className="font-bold text-lg">{request.event_name}</h3>
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-4 space-y-4">
-                      {/* Patient Info */}
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <User className="w-4 h-4 text-gray-500" />
-                          <span className="font-semibold text-gray-900">
-                            {request.patient_name || 'Tidak disebutkan'}
-                          </span>
-                        </div>
-                        <div className="flex items-start space-x-2">
-                          <AlertTriangle className="w-4 h-4 text-gray-500 mt-0.5" />
-                          <span className="text-sm text-gray-600">{request.diagnosis}</span>
-                        </div>
-                      </div>
-
-                      {/* Hospital Info */}
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <Building2 className="w-4 h-4 text-gray-500" />
-                          <span className="font-medium text-gray-900">{request.hospital.name}</span>
-                        </div>
-                        <div className="flex items-start space-x-2">
-                          <MapPin className="w-4 h-4 text-gray-500 mt-0.5" />
-                          <span className="text-sm text-gray-600">
-                            {request.hospital.city}, {request.hospital.province}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Request Info */}
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <User className="w-4 h-4 text-gray-500" />
-                          <span className="text-sm text-gray-600">
-                            Diminta oleh: {request.user.name}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Phone className="w-4 h-4 text-gray-500" />
-                          <span className="text-sm text-gray-600">{request.user.phone}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Calendar className="w-4 h-4 text-gray-500" />
-                          <span className="text-sm text-gray-600">
-                            {formatDate(request.event_date)}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Status */}
-                      <div className="flex items-center justify-between">
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(request.status)}`}>
-                          {getStatusText(request.status)}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {formatDate(request.created_at)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="p-4 bg-gray-50 border-t space-y-2">
-                      {/* Edit Button - Only show if user is the request owner */}
-                      {request.user_id === parseInt(localStorage.getItem('userId') || '0') && (
-                        <button
-                          onClick={() => handleOpenEditRequestModal(request)}
-                          disabled={request.status === 'completed' || request.status === 'canceled'}
-                          className="w-full bg-blue-600 text-white py-2 px-4 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-                        >
-                          <Edit className="w-4 h-4" />
-                          <span>
-                            {request.status === 'completed' ? 'Tidak Dapat Diedit' :
-                             request.status === 'canceled' ? 'Tidak Dapat Diedit' :
-                             'Edit Permintaan'}
-                          </span>
-                        </button>
-                      )}
-                      
-                      <button
-                        onClick={() => handleDonate(request)}
-                        disabled={request.status === 'completed' || request.status === 'canceled'}
-                        className="w-full bg-red-600 text-white py-2 px-4 rounded-xl font-semibold hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-                      >
-                        <Heart className="w-4 h-4" />
-                        <span>
-                          {request.status === 'completed' ? 'Sudah Selesai' :
-                           request.status === 'canceled' ? 'Dibatalkan' :
-                           'Saya Bisa Donor'}
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-                </HoverScale>
-              </FadeIn>
-            ))}
-          </div>
-
-          {/* Empty State */}
-          {filteredRequests.length === 0 && (
+          {filteredRequests.length === 0 ? (
             <FadeIn direction="up" delay={0.3}>
               <div className="text-center py-12">
                 <Droplet className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Tidak Ada Permintaan Ditemukan
+                  {searchTerm || filterStatus !== 'all' || filterUrgency !== 'all'
+                    ? 'Tidak Ada Permintaan Ditemukan'
+                    : 'Belum Ada Permintaan'}
                 </h3>
                 <p className="text-gray-600 mb-6">
-                  {searchTerm || filterStatus !== 'all' || filterUrgency !== 'all' || filterBloodType !== 'all'
+                  {searchTerm || filterStatus !== 'all' || filterUrgency !== 'all'
                     ? 'Coba ubah filter atau kata kunci pencarian'
-                    : 'Belum ada permintaan darah saat ini'}
+                    : 'Anda belum membuat permintaan darah. Buat permintaan pertama Anda sekarang.'}
                 </p>
                 <div className="flex justify-center space-x-4">
-                  {(searchTerm || filterStatus !== 'all' || filterUrgency !== 'all' || filterBloodType !== 'all') ? (
+                  {(searchTerm || filterStatus !== 'all' || filterUrgency !== 'all') ? (
                     <button
                       onClick={() => {
                         setSearchTerm('');
                         setFilterStatus('all');
                         setFilterUrgency('all');
-                        setFilterBloodType('all');
                       }}
                       className="bg-red-600 text-white px-6 py-2 rounded-xl hover:bg-red-700 transition-colors"
                     >
@@ -585,6 +436,111 @@ const BloodRequestsPage: React.FC = () => {
                 </div>
               </div>
             </FadeIn>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {filteredRequests.map((request, index) => (
+                <FadeIn key={request.id} direction="up" delay={0.1 * index}>
+                  <HoverScale scale={1.02}>
+                    <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-all duration-300">
+                      {/* Header */}
+                      <div className="bg-gradient-to-r from-red-500 to-red-600 p-4 text-white">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <div className={`w-8 h-8 ${getBloodTypeColor(request.blood_type)} rounded-full flex items-center justify-center text-white font-bold text-sm`}>
+                              {request.blood_type}
+                            </div>
+                            <span className="font-semibold">{request.quantity} Kantong</span>
+                          </div>
+                          <div className={`px-2 py-1 rounded-full text-xs font-semibold ${getUrgencyColor(request.urgency_level)}`}>
+                            {getUrgencyText(request.urgency_level)}
+                          </div>
+                        </div>
+                        <h3 className="font-bold text-lg">{request.event_name}</h3>
+                      </div>
+
+                      {/* Content */}
+                      <div className="p-4 space-y-4">
+                        {/* Patient Info */}
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <User className="w-4 h-4 text-gray-500" />
+                            <span className="font-semibold text-gray-900">
+                              {request.patient_name || 'Tidak disebutkan'}
+                            </span>
+                          </div>
+                          <div className="flex items-start space-x-2">
+                            <AlertTriangle className="w-4 h-4 text-gray-500 mt-0.5" />
+                            <span className="text-sm text-gray-600">{request.diagnosis}</span>
+                          </div>
+                        </div>
+
+                        {/* Hospital Info */}
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <Building2 className="w-4 h-4 text-gray-500" />
+                            <span className="font-medium text-gray-900">{request.hospital.name}</span>
+                          </div>
+                          <div className="flex items-start space-x-2">
+                            <MapPin className="w-4 h-4 text-gray-500 mt-0.5" />
+                            <span className="text-sm text-gray-600">
+                              {request.hospital.city}, {request.hospital.province}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Timing Info */}
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <Calendar className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm text-gray-600">
+                              Dibutuhkan: {formatDate(request.event_date)}
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Clock className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm text-gray-600">
+                              Dibuat: {formatDate(request.created_at)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Status */}
+                        <div className="flex items-center justify-between">
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(request.status)}`}>
+                            {getStatusText(request.status)}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            ID: #{request.id}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="p-4 bg-gray-50 border-t">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleOpenEditRequestModal(request)}
+                            disabled={request.status === 'completed' || request.status === 'canceled'}
+                            className="flex-1 bg-blue-600 text-white py-2 px-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2 text-sm"
+                          >
+                            <Edit className="w-4 h-4" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteRequest(request.id)}
+                            disabled={request.status === 'active' || request.status === 'completed'}
+                            className="flex-1 bg-red-600 text-white py-2 px-3 rounded-xl font-semibold hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2 text-sm"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            <span>Hapus</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </HoverScale>
+                </FadeIn>
+              ))}
+            </div>
           )}
         </div>
       </div>
@@ -601,4 +557,4 @@ const BloodRequestsPage: React.FC = () => {
   );
 };
 
-export default BloodRequestsPage;
+export default MyBloodRequestsPage; 

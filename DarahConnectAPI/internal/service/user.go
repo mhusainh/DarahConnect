@@ -25,15 +25,16 @@ import (
 type UserService interface {
 	GetAll(ctx context.Context, req dto.GetAllUserRequest) ([]entity.User, int64, error)
 	GetById(ctx context.Context, id int64) (*entity.User, error)
-	Login(ctx context.Context, email, password string) (string, error)
+	Login(ctx context.Context, email, password string) (string, bool, error)
 	Register(ctx context.Context, req dto.UserRegisterRequest) error
-	CheckGoogleOAuth(ctx context.Context, email string, user *goth.User) (bool, error)
+	CheckGoogleOAuth(ctx context.Context, email string, user *goth.User) (*entity.User, bool, error)
 	Update(ctx context.Context, req dto.UpdateUserRequest) error
 	Delete(ctx context.Context, user *entity.User) error
 	ResendTokenVerifyEmail(ctx context.Context, email string) (string, error)
 	VerifyEmail(ctx context.Context, req dto.VerifyEmailRequest) error
 	RequestResetPassword(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, req dto.ResetPasswordRequest) error
+	WalletAddress(ctx context.Context, user *entity.User, req dto.WalletAddressRequest) error
 }
 
 type userService struct {
@@ -56,19 +57,23 @@ func NewUserService(
 	return &userService{userRepository, tokenUseCase, cacheable, mailer, cfg, cloudinaryService}
 }
 
-func (s *userService) Login(ctx context.Context, email string, password string) (string, error) {
+func (s *userService) Login(ctx context.Context, email string, password string) (string, bool, error) {
+	metamask := true
 	user, err := s.userRepository.GetByEmail(ctx, email)
 	if err != nil {
-		return "", errors.New("Email atau password salah")
+		return "", false, errors.New("Email atau password salah")
+	}
+	if user.WalletAddress == "" {
+		metamask = false
 	}
 
 	if bcryptErr := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); bcryptErr != nil {
-		return "", errors.New("Email atau password salah")
+		return "", false, errors.New("Email atau password salah")
 	}
 
 	if !user.IsVerified {
 		TokenExpiresAt := user.TokenExpiresAt.Format(time.RFC3339)
-		return TokenExpiresAt, nil
+		return TokenExpiresAt, false, nil
 	}
 
 	expiredTime := time.Now().Add(time.Hour * 12)
@@ -78,6 +83,7 @@ func (s *userService) Login(ctx context.Context, email string, password string) 
 		Email: user.Email,
 		Name:  user.Name,
 		Role:  user.Role,
+		Metamask: metamask,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    "Darah Connect",
 			ExpiresAt: jwt.NewNumericDate(expiredTime),
@@ -86,10 +92,10 @@ func (s *userService) Login(ctx context.Context, email string, password string) 
 
 	token, err := s.tokenUseCase.GenerateAccessToken(claims)
 	if err != nil {
-		return "", errors.New("ada kesalahan di server")
+		return "", false, errors.New("ada kesalahan di server")
 	}
 
-	return token, nil
+	return token, true, nil
 }
 
 func (s *userService) Register(ctx context.Context, req dto.UserRegisterRequest) error {
@@ -353,7 +359,7 @@ func (s *userService) VerifyEmail(ctx context.Context, req dto.VerifyEmailReques
 	return s.userRepository.Update(ctx, user)
 }
 
-func (s *userService) CheckGoogleOAuth(ctx context.Context, email string, user *goth.User) (bool, error) {
+func (s *userService) CheckGoogleOAuth(ctx context.Context, email string, user *goth.User) (*entity.User, bool, error) {
 	existingUser, err := s.userRepository.GetByEmail(ctx, email)
 	if err != nil {
 		newUser := new(entity.User)
@@ -363,14 +369,22 @@ func (s *userService) CheckGoogleOAuth(ctx context.Context, email string, user *
 		newUser.IsVerified = true
 		if err = s.userRepository.Create(ctx, newUser); err != nil {
 			log.Printf("Error creating new user: %v", err)
-			return false, err
+			return nil, false, err
 		}
-		return true, nil
+		return newUser, true, nil
 	}
 	if existingUser.Name == "" {
-		return true, nil
+		return existingUser, true, nil
 	}
-	return false, nil
+	return existingUser, false, nil
+}
+
+func (s *userService) WalletAddress(ctx context.Context, user *entity.User, req dto.WalletAddressRequest) error {
+	user.WalletAddress = req.WalletAddress
+	if err := s.userRepository.Update(ctx, user); err != nil {
+		return err
+	}
+	return nil
 }
 
 // func (s *userService) GetAll(ctx context.Context) (result []entity.User, err error) {

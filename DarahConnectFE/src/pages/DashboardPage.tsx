@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   HeartIcon, 
   CalendarIcon, 
@@ -24,27 +24,50 @@ import {
   UserPlusIcon,
   Heart,
   User,
-  Phone
-} from 'lucide-react';
-import { useApi } from '../hooks/useApi';
-import { FadeIn, StaggerContainer, StaggerItem, CountUp, Floating, HoverScale } from '../components/ui/AnimatedComponents';
-import { MorphingShape, GradientBackground } from '../components/ui/AdvancedAnimations';
-import { HeartBeatLoader, DotsLoader } from '../components/ui/LoadingComponents';
-import { AchievementBadge, CertificateCard } from '../components/ui/CertificateComponents';
-import { QuickScheduleWidget, DonationScheduleCalendar } from '../components/ui/ScheduleComponents';
-import { BloodRequestList, BloodRequestStats } from '../components/ui/BloodRequestComponents';
+  Phone,
+} from "lucide-react";
+import { useApi } from "../hooks/useApi";
+import {
+  FadeIn,
+  StaggerContainer,
+  StaggerItem,
+  CountUp,
+  Floating,
+  HoverScale,
+} from "../components/ui/AnimatedComponents";
+import {
+  MorphingShape,
+  GradientBackground,
+} from "../components/ui/AdvancedAnimations";
+import {
+  HeartBeatLoader,
+  DotsLoader,
+} from "../components/ui/LoadingComponents";
+import {
+  AchievementBadge,
+  CertificateCard,
+} from "../components/ui/CertificateComponents";
+import {
+  QuickScheduleWidget,
+  DonationScheduleCalendar,
+} from "../components/ui/ScheduleComponents";
+import {
+  BloodRequestList,
+  BloodRequestStats,
+} from "../components/ui/BloodRequestComponents";
 import { 
   MonthlyDonationChart, 
   BloodTypeChart, 
   WeeklyGoalsChart, 
   DonationTrendChart,
-  HospitalPartnershipChart 
-} from '../components/ui/ChartComponents';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import WalletConnectBanner from '../components/WalletConnectBanner';
-import { campaigns, donationRequests } from '../data/dummy';
-import { BloodCampaign, DonationRequest } from '../types';
+  HospitalPartnershipChart,
+} from "../components/ui/ChartComponents";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
+import WalletConnectBanner from "../components/WalletConnectBanner";
+import { campaigns, donationRequests } from "../data/dummy";
+import { BloodCampaign, DonationRequest } from "../types";
+import { debugConsole } from "../config/api";
 
 interface BloodRequestsResponse {
   meta: {
@@ -58,6 +81,12 @@ interface BloodRequestsResponse {
     total_items: number;
     total_pages: number;
   };
+}
+
+interface DashboardResponse {
+  last_donation: string;
+  total_donor: number;
+  total_sertifikat: number;
 }
 
 interface BloodRequest {
@@ -107,57 +136,69 @@ const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   
   // All hooks must be called at the top level
-  const [userName] = useState(localStorage.getItem('userName') || 'Donor');
+  const [userName] = useState(localStorage.getItem("userName") || "Donor");
   const [userDonations, setUserDonations] = useState<DonationRequest[]>([]);
   const [activeCampaigns, setActiveCampaigns] = useState<BloodCampaign[]>([]);
-  const [selectedTimeframe, setSelectedTimeframe] = useState<'week' | 'month' | 'year'>('month');
+  const [selectedTimeframe, setSelectedTimeframe] = useState<
+    "week" | "month" | "year"
+  >("month");
   const [isPageLoaded, setIsPageLoaded] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'schedule' | 'certificate' | 'requests' | 'achievements' | 'analytics'>('overview');
+  const [activeTab, setActiveTab] = useState<
+    | "overview"
+    | "schedule"
+    | "certificate"
+    | "requests"
+    | "achievements"
+    | "analytics"
+  >("overview");
+  const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(
+    null
+  );
   
   const [notifications, setNotifications] = useState([
     {
       id: 1,
-      type: 'urgent',
-      title: 'Campaign Mendesak!',
-      message: 'RS Hasan Sadikin membutuhkan donor O+ untuk operasi darurat',
-      time: '5 menit yang lalu',
-      unread: true
+      type: "urgent",
+      title: "Campaign Mendesak!",
+      message: "RS Hasan Sadikin membutuhkan donor O+ untuk operasi darurat",
+      time: "5 menit yang lalu",
+      unread: true,
     },
     {
       id: 2,
-      type: 'achievement',
-      title: 'Pencapaian Baru!',
-      message: 'Anda telah mencapai 10 kali donasi darah',
-      time: '2 jam yang lalu',
-      unread: true
+      type: "achievement",
+      title: "Pencapaian Baru!",
+      message: "Anda telah mencapai 10 kali donasi darah",
+      time: "2 jam yang lalu",
+      unread: true,
     },
     {
       id: 3,
-      type: 'reminder',
-      title: 'Pengingat Donasi',
-      message: 'Sudah waktunya untuk donasi rutin Anda',
-      time: '1 hari yang lalu',
-      unread: false
-    }
+      type: "reminder",
+      title: "Pengingat Donasi",
+      message: "Sudah waktunya untuk donasi rutin Anda",
+      time: "1 hari yang lalu",
+      unread: false,
+    },
   ]);
 
   const [monthlyGoal, setMonthlyGoal] = useState({
     target: 2,
     current: 1,
-    percentage: 50
+    percentage: 50,
   });
 
   // Check if user is logged in
-  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!isLoggedIn) {
-      navigate('/login', { 
+      navigate("/login", {
         state: { 
-          from: '/dashboard',
-          message: 'Silakan login terlebih dahulu untuk mengakses dashboard.' 
-        } 
+          from: "/dashboard",
+          message: "Silakan login terlebih dahulu untuk mengakses dashboard.",
+        },
       });
     }
   }, [isLoggedIn, navigate]);
@@ -177,18 +218,122 @@ const DashboardPage: React.FC = () => {
     setActiveCampaigns(campaigns.slice(0, 3)); // Show first 3 campaigns
   }, []);
 
-  // Add API hook for blood requests
-  const { data: bloodRequestsData, loading: bloodRequestsLoading, error: bloodRequestsError, get: getBloodRequests } = useApi<BloodRequestsResponse>();
+  // Add API hooks
+  const {
+    data: bloodRequestsData,
+    loading: bloodRequestsLoading,
+    error: bloodRequestsError,
+    get: getBloodRequests,
+  } = useApi<BloodRequestsResponse>();
+  const {
+    data: dashboardApiData,
+    loading: dashboardLoading,
+    error: dashboardError,
+    get: getDashboard,
+  } = useApi<DashboardResponse>();
+
+  // Fetch dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const response = await getDashboard("/user/dashboard");
+        if (response.data) {
+          debugConsole.log("Dashboard Data:", response.data);
+          setDashboardData(response.data);
+        }
+        getBloodRequests("/blood-request");
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      }
+    };
+
+    if (isLoggedIn) {
+      fetchDashboardData();
+    }
+  }, [isLoggedIn, getDashboard]);
 
   // Fetch blood requests for dashboard
   useEffect(() => {
-    if (activeTab === 'requests') {
-      getBloodRequests('/blood-request');
+    if (activeTab === "requests") {
+      getBloodRequests("/blood-request");
     }
   }, [activeTab, getBloodRequests]);
 
   // Extract blood requests data
-  const bloodRequests = Array.isArray(bloodRequestsData) ? bloodRequestsData : (bloodRequestsData?.data || []);
+  const bloodRequests = Array.isArray(bloodRequestsData)
+    ? bloodRequestsData
+    : bloodRequestsData?.data || [];
+
+  // Schedules API integration
+  const {
+    data: schedulesApiData,
+    loading: schedulesLoading,
+    error: schedulesError,
+    get: getSchedules,
+  } = useApi<any[]>();
+  const [schedules, setSchedules] = useState<any[]>([]);
+
+  useEffect(() => {
+    getSchedules("/user/schedules").then((res) => {
+      if (res.success && Array.isArray(res.data)) {
+        setSchedules(res.data);
+      }
+    });
+  }, [getSchedules]);
+
+  // Map API response to DonationScheduleCalendar's expected format
+  const mappedSchedules = schedules.map((item) => {
+    // Defensive: fallback to BloodRequest if available
+    const bloodRequest = item.BloodRequest || {};
+    const hospital = item.Hospital || bloodRequest.hospital || {};
+    // Parse date and time
+    let date = bloodRequest.event_date || item.created_at;
+    let time = "";
+    if (bloodRequest.start_time && bloodRequest.end_time) {
+      // Format: "08:00 - 12:00"
+      const start = new Date(bloodRequest.start_time).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+      const end = new Date(bloodRequest.end_time).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+      time = `${start} - ${end}`;
+    } else if (bloodRequest.event_date) {
+      // Fallback: show only event time if available
+      const event = new Date(bloodRequest.event_date);
+      time = event.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+    }
+    return {
+      id: String(item.id),
+      date: date ? new Date(date).toISOString().split("T")[0] : "",
+      time,
+      location: hospital.address || "-",
+      hospital: hospital.name || "-",
+      capacity: bloodRequest.slots_available || 0,
+      registered: bloodRequest.slots_booked || 0,
+      bloodTypesNeeded: bloodRequest.blood_type ? [bloodRequest.blood_type] : [],
+      status: item.status || "upcoming",
+      requirements: [bloodRequest.diagnosis || ""],
+    };
+  });
+
+  // Mapping for BloodRequestStats (BloodRequestComponents)
+  const mappedBloodRequests = bloodRequests.map((req: any) => ({
+    id: String(req.id),
+    patientName: req.patient_name || (req.user && req.user.name) || "-",
+    bloodType: req.blood_type || "-",
+    unitsNeeded: req.quantity || 0,
+    urgency: req.urgency_level === "critical"
+      ? "critical"
+      : req.urgency_level === "high"
+      ? "high"
+      : "normal" as "critical" | "high" | "normal",
+    hospital: (req.hospital && req.hospital.name) || "-",
+    location: (req.hospital && req.hospital.address) || "-",
+    contactPerson: (req.user && req.user.name) || "-",
+    contactPhone: (req.user && req.user.phone) || "-",
+    neededBy: req.event_date || req.created_at,
+    description: req.diagnosis || "",
+    status: req.status || "verified",
+    createdAt: req.created_at,
+    donors: req.donors || [],
+  }));
 
   // Don't render dashboard if not logged in
   if (!isLoggedIn) {
@@ -199,7 +344,9 @@ const DashboardPage: React.FC = () => {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
             <HeartBeatLoader size={60} />
-            <p className="mt-4 text-gray-600 text-lg">Mengalihkan ke halaman login...</p>
+            <p className="mt-4 text-gray-600 text-lg">
+              Mengalihkan ke halaman login...
+            </p>
           </div>
         </div>
         <Footer />
@@ -208,414 +355,122 @@ const DashboardPage: React.FC = () => {
   }
 
   const quickStats = {
-    totalDonations: 12,
-    livesSaved: 36,
-    level: 5,
-    badges: 8,
-    points: 2450
-  };
-
-  // Generate realistic schedule dates for current and next month
-  const getRealisticSchedules = () => {
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-    
-    return [
-      {
-        id: 'SCH-001',
-        date: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-05`,
-        time: '08:00 - 12:00',
-        location: 'Jl. Sudirman No. 123',
-        hospital: 'RS Hasan Sadikin',
-        capacity: 50,
-        registered: 35,
-        bloodTypesNeeded: ['O+', 'A+', 'B+'],
-        status: 'upcoming' as const,
-        requirements: ['Usia 17-65 tahun', 'Berat minimal 45kg']
-      },
-      {
-        id: 'SCH-002',
-        date: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-08`,
-        time: '09:00 - 15:00',
-        location: 'Jl. Asia Afrika No. 456',
-        hospital: 'RS Santo Borromeus',
-        capacity: 30,
-        registered: 28,
-        bloodTypesNeeded: ['AB+', 'O-'],
-        status: 'upcoming' as const,
-        requirements: ['Usia 17-65 tahun', 'Tidak sedang sakit']
-      },
-      {
-        id: 'SCH-003',
-        date: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-12`,
-        time: '07:30 - 14:00',
-        location: 'Jl. Dago No. 789',
-        hospital: 'RS Al Islam',
-        capacity: 40,
-        registered: 25,
-        bloodTypesNeeded: ['A-', 'B-', 'O+'],
-        status: 'upcoming' as const,
-        requirements: ['Usia 17-65 tahun', 'Puasa minimal 4 jam']
-      },
-      {
-        id: 'SCH-004',
-        date: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-15`,
-        time: '08:30 - 13:00',
-        location: 'Jl. Pasteur No. 38',
-        hospital: 'RS Advent Bandung',
-        capacity: 35,
-        registered: 20,
-        bloodTypesNeeded: ['O+', 'A-', 'B+'],
-        status: 'upcoming' as const,
-        requirements: ['Usia 17-65 tahun', 'Tidak sedang hamil']
-      },
-      {
-        id: 'SCH-005',
-        date: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-18`,
-        time: '09:00 - 14:30',
-        location: 'Jl. Cihampelas No. 161',
-        hospital: 'RS Hermina Arcamanik',
-        capacity: 45,
-        registered: 32,
-        bloodTypesNeeded: ['AB-', 'O-', 'A+'],
-        status: 'upcoming' as const,
-        requirements: ['Usia 17-65 tahun', 'Berat minimal 45kg']
-      },
-      {
-        id: 'SCH-006',
-        date: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-22`,
-        time: '08:00 - 13:30',
-        location: 'Jl. Soekarno Hatta No. 644',
-        hospital: 'RS Immanuel',
-        capacity: 25,
-        registered: 18,
-        bloodTypesNeeded: ['B-', 'AB+', 'O+'],
-        status: 'upcoming' as const,
-        requirements: ['Usia 17-65 tahun', 'Tidak minum alkohol 24 jam sebelumnya']
-      },
-      {
-        id: 'SCH-007',
-        date: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-25`,
-        time: '07:00 - 12:00',
-        location: 'Jl. Djuanda No. 95',
-        hospital: 'RS Rajawali',
-        capacity: 60,
-        registered: 45,
-        bloodTypesNeeded: ['O+', 'A+', 'B+', 'AB+'],
-        status: 'upcoming' as const,
-        requirements: ['Usia 17-65 tahun', 'Istirahat cukup']
-      },
-      {
-        id: 'SCH-008',
-        date: `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-28`,
-        time: '09:30 - 15:00',
-        location: 'Jl. Buah Batu No. 212',
-        hospital: 'RS Santosa',
-        capacity: 38,
-        registered: 30,
-        bloodTypesNeeded: ['A-', 'B-', 'O-'],
-        status: 'upcoming' as const,
-        requirements: ['Usia 17-65 tahun', 'Sarapan ringan sebelum donor']
-      },
-      // Next month schedules
-      {
-        id: 'SCH-009',
-        date: `${currentYear}-${String(currentMonth + 2).padStart(2, '0')}-03`,
-        time: '08:00 - 13:00',
-        location: 'Jl. Riau No. 88',
-        hospital: 'RS Advent Bandung',
-        capacity: 42,
-        registered: 15,
-        bloodTypesNeeded: ['O+', 'A+'],
-        status: 'upcoming' as const,
-        requirements: ['Usia 17-65 tahun', 'Berat minimal 45kg']
-      },
-      {
-        id: 'SCH-010',
-        date: `${currentYear}-${String(currentMonth + 2).padStart(2, '0')}-07`,
-        time: '09:00 - 14:00',
-        location: 'Jl. Dipatiukur No. 35',
-        hospital: 'RS Al Islam',
-        capacity: 55,
-        registered: 20,
-        bloodTypesNeeded: ['AB+', 'AB-', 'O-'],
-        status: 'upcoming' as const,
-        requirements: ['Usia 17-65 tahun', 'Tidak sedang menstruasi']
-      }
-    ];
-  };
-
-  const sampleSchedules = getRealisticSchedules();
-
-  const sampleBloodRequests = [
-    {
-      id: 'REQ-001',
-      patientName: 'Siti Nurhaliza',
-      bloodType: 'A+',
-      unitsNeeded: 3,
-      urgency: 'critical' as const,
-      hospital: 'RS Advent Bandung',
-      location: 'Jl. Cihampelas No. 161',
-      contactPerson: 'Dr. Budi Santoso',
-      contactPhone: '08123456789',
-      neededBy: '2024-02-10T18:00',
-      description: 'Pasien mengalami kecelakaan lalu lintas dan membutuhkan transfusi darah segera untuk operasi darurat.',
-      status: 'active' as const,
-      createdAt: '2024-02-08T10:30:00Z',
-      donors: ['donor1', 'donor2']
-    },
-    {
-      id: 'REQ-002',
-      patientName: 'Muhammad Fadli',
-      bloodType: 'O-',
-      unitsNeeded: 2,
-      urgency: 'urgent' as const,
-      hospital: 'RS Al Islam',
-      location: 'Jl. Soekarno Hatta No. 644',
-      contactPerson: 'Nurse Ani',
-      contactPhone: '08198765432',
-      neededBy: '2024-02-12T12:00',
-      description: 'Pasien thalasemia membutuhkan transfusi rutin untuk menjaga kondisi kesehatannya.',
-      status: 'active' as const,
-      createdAt: '2024-02-07T15:45:00Z',
-      donors: ['donor3']
-    },
-    {
-      id: 'REQ-003',
-      patientName: 'Dewi Sartika',
-      bloodType: 'B+',
-      unitsNeeded: 1,
-      urgency: 'normal' as const,
-      hospital: 'RS Hasan Sadikin',
-      location: 'Jl. Pasteur No. 38',
-      contactPerson: 'Dr. Indira',
-      contactPhone: '08187654321',
-      neededBy: '2024-02-14T10:00',
-      description: 'Persiapan operasi jantung yang dijadwalkan minggu depan.',
-      status: 'active' as const,
-      createdAt: '2024-02-06T14:20:00Z',
-      donors: []
-    }
-  ];
-
-  const blockchainCertificate = {
-    id: 'CERT-2024-001',
-    blockchainId: 'BC-CERT-0x9F8E7D6C5B4A',
-    transactionHash: '0x7f8e9d0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e',
-    timestamp: '20 Desember 2023, 09:15 WIB',
-    verified: true
-  };
-
-  const achievements = [
-    {
-      title: 'Hero Sejati',
-      description: 'Donasi 10 kali',
-      icon: <StarIcon className="w-6 h-6" />,
-      earned: true
-    },
-    {
-      title: 'Konsisten',
-      description: 'Donasi rutin 6 bulan',
-      icon: <CalendarIcon className="w-6 h-6" />,
-      earned: true
-    },
-    {
-      title: 'Life Saver',
-      description: 'Selamatkan 50 nyawa',
-      icon: <HeartIcon className="w-6 h-6" />,
-      earned: false,
-      progress: 72
-    },
-    {
-      title: 'Donor Pertama',
-      description: 'Menyelesaikan donasi darah pertama',
-      icon: <GiftIcon className="w-6 h-6" />,
-      earned: true
-    },
-    {
-      title: 'Super Hero',
-      description: 'Melakukan 20 kali donasi darah',
-      icon: <TrophyIcon className="w-6 h-6" />,
-      earned: false,
-      progress: 60
-    },
-    {
-      title: 'Hadiah Spesial',
-      description: 'Mencapai 25 kali donasi darah',
-      icon: <AwardIcon className="w-6 h-6" />,
-      earned: false,
-      progress: 48
-    }
-  ];
-
-  // Chart Data
-  const monthlyDonationData = [
-    { month: 'Jan', donations: 45, volunteers: 12, bloodUnits: 180 },
-    { month: 'Feb', donations: 52, volunteers: 15, bloodUnits: 208 },
-    { month: 'Mar', donations: 38, volunteers: 10, bloodUnits: 152 },
-    { month: 'Apr', donations: 67, volunteers: 18, bloodUnits: 268 },
-    { month: 'May', donations: 71, volunteers: 20, bloodUnits: 284 },
-    { month: 'Jun', donations: 58, volunteers: 16, bloodUnits: 232 },
-  ];
-
-  const bloodTypeData = [
-    { bloodType: 'O+', count: 156, percentage: 35 },
-    { bloodType: 'A+', count: 134, percentage: 30 },
-    { bloodType: 'B+', count: 89, percentage: 20 },
-    { bloodType: 'AB+', count: 45, percentage: 10 },
-    { bloodType: 'O-', count: 12, percentage: 3 },
-    { bloodType: 'A-', count: 6, percentage: 1.5 },
-    { bloodType: 'B-', count: 2, percentage: 0.5 },
-  ];
-
-  const weeklyGoalsData = [
-    { week: 'Week 1', target: 20, achieved: 18 },
-    { week: 'Week 2', target: 25, achieved: 27 },
-    { week: 'Week 3', target: 22, achieved: 19 },
-    { week: 'Week 4', target: 30, achieved: 32 },
-  ];
-
-  const donationTrendData = [
-    { date: '1 Jan', donations: 12, emergencyRequests: 3 },
-    { date: '8 Jan', donations: 15, emergencyRequests: 5 },
-    { date: '15 Jan', donations: 18, emergencyRequests: 2 },
-    { date: '22 Jan', donations: 22, emergencyRequests: 4 },
-    { date: '29 Jan', donations: 25, emergencyRequests: 6 },
-    { date: '5 Feb', donations: 20, emergencyRequests: 3 },
-  ];
-
-  const hospitalData = [
-    { hospital: 'RS Hasan Sadikin', donations: 145, rating: 4.8 },
-    { hospital: 'RS Advent', donations: 132, rating: 4.7 },
-    { hospital: 'RS Al Islam', donations: 98, rating: 4.6 },
-    { hospital: 'RS Santo Borromeus', donations: 87, rating: 4.5 },
-    { hospital: 'RS Hermina', donations: 76, rating: 4.4 },
-  ];
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'approved': return 'bg-blue-100 text-blue-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'completed': return 'Selesai';
-      case 'approved': return 'Disetujui';
-      case 'pending': return 'Menunggu';
-      case 'rejected': return 'Ditolak';
-      default: return 'Unknown';
-    }
-  };
-
-  const getNotificationColor = (type: string) => {
-    switch (type) {
-      case 'urgent': return 'border-red-500 bg-red-50';
-      case 'achievement': return 'border-yellow-500 bg-yellow-50';
-      case 'reminder': return 'border-blue-500 bg-blue-50';
-      default: return 'border-gray-300 bg-gray-50';
-    }
+    totalDonor: dashboardData?.total_donor || 0,
+    lastDonation: dashboardData?.last_donation || null,
+    totalSertifikat: dashboardData?.total_sertifikat || 0,
   };
 
   const handleBloodRequestRespond = (requestId: string) => {
-    alert(`Terima kasih! Anda akan dihubungi untuk koordinasi donor darah (Request ID: ${requestId})`);
+    alert(
+      `Terima kasih! Anda akan dihubungi untuk koordinasi donor darah (Request ID: ${requestId})`
+    );
   };
 
   const handleDonateNow = () => {
-    navigate('/donor-register');
+    navigate("/donor-register");
   };
 
   const handleJoinNow = () => {
-    navigate('/register');
+    navigate("/register");
   };
 
   const handleScheduleDonation = () => {
-    setActiveTab('schedule');
+    setActiveTab("schedule");
   };
 
   const handleViewCertificate = () => {
-    setActiveTab('certificate');
+    setActiveTab("certificate");
   };
 
   const handleViewAchievements = () => {
-    setActiveTab('achievements');
+    setActiveTab("achievements");
   };
 
   const handleCreateBloodRequest = () => {
-    navigate('/create-blood-request');
+    navigate("/create-blood-request");
   };
 
   const handleHealthPassport = () => {
-    navigate('/health-passport');
+    navigate("/health-passport");
   };
 
   const handleScheduleSelect = (schedule: any) => {
-    alert(`Anda akan diarahkan ke form pendaftaran untuk jadwal donor di ${schedule.hospital} pada ${schedule.date}`);
-    navigate('/donor-register');
+    alert(
+      `Anda akan diarahkan ke form pendaftaran untuk jadwal donor di ${schedule.hospital} pada ${schedule.date}`
+    );
+    navigate("/donor-register");
   };
 
   const getBloodTypeColor = (bloodType: string) => {
     const colors = {
-      'A+': 'bg-red-500',
-      'A-': 'bg-red-400',
-      'B+': 'bg-blue-500',
-      'B-': 'bg-blue-400',
-      'AB+': 'bg-purple-500',
-      'AB-': 'bg-purple-400',
-      'O+': 'bg-green-500',
-      'O-': 'bg-green-400',
+      "A+": "bg-red-500",
+      "A-": "bg-red-400",
+      "B+": "bg-blue-500",
+      "B-": "bg-blue-400",
+      "AB+": "bg-purple-500",
+      "AB-": "bg-purple-400",
+      "O+": "bg-green-500",
+      "O-": "bg-green-400",
     };
-    return colors[bloodType as keyof typeof colors] || 'bg-gray-500';
+    return colors[bloodType as keyof typeof colors] || "bg-gray-500";
   };
 
   const getUrgencyColor = (urgency: string) => {
     switch (urgency.toLowerCase()) {
-      case 'critical':
-        return 'bg-red-600 text-white';
-      case 'high':
-        return 'bg-orange-500 text-white';
-      case 'medium':
-        return 'bg-yellow-500 text-white';
-      case 'low':
-        return 'bg-green-500 text-white';
+      case "critical":
+        return "bg-red-600 text-white";
+      case "high":
+        return "bg-orange-500 text-white";
+      case "medium":
+        return "bg-yellow-500 text-white";
+      case "low":
+        return "bg-green-500 text-white";
       default:
-        return 'bg-gray-500 text-white';
+        return "bg-gray-500 text-white";
     }
   };
 
-
+  const getUrgencyText = (urgency: string) => {
+    switch (urgency.toLowerCase()) {
+      case "critical":
+        return "Sangat Mendesak";
+      case "high":
+        return "Mendesak";
+      case "medium":
+        return "Sedang";
+      case "low":
+        return "Normal";
+      default:
+        return urgency;
+    }
+  };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("id-ID", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const handleDonateToRequest = (request: BloodRequest) => {
     // Navigate to donor registration with pre-filled data
-    navigate('/donor-register', { 
-      state: { 
+    navigate("/donor-register", {
+      state: {
         bloodRequest: request,
         prefilledData: {
           blood_type: request.blood_type,
           hospital_id: request.hospital_id,
-          event_name: request.event_name
-        }
-      }
+          event_name: request.event_name,
+        },
+      },
     });
   };
 
   const handleViewAllRequests = () => {
-    navigate('/blood-requests');
+    navigate("/blood-requests");
   };
 
   if (!isPageLoaded) {
@@ -650,18 +505,18 @@ const DashboardPage: React.FC = () => {
                       Dashboard Donor
                     </h1>
                     <p className="text-gray-600">
-                      Selamat datang kembali, {userName}! Mari lanjutkan perjalanan mulia Anda.
+                      Selamat datang kembali, {userName}! Mari lanjutkan
+                      perjalanan mulia Anda.
                     </p>
                   </div>
                   
-                  <div className="flex items-center space-x-4">
+                  {/* <div className="flex items-center space-x-4">
                     <Floating intensity={5} duration={3}>
                       <div className="relative">
-                        <BellIcon className="w-6 h-6 text-gray-600" />
-                        {notifications.filter(n => n.unread).length > 0 && (
+                        {notifications.filter((n) => n.unread).length > 0 && (
                           <div className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
                             <span className="text-xs text-white font-bold">
-                              {notifications.filter(n => n.unread).length}
+                              {notifications.filter((n) => n.unread).length}
                             </span>
                           </div>
                         )}
@@ -669,21 +524,28 @@ const DashboardPage: React.FC = () => {
                     </Floating>
                     
                     <HeartBeatLoader size={30} />
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </FadeIn>
 
             {/* Quick Stats */}
-            <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8" staggerDelay={0.1}>
+            <StaggerContainer
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8"
+              staggerDelay={0.1}
+            >
               <StaggerItem>
                 <HoverScale scale={1.05}>
                   <div className="bg-gradient-to-r from-red-500 to-red-600 text-white p-6 rounded-xl shadow-lg">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-red-100 text-sm">Total Donasi</p>
+                        <p className="text-red-100 text-sm">Total Donor</p>
                         <p className="text-3xl font-bold">
-                          <CountUp end={quickStats.totalDonations} duration={2} delay={0.2} />
+                          <CountUp
+                            end={quickStats.totalDonor}
+                            duration={0}
+                            delay={0.2}
+                          />
                         </p>
                       </div>
                       <HeartIcon className="w-10 h-10 text-red-200" />
@@ -697,12 +559,14 @@ const DashboardPage: React.FC = () => {
                   <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-green-100 text-sm">Nyawa Diselamatkan</p>
-                        <p className="text-3xl font-bold">
-                          <CountUp end={quickStats.livesSaved} duration={2} delay={0.4} />
+                        <p className="text-green-100 text-sm">Last Donation</p>
+                        <p className="text-lg font-bold">
+                          {quickStats.lastDonation
+                            ? formatDate(quickStats.lastDonation)
+                            : "Belum ada"}
                         </p>
                       </div>
-                      <UserCheckIcon className="w-10 h-10 text-green-200" />
+                      <CalendarIcon className="w-10 h-10 text-green-200" />
                     </div>
                   </div>
                 </HoverScale>
@@ -713,44 +577,18 @@ const DashboardPage: React.FC = () => {
                   <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-blue-100 text-sm">Level Donor</p>
+                        <p className="text-blue-100 text-sm">
+                          Total Sertifikat
+                        </p>
                         <p className="text-3xl font-bold">
-                          <CountUp end={quickStats.level} duration={2} delay={0.6} />
+                          <CountUp
+                            end={quickStats.totalSertifikat}
+                            duration={2}
+                            delay={0.6}
+                          />
                         </p>
                       </div>
-                      <TrophyIcon className="w-10 h-10 text-blue-200" />
-                    </div>
-                  </div>
-                </HoverScale>
-              </StaggerItem>
-
-              <StaggerItem>
-                <HoverScale scale={1.05}>
-                  <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6 rounded-xl shadow-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-purple-100 text-sm">Badge Diraih</p>
-                        <p className="text-3xl font-bold">
-                          <CountUp end={quickStats.badges} duration={2} delay={0.8} />
-                        </p>
-                      </div>
-                      <BadgeIcon className="w-10 h-10 text-purple-200" />
-                    </div>
-                  </div>
-                </HoverScale>
-              </StaggerItem>
-
-              <StaggerItem>
-                <HoverScale scale={1.05}>
-                  <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white p-6 rounded-xl shadow-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-yellow-100 text-sm">Poin Reward</p>
-                        <p className="text-3xl font-bold">
-                          <CountUp end={quickStats.points} duration={2} delay={0.8} />
-                        </p>
-                      </div>
-                      <GiftIcon className="w-10 h-10 text-yellow-200" />
+                      <Database className="w-10 h-10 text-blue-200" />
                     </div>
                   </div>
                 </HoverScale>
@@ -762,20 +600,44 @@ const DashboardPage: React.FC = () => {
               <div className="bg-white rounded-lg shadow-sm p-1 mb-8">
                 <div className="flex flex-wrap gap-1">
                   {[
-                    { key: 'overview', label: 'Overview', icon: <TargetIcon className="w-5 h-5" /> },
-                    { key: 'schedule', label: 'Jadwal Donor', icon: <CalendarIcon className="w-5 h-5" /> },
-                    { key: 'certificate', label: 'Sertifikat', icon: <Database className="w-5 h-5" /> },
-                    { key: 'requests', label: 'Request Darah', icon: <AlertTriangle className="w-5 h-5" /> },
-                    { key: 'achievements', label: 'Pencapaian', icon: <AwardIcon className="w-5 h-5" /> },
-                    { key: 'analytics', label: 'Analytics', icon: <TrendingUpIcon className="w-5 h-5" /> }
+                    {
+                      key: "overview",
+                      label: "Overview",
+                      icon: <TargetIcon className="w-5 h-5" />,
+                    },
+                    {
+                      key: "schedule",
+                      label: "Jadwal Donor",
+                      icon: <CalendarIcon className="w-5 h-5" />,
+                    },
+                    {
+                      key: "certificate",
+                      label: "Sertifikat",
+                      icon: <Database className="w-5 h-5" />,
+                    },
+                    {
+                      key: "requests",
+                      label: "Request Darah",
+                      icon: <AlertTriangle className="w-5 h-5" />,
+                    },
+                    {
+                      key: "achievements",
+                      label: "Pencapaian",
+                      icon: <AwardIcon className="w-5 h-5" />,
+                    },
+                    {
+                      key: "analytics",
+                      label: "Analytics",
+                      icon: <TrendingUpIcon className="w-5 h-5" />,
+                    },
                   ].map((tab) => (
                     <button
                       key={tab.key}
                       onClick={() => setActiveTab(tab.key as any)}
                       className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-medium transition-all duration-200 hover:scale-105 ${
                         activeTab === tab.key
-                          ? 'bg-primary-600 text-white shadow-md'
-                          : 'text-gray-600 hover:bg-gray-50'
+                          ? "bg-primary-600 text-white shadow-md"
+                          : "text-gray-600 hover:bg-gray-50"
                       }`}
                     >
                       {tab.icon}
@@ -788,24 +650,119 @@ const DashboardPage: React.FC = () => {
 
             {/* Tab Content */}
             <div className="space-y-8">
-              {activeTab === 'overview' && (
+              {activeTab === "overview" && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   {/* Left Column */}
                   <div className="lg:col-span-2 space-y-8">
+                    {/* Last Donation Info */}
+                    {quickStats.lastDonation && (
+                      <FadeIn direction="up" delay={0.1}>
+                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl shadow-lg p-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xl font-bold text-gray-900">
+                              Donasi Terakhir
+                            </h3>
+                            <ClockIcon className="w-6 h-6 text-blue-600" />
+                          </div>
+
+                          <div className="flex items-center space-x-4">
+                            <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
+                              <HeartIcon className="w-6 h-6 text-white" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-lg font-semibold text-gray-900">
+                                {new Date(
+                                  quickStats.lastDonation
+                                ).toLocaleDateString("id-ID", {
+                                  weekday: "long",
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                })}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {new Date(
+                                  quickStats.lastDonation
+                                ).toLocaleTimeString("id-ID", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}{" "}
+                                WIB
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm text-blue-600 font-medium">
+                                {Math.floor(
+                                  (new Date().getTime() -
+                                    new Date(
+                                      quickStats.lastDonation
+                                    ).getTime()) /
+                                    (1000 * 60 * 60 * 24)
+                                )}{" "}
+                                hari yang lalu
+                              </p>
+                            </div>
+                          </div>
+
+                          {dashboardLoading && (
+                            <div className="mt-4 flex items-center justify-center">
+                              <DotsLoader className="scale-75" />
+                              <span className="ml-2 text-sm text-gray-600">
+                                Memuat data...
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </FadeIn>
+                    )}
+
+                    {/* Loading state for dashboard data */}
+                    {dashboardLoading && !quickStats.lastDonation && (
+                      <FadeIn direction="up" delay={0.1}>
+                        <div className="bg-white rounded-xl shadow-lg p-6">
+                          <div className="flex items-center justify-center space-x-2">
+                            <HeartBeatLoader size={30} />
+                            <span className="text-gray-600">
+                              Memuat data dashboard...
+                            </span>
+                          </div>
+                        </div>
+                      </FadeIn>
+                    )}
+
+                    {/* Error state for dashboard data */}
+                    {dashboardError && (
+                      <FadeIn direction="up" delay={0.1}>
+                        <div className="bg-red-50 border border-red-200 rounded-xl shadow-lg p-6">
+                          <div className="flex items-center space-x-2">
+                            <AlertTriangle className="w-6 h-6 text-red-600" />
+                            <span className="text-red-700">
+                              Gagal memuat data dashboard: {dashboardError}
+                            </span>
+                          </div>
+                        </div>
+                      </FadeIn>
+                    )}
+
                     {/* Monthly Goal */}
-                    <FadeIn direction="up" delay={0.2}>
+                    {/* <FadeIn direction="up" delay={0.2}>
                       <div className="bg-white rounded-xl shadow-lg p-6">
                         <div className="flex items-center justify-between mb-6">
-                          <h3 className="text-xl font-bold text-gray-900">Target Bulanan</h3>
+                          <h3 className="text-xl font-bold text-gray-900">
+                            Target Bulanan
+                          </h3>
                           <TargetIcon className="w-6 h-6 text-gray-600" />
                         </div>
                         
                         <div className="flex items-center space-x-6">
                           <div className="flex-1">
                             <div className="flex justify-between mb-2">
-                              <span className="text-sm text-gray-600">Progress</span>
+                              <span className="text-sm text-gray-600">
+                                Progress
+                              </span>
                               <span className="text-sm font-medium text-gray-900">
-                                {monthlyGoal.current}/{monthlyGoal.target} donasi
+                                {monthlyGoal.current}/{monthlyGoal.target}{" "}
+                                donasi
                               </span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
@@ -821,28 +778,34 @@ const DashboardPage: React.FC = () => {
                           
                           <div className="text-center">
                             <div className="text-3xl font-bold text-primary-600 mb-1">
-                              <CountUp end={monthlyGoal.percentage} suffix="%" duration={2} />
+                              <CountUp
+                                end={monthlyGoal.percentage}
+                                suffix="%"
+                                duration={2}
+                              />
                             </div>
                             <p className="text-sm text-gray-600">Tercapai</p>
                           </div>
                         </div>
                       </div>
-                    </FadeIn>
+                    </FadeIn> */}
 
                     {/* Quick Emergency Preview */}
                     <FadeIn direction="up" delay={0.4}>
                       <div className="bg-white rounded-xl shadow-lg p-6">
                         <div className="flex items-center justify-between mb-6">
-                          <h3 className="text-xl font-bold text-gray-900">Request Darurat Terbaru</h3>
+                          <h3 className="text-xl font-bold text-gray-900">
+                            Request Darurat Terbaru
+                          </h3>
                           <button
-                            onClick={() => setActiveTab('requests')}
+                            onClick={() => setActiveTab("requests")}
                             className="text-red-600 hover:text-red-700 text-sm font-medium transition-colors hover:scale-105"
                           >
                             Lihat Semua →
                           </button>
                         </div>
                         
-                        <BloodRequestStats requests={sampleBloodRequests} />
+                        <BloodRequestStats requests={mappedBloodRequests} />
                       </div>
                     </FadeIn>
 
@@ -850,7 +813,9 @@ const DashboardPage: React.FC = () => {
                     <FadeIn direction="up" delay={0.6}>
                       <div className="bg-white rounded-xl shadow-lg p-6">
                         <div className="flex items-center justify-between mb-6">
-                          <h3 className="text-xl font-bold text-gray-900">Pencapaian</h3>
+                          <h3 className="text-xl font-bold text-gray-900">
+                            Pencapaian
+                          </h3>
                           <button
                             onClick={handleViewAchievements}
                             className="text-yellow-600 hover:text-yellow-700 text-sm font-medium transition-colors hover:scale-105"
@@ -867,8 +832,12 @@ const DashboardPage: React.FC = () => {
                                 <TrophyIcon className="w-5 h-5 text-white" />
                               </div>
                               <div className="ml-3">
-                                <p className="text-sm text-yellow-700">Badge Diraih</p>
-                                <p className="text-xl font-bold text-yellow-800">{achievements.filter(a => a.earned).length}</p>
+                                <p className="text-sm text-yellow-700">
+                                  Badge Diraih
+                                </p>
+                                <p className="text-xl font-bold text-yellow-800">
+                                  {0}
+                                </p>
                               </div>
                             </div>
                           </div>
@@ -879,8 +848,12 @@ const DashboardPage: React.FC = () => {
                                 <TargetIcon className="w-5 h-5 text-white" />
                               </div>
                               <div className="ml-3">
-                                <p className="text-sm text-green-700">Dalam Progress</p>
-                                <p className="text-xl font-bold text-green-800">{achievements.filter(a => !a.earned).length}</p>
+                                <p className="text-sm text-green-700">
+                                  Dalam Progress
+                                </p>
+                                <p className="text-xl font-bold text-green-800">
+                                  {0}
+                                </p>
                               </div>
                             </div>
                           </div>
@@ -888,19 +861,38 @@ const DashboardPage: React.FC = () => {
 
                         {/* Latest Achievement Preview */}
                         <div className="bg-gray-50 rounded-lg p-4">
-                          <h4 className="text-sm font-medium text-gray-700 mb-2">Pencapaian Terbaru</h4>
-                          {achievements.filter(a => a.earned).slice(-1).map((achievement, index) => (
-                            <div key={index} className="flex items-center space-x-3">
+                          <h4 className="text-sm font-medium text-gray-700 mb-2">
+                            Pencapaian Terbaru
+                          </h4>
+                          {[]
+                            .slice(-1)
+                            .map((achievement, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center space-x-3"
+                              >
                               <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-white">
-                                {achievement.icon}
+                                {/* Achievement icon placeholder */}
                               </div>
                               <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-900">{achievement.title}</p>
-                                <p className="text-xs text-gray-600">{achievement.description}</p>
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {/* Achievement title placeholder */}
+                                  </p>
+                                  <p className="text-xs text-gray-600">
+                                    {/* Achievement description placeholder */}
+                                  </p>
                               </div>
                               <div className="text-green-500">
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                      clipRule="evenodd"
+                                    />
                                 </svg>
                               </div>
                             </div>
@@ -916,10 +908,12 @@ const DashboardPage: React.FC = () => {
                     <FadeIn direction="right" delay={0.2}>
                       <div className="bg-white rounded-xl shadow-lg p-6">
                         <div className="flex items-center justify-between mb-6">
-                          <h3 className="text-xl font-bold text-gray-900">Notifikasi</h3>
+                          <h3 className="text-xl font-bold text-gray-900">
+                            Notifikasi
+                          </h3>
                           <div className="relative">
-                            <BellIcon className="w-6 h-6 text-gray-600" />
-                            {notifications.filter(n => n.unread).length > 0 && (
+                            {notifications.filter((n) => n.unread).length >
+                              0 && (
                               <div className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full" />
                             )}
                           </div>
@@ -929,9 +923,7 @@ const DashboardPage: React.FC = () => {
                           {notifications.map((notification, index) => (
                             <div 
                               key={notification.id}
-                              className={`border-l-4 rounded-lg p-3 ${getNotificationColor(notification.type)} ${
-                                notification.unread ? 'font-medium' : 'opacity-75'
-                              }`}
+                              className="border-l-4 rounded-lg p-3"
                             >
                               <h4 className="text-sm font-semibold text-gray-900 mb-1">
                                 {notification.title}
@@ -952,29 +944,35 @@ const DashboardPage: React.FC = () => {
                     <FadeIn direction="left" delay={0.4}>
                       <div className="bg-white rounded-xl shadow-lg p-6">
                         <div className="flex items-center justify-between mb-6">
-                          <h3 className="text-xl font-bold text-gray-900">Aksi Cepat</h3>
+                          <h3 className="text-xl font-bold text-gray-900">
+                            Aksi Cepat
+                          </h3>
                           <ZapIcon className="w-6 h-6 text-orange-500" />
                         </div>
                         
                         <div className="space-y-4">
-                          <div className="grid grid-cols-2 gap-4">
-                            <button
-                              onClick={handleScheduleDonation}
-                              className="bg-gradient-to-r from-primary-500 to-primary-600 text-white p-4 rounded-lg text-center hover:from-primary-600 hover:to-primary-700 transition-all duration-300 hover:scale-105"
-                            >
-                              <CalendarIcon className="w-6 h-6 mx-auto mb-2" />
-                              <span className="text-sm font-medium">Jadwalkan Donasi</span>
-                            </button>
-                            
-                            <button
-                              onClick={handleJoinNow}
-                              className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg text-center hover:from-blue-600 hover:to-blue-700 transition-all duration-300 hover:scale-105"
-                            >
-                              <UserPlusIcon className="w-6 h-6 mx-auto mb-2" />
-                              <span className="text-sm font-medium">Bergabung Sekarang</span>
-                            </button>
-                          </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <button
+                            onClick={handleScheduleDonation}
+                            className="bg-gradient-to-r from-primary-500 to-primary-600 text-white p-4 rounded-lg text-center hover:from-primary-600 hover:to-primary-700 transition-all duration-300 hover:scale-105"
+                          >
+                            <CalendarIcon className="w-6 h-6 mx-auto mb-2" />
+                              <span className="text-sm font-medium">
+                                Jadwalkan Donasi
+                              </span>
+                          </button>
                           
+                          <button
+                            onClick={handleJoinNow}
+                            className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg text-center hover:from-blue-600 hover:to-blue-700 transition-all duration-300 hover:scale-105"
+                          >
+                            <UserPlusIcon className="w-6 h-6 mx-auto mb-2" />
+                              <span className="text-sm font-medium">
+                                Bergabung Sekarang
+                              </span>
+                          </button>
+                          </div>
+
                           <div className="grid grid-cols-2 gap-4">
                             <button
                               onClick={handleCreateBloodRequest}
@@ -984,19 +982,33 @@ const DashboardPage: React.FC = () => {
                                 <HeartIcon className="w-5 h-5" />
                                 <PlusCircleIcon className="w-4 h-4" />
                               </div>
-                              <span className="text-sm font-medium">Buat Request</span>
+                              <span className="text-sm font-medium">
+                                Buat Request
+                              </span>
                             </button>
-                            
+
                             <button
                               onClick={handleHealthPassport}
                               className="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-lg text-center hover:from-green-600 hover:to-green-700 transition-all duration-300 hover:scale-105"
                             >
                               <div className="flex items-center justify-center mb-2">
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                <svg
+                                  className="w-6 h-6"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                  />
                                 </svg>
                               </div>
-                              <span className="text-sm font-medium">Health Passport</span>
+                              <span className="text-sm font-medium">
+                                Health Passport
+                              </span>
                             </button>
                           </div>
                         </div>
@@ -1006,31 +1018,56 @@ const DashboardPage: React.FC = () => {
                 </div>
               )}
 
-              {activeTab === 'schedule' && (
+              {activeTab === "schedule" && (
                 <FadeIn direction="up" delay={0.1}>
                   <div className="space-y-8">
                     <div className="text-center">
-                      <h2 className="text-3xl font-bold text-gray-900 mb-4">Jadwal Donor Darah</h2>
+                      <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                        Jadwal Donor Darah
+                      </h2>
                       <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                        Temukan jadwal donor darah terdekat dan daftar langsung untuk berkontribusi menyelamatkan nyawa.
+                        Temukan jadwal donor darah terdekat dan daftar langsung
+                        untuk berkontribusi menyelamatkan nyawa.
                       </p>
                     </div>
-                    
-                    <DonationScheduleCalendar 
-                      schedules={sampleSchedules}
-                      onScheduleSelect={handleScheduleSelect}
-                    />
+                    {schedulesLoading ? (
+                      <div className="flex justify-center items-center py-12">
+                        <HeartBeatLoader size={60} />
+                      </div>
+                    ) : schedulesError ? (
+                      <div className="text-center py-12">
+                        <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                          Gagal Memuat Jadwal
+                        </h3>
+                        <p className="text-gray-600 mb-4">{schedulesError}</p>
+                        <button
+                          onClick={() => getSchedules("/user/schedules")}
+                          className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                        >
+                          Coba Lagi
+                        </button>
+                      </div>
+                    ) : (
+                      <DonationScheduleCalendar
+                        schedules={mappedSchedules}
+                        onScheduleSelect={handleScheduleSelect}
+                      />
+                    )}
                   </div>
                 </FadeIn>
               )}
 
-              {activeTab === 'certificate' && (
+              {activeTab === "certificate" && (
                 <FadeIn direction="up" delay={0.1}>
                   <div className="space-y-8">
                     <div className="text-center">
-                      <h2 className="text-3xl font-bold text-gray-900 mb-4">Sertifikat Donor Darah</h2>
+                      <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                        Sertifikat Donor Darah
+                      </h2>
                       <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                        Lihat dan kelola sertifikat donor darah Anda yang terverifikasi blockchain
+                        Lihat dan kelola sertifikat donor darah Anda yang
+                        terverifikasi blockchain
                       </p>
                     </div>
                     
@@ -1046,7 +1083,7 @@ const DashboardPage: React.FC = () => {
                           blockchainId="BC-CERT-0x9F8E7D6C5B4A"
                           type="main"
                           title="Sertifikat Donor"
-                          onClick={() => navigate('/certificates')}
+                          onClick={() => navigate("/certificates")}
                         />
                       </FadeIn>
 
@@ -1061,7 +1098,7 @@ const DashboardPage: React.FC = () => {
                           blockchainId="BC-BADGE-0x8E7D6C5B4A"
                           type="achievement"
                           title="Hero Donor"
-                          onClick={() => navigate('/certificates')}
+                          onClick={() => navigate("/certificates")}
                         />
                       </FadeIn>
 
@@ -1069,15 +1106,18 @@ const DashboardPage: React.FC = () => {
                       <FadeIn direction="up" delay={0.4}>
                         <HoverScale scale={1.02}>
                           <div 
-                            onClick={() => navigate('/donor-register')}
+                            onClick={() => navigate("/donor-register")}
                             className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-2xl p-6 cursor-pointer hover:border-gray-400 hover:bg-gray-100 transition-all duration-300 flex flex-col items-center justify-center min-h-[300px]"
                           >
                             <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4">
                               <PlusCircleIcon className="w-8 h-8 text-gray-400" />
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-700 mb-2">Dapatkan Sertifikat Baru</h3>
+                            <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                              Dapatkan Sertifikat Baru
+                            </h3>
                             <p className="text-gray-500 text-center text-sm mb-4">
-                              Daftar donor darah untuk mendapatkan sertifikat digital baru
+                              Daftar donor darah untuk mendapatkan sertifikat
+                              digital baru
                             </p>
                             <div className="flex items-center space-x-2 text-red-600 font-medium">
                               <HeartIcon className="w-4 h-4" />
@@ -1092,13 +1132,23 @@ const DashboardPage: React.FC = () => {
                     <div className="text-center">
                       <HoverScale scale={1.05}>
                         <button
-                          onClick={() => navigate('/certificates')}
+                          onClick={() => navigate("/certificates")}
                           className="inline-flex items-center space-x-2 bg-gradient-to-r from-red-600 to-red-700 text-white px-8 py-4 rounded-2xl font-semibold hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-lg"
                         >
                           <AwardIcon className="w-5 h-5" />
                           <span>Lihat Semua Sertifikat</span>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5l7 7-7 7"
+                            />
                           </svg>
                         </button>
                       </HoverScale>
@@ -1107,34 +1157,107 @@ const DashboardPage: React.FC = () => {
                 </FadeIn>
               )}
 
-              {activeTab === 'achievements' && (
+              {activeTab === "achievements" && (
                 <FadeIn direction="up" delay={0.1}>
                   <div className="space-y-8">
                     <div className="text-center">
-                      <h2 className="text-3xl font-bold text-gray-900 mb-4">Pencapaian & Badge</h2>
+                      <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                        Pencapaian & Badge
+                      </h2>
                       <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                        Kumpulan pencapaian dan badge yang telah Anda raih dalam perjalanan donor darah.
+                        Kumpulan pencapaian dan badge yang telah Anda raih dalam
+                        perjalanan donor darah.
                       </p>
                     </div>
                     
-                    <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" staggerDelay={0.1}>
-                      {achievements.map((achievement, index) => (
-                        <StaggerItem key={index}>
-                          <AchievementBadge {...achievement} />
-                        </StaggerItem>
-                      ))}
-                    </StaggerContainer>
+                    {/* Achievement Stats Grid - Similar to BloodRequestStats */}
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg p-4 border border-yellow-200">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-yellow-400 rounded-lg flex items-center justify-center">
+                            <TrophyIcon className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="ml-3">
+                            <p className="text-sm text-yellow-700">
+                              Badge Diraih
+                            </p>
+                            <p className="text-xl font-bold text-yellow-800">
+                              {0}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-green-400 rounded-lg flex items-center justify-center">
+                            <TargetIcon className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="ml-3">
+                            <p className="text-sm text-green-700">
+                              Dalam Progress
+                            </p>
+                            <p className="text-xl font-bold text-green-800">
+                              {0}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Latest Achievement Preview */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">
+                        Pencapaian Terbaru
+                      </h4>
+                      {[]
+                        .slice(-1)
+                        .map((achievement, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center space-x-3"
+                          >
+                          <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-white">
+                            {/* Achievement icon placeholder */}
+                          </div>
+                          <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-900">
+                                {/* Achievement title placeholder */}
+                              </p>
+                              <p className="text-xs text-gray-600">
+                                {/* Achievement description placeholder */}
+                              </p>
+                          </div>
+                          <div className="text-green-500">
+                              <svg
+                                className="w-4 h-4"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
                   </div>
                 </FadeIn>
               )}
 
-              {activeTab === 'requests' && (
+              {activeTab === "requests" && (
                 <FadeIn direction="up" delay={0.1}>
                   <div className="space-y-8">
                     <div className="text-center">
-                      <h2 className="text-3xl font-bold text-gray-900 mb-4">Request Darah Darurat</h2>
+                      <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                        Request Darah Darurat
+                      </h2>
                       <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                        Sistem permintaan darah darurat untuk respons cepat menyelamatkan nyawa.
+                        Sistem permintaan darah darurat untuk respons cepat
+                        menyelamatkan nyawa.
                       </p>
                     </div>
                     
@@ -1142,26 +1265,44 @@ const DashboardPage: React.FC = () => {
                     <FadeIn direction="up" delay={0.2}>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                         <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
-                          <div className="text-2xl font-bold text-red-600">{bloodRequests.length}</div>
-                          <div className="text-sm text-gray-600">Total Permintaan</div>
+                          <div className="text-2xl font-bold text-blue-600">
+                            {bloodRequests.length}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            Total Permintaan
+                          </div>
+                        </div>
+                        <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
+                          <div className="text-2xl font-bold text-red-600">
+                            {
+                              bloodRequests.filter(
+                                (r) => r.urgency_level === "critical"
+                              ).length
+                            }
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            Sangat Mendesak
+                          </div>
                         </div>
                         <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
                           <div className="text-2xl font-bold text-orange-600">
-                            {bloodRequests.filter(r => r.urgency_level === 'Critical').length}
+                            {
+                              bloodRequests.filter(
+                                (r) => r.urgency_level === "high"
+                              ).length
+                            }
                           </div>
-                          <div className="text-sm text-gray-600">Kritis</div>
-                        </div>
-                        <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
-                          <div className="text-2xl font-bold text-yellow-600">
-                            {bloodRequests.filter(r => r.status === 'pending').length}
-                          </div>
-                          <div className="text-sm text-gray-600">Menunggu</div>
+                          <div className="text-sm text-gray-600">Mendesak</div>
                         </div>
                         <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
                           <div className="text-2xl font-bold text-green-600">
-                            {bloodRequests.filter(r => r.status === 'active').length}
+                            {
+                              bloodRequests.filter(
+                                (r) => r.urgency_level === "low"
+                              ).length
+                            }
                           </div>
-                          <div className="text-sm text-gray-600">Aktif</div>
+                          <div className="text-sm text-gray-600">Normal</div>
                         </div>
                       </div>
                     </FadeIn>
@@ -1171,8 +1312,13 @@ const DashboardPage: React.FC = () => {
                       <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-2xl p-6 text-white mb-8">
                         <div className="flex items-center justify-between">
                           <div>
-                            <h3 className="text-xl font-bold mb-2">Permintaan Darah Mendesak</h3>
-                            <p className="text-red-100">Bantuan segera dibutuhkan untuk menyelamatkan nyawa</p>
+                            <h3 className="text-xl font-bold mb-2">
+                              Permintaan Darah Mendesak
+                            </h3>
+                            <p className="text-red-100">
+                              Bantuan segera dibutuhkan untuk menyelamatkan
+                              nyawa
+                            </p>
                           </div>
                           <div className="flex space-x-3">
                             <button
@@ -1187,14 +1333,24 @@ const DashboardPage: React.FC = () => {
                               className="bg-red-700 text-white px-6 py-3 rounded-xl font-semibold hover:bg-red-800 transition-colors flex items-center space-x-2"
                             >
                               <span>Lihat Semua</span>
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 5l7 7-7 7"
+                                />
                               </svg>
                             </button>
                           </div>
                         </div>
-                      </div>
-                    </FadeIn>
+                  </div>
+                </FadeIn>
 
                     {/* Blood Requests Grid */}
                     {bloodRequestsLoading ? (
@@ -1204,10 +1360,14 @@ const DashboardPage: React.FC = () => {
                     ) : bloodRequestsError ? (
                       <div className="text-center py-12">
                         <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">Gagal Memuat Data</h3>
-                        <p className="text-gray-600 mb-4">{bloodRequestsError}</p>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                          Gagal Memuat Data
+                        </h3>
+                        <p className="text-gray-600 mb-4">
+                          {bloodRequestsError}
+                        </p>
                         <button
-                          onClick={() => getBloodRequests('/blood-request')}
+                          onClick={() => getBloodRequests("/blood-request")}
                           className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors"
                         >
                           Coba Lagi
@@ -1220,7 +1380,8 @@ const DashboardPage: React.FC = () => {
                           Tidak Ada Permintaan Saat Ini
                         </h3>
                         <p className="text-gray-600 mb-6">
-                          Belum ada permintaan darah darurat yang membutuhkan bantuan
+                          Belum ada permintaan darah darurat yang membutuhkan
+                          bantuan
                         </p>
                         <button
                           onClick={handleCreateBloodRequest}
@@ -1232,23 +1393,39 @@ const DashboardPage: React.FC = () => {
                     ) : (
                       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                         {bloodRequests.slice(0, 6).map((request, index) => (
-                          <FadeIn key={request.id} direction="up" delay={0.1 * index}>
+                          <FadeIn
+                            key={request.id}
+                            direction="up"
+                            delay={0.1 * index}
+                          >
                             <HoverScale scale={1.02}>
                               <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-all duration-300">
                                 {/* Header */}
                                 <div className="bg-gradient-to-r from-red-500 to-red-600 p-4 text-white">
                                   <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center space-x-2">
-                                      <div className={`w-8 h-8 ${getBloodTypeColor(request.blood_type)} rounded-full flex items-center justify-center text-white font-bold text-sm`}>
+                                      <div
+                                        className={`w-8 h-8 ${getBloodTypeColor(
+                                          request.blood_type
+                                        )} rounded-full flex items-center justify-center text-white font-bold text-sm`}
+                                      >
                                         {request.blood_type}
                                       </div>
-                                      <span className="font-semibold">{request.quantity} Kantong</span>
+                                      <span className="font-semibold">
+                                        {request.quantity} Kantong
+                                      </span>
                                     </div>
-                                    <div className={`px-2 py-1 rounded-full text-xs font-semibold ${getUrgencyColor(request.urgency_level)}`}>
-                                      {request.urgency_level}
+                                    <div
+                                      className={`px-2 py-1 rounded-full text-xs font-semibold ${getUrgencyColor(
+                                        request.urgency_level
+                                      )}`}
+                                    >
+                                      {getUrgencyText(request.urgency_level)}
                                     </div>
                                   </div>
-                                  <h3 className="font-bold text-lg">{request.event_name}</h3>
+                                  <h3 className="font-bold text-lg">
+                                    {request.event_name}
+                                  </h3>
                                 </div>
 
                                 {/* Content */}
@@ -1258,12 +1435,15 @@ const DashboardPage: React.FC = () => {
                                     <div className="flex items-center space-x-2">
                                       <UserCheckIcon className="w-4 h-4 text-gray-500" />
                                       <span className="font-semibold text-gray-900">
-                                        {request.patient_name || 'Tidak disebutkan'}
+                                        {request.patient_name ||
+                                          "Tidak disebutkan"}
                                       </span>
                                     </div>
                                     <div className="flex items-start space-x-2">
                                       <AlertTriangle className="w-4 h-4 text-gray-500 mt-0.5" />
-                                      <span className="text-sm text-gray-600">{request.diagnosis}</span>
+                                      <span className="text-sm text-gray-600">
+                                        {request.diagnosis}
+                                      </span>
                                     </div>
                                   </div>
 
@@ -1271,12 +1451,15 @@ const DashboardPage: React.FC = () => {
                                   <div className="space-y-2">
                                     <div className="flex items-center space-x-2">
                                       <Database className="w-4 h-4 text-gray-500" />
-                                      <span className="font-medium text-gray-900">{request.hospital.name}</span>
+                                      <span className="font-medium text-gray-900">
+                                        {request.hospital.name}
+                                      </span>
                                     </div>
                                     <div className="flex items-start space-x-2">
                                       <MapPinIcon className="w-4 h-4 text-gray-500 mt-0.5" />
                                       <span className="text-sm text-gray-600">
-                                        {request.hospital.city}, {request.hospital.province}
+                                        {request.hospital.city},{" "}
+                                        {request.hospital.province}
                                       </span>
                                     </div>
                                   </div>
@@ -1299,7 +1482,9 @@ const DashboardPage: React.FC = () => {
 
                                   {/* Status */}
                                   <div className="flex items-center justify-between">
-                                    <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(request.status)}`}>
+                                    <span
+                                      className={`px-3 py-1 rounded-full text-sm font-medium border ${'bg-gray-100 text-gray-800'}`}
+                                    >
                                       {request.status}
                                     </span>
                                     <span className="text-xs text-gray-500">
@@ -1311,15 +1496,22 @@ const DashboardPage: React.FC = () => {
                                 {/* Actions */}
                                 <div className="p-4 bg-gray-50 border-t">
                                   <button
-                                    onClick={() => handleDonateToRequest(request)}
-                                    disabled={request.status === 'completed' || request.status === 'canceled'}
+                                    onClick={() =>
+                                      handleDonateToRequest(request)
+                                    }
+                                    disabled={
+                                      request.status === "completed" ||
+                                      request.status === "canceled"
+                                    }
                                     className="w-full bg-red-600 text-white py-2 px-4 rounded-xl font-semibold hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                                   >
                                     <HeartIcon className="w-4 h-4" />
                                     <span>
-                                      {request.status === 'completed' ? 'Sudah Selesai' :
-                                       request.status === 'canceled' ? 'Dibatalkan' :
-                                       'Saya Bisa Donor'}
+                                      {request.status === "completed"
+                                        ? "Sudah Selesai"
+                                        : request.status === "canceled"
+                                        ? "Dibatalkan"
+                                        : "Saya Bisa Donor"}
                                     </span>
                                   </button>
                                 </div>
@@ -1338,9 +1530,21 @@ const DashboardPage: React.FC = () => {
                             onClick={handleViewAllRequests}
                             className="inline-flex items-center space-x-2 bg-gradient-to-r from-red-600 to-red-700 text-white px-8 py-4 rounded-2xl font-semibold hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-lg"
                           >
-                            <span>Lihat Semua Permintaan ({bloodRequests.length})</span>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            <span>
+                              Lihat Semua Permintaan ({bloodRequests.length})
+                            </span>
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 5l7 7-7 7"
+                              />
                             </svg>
                           </button>
                         </div>
@@ -1350,27 +1554,30 @@ const DashboardPage: React.FC = () => {
                 </FadeIn>
               )}
 
-              {activeTab === 'analytics' && (
+              {activeTab === "analytics" && (
                 <FadeIn direction="up" delay={0.1}>
                   <div className="space-y-8">
                     <div className="text-center">
-                      <h2 className="text-3xl font-bold text-gray-900 mb-4">Analytics & Statistik</h2>
+                      <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                        Analytics & Statistik
+                      </h2>
                       <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                        Analisis mendalam tentang aktivitas donasi darah dan tren komunitas.
+                        Analisis mendalam tentang aktivitas donasi darah dan
+                        tren komunitas.
                       </p>
                     </div>
                     
                     {/* Charts Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                      <MonthlyDonationChart data={monthlyDonationData} />
-                      <BloodTypeChart data={bloodTypeData} />
-                      <WeeklyGoalsChart data={weeklyGoalsData} />
-                      <DonationTrendChart data={donationTrendData} />
+                      <MonthlyDonationChart data={[]} />
+                      <BloodTypeChart data={[]} />
+                      <WeeklyGoalsChart data={[]} />
+                      <DonationTrendChart data={[]} />
                     </div>
                     
                     {/* Full Width Chart */}
                     <div className="mt-8">
-                      <HospitalPartnershipChart data={hospitalData} />
+                      <HospitalPartnershipChart data={[]} />
                     </div>
                   </div>
                 </FadeIn>

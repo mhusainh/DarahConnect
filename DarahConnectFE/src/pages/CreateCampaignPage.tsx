@@ -1,13 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, MapPinIcon, PhoneIcon, CalendarIcon, AlertTriangleIcon } from 'lucide-react';
+import { ArrowLeftIcon, MapPinIcon, PhoneIcon, CalendarIcon, AlertTriangleIcon, Building, Plus } from 'lucide-react';
 import { BloodType, UrgencyLevel } from '../types';
 import LocationPicker from '../components/LocationPicker';
+import AddHospitalModal from '../components/AddHospitalModal';
+import { useApi } from '../hooks/useApi';
+import { useQuickNotifications } from '../contexts/NotificationContext';
+
+interface Hospital {
+  id: number;
+  name: string;
+  address: string;
+  city: string;
+  province: string;
+  latitude: number;
+  longitude: number;
+}
 
 interface CreateCampaignForm {
   title: string;
   description: string;
-  hospital: string;
+  hospital_id: number;
   location: string;
   bloodType: BloodType[];
   targetDonors: number;
@@ -21,7 +34,7 @@ interface CreateCampaignForm {
 interface FormErrors {
   title?: string;
   description?: string;
-  hospital?: string;
+  hospital_id?: string;
   location?: string;
   bloodType?: string;
   targetDonors?: string;
@@ -36,7 +49,7 @@ const CreateCampaignPage: React.FC = () => {
   const [formData, setFormData] = useState<CreateCampaignForm>({
     title: '',
     description: '',
-    hospital: '',
+    hospital_id: 0,
     location: '',
     bloodType: [],
     targetDonors: 50,
@@ -47,6 +60,11 @@ const CreateCampaignPage: React.FC = () => {
     imageUrl: 'https://images.unsplash.com/photo-1615461066159-fea0960485d5?w=800'
   });
   const [errors, setErrors] = useState<FormErrors>({});
+  const [hospitals, setHospitals] = useState<Hospital[]>([]);
+  const [isAddHospitalModalOpen, setIsAddHospitalModalOpen] = useState(false);
+  
+  const hospitalsApi = useApi<Hospital[]>();
+  const notifications = useQuickNotifications();
 
   const bloodTypes: BloodType[] = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   const urgencyLevels: { value: UrgencyLevel; label: string; color: string }[] = [
@@ -55,6 +73,18 @@ const CreateCampaignPage: React.FC = () => {
     { value: 'high', label: 'Mendesak', color: 'text-orange-600' },
     { value: 'critical', label: 'Sangat Mendesak', color: 'text-red-600' }
   ];
+
+  // Fetch hospitals on component mount
+  useEffect(() => {
+    hospitalsApi.get('/hospital');
+  }, []);
+
+  // Update hospitals when API call completes
+  useEffect(() => {
+    if (hospitalsApi.data) {
+      setHospitals(Array.isArray(hospitalsApi.data) ? hospitalsApi.data : []);
+    }
+  }, [hospitalsApi.data]);
 
   const handleInputChange = (field: keyof CreateCampaignForm, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -77,7 +107,7 @@ const CreateCampaignPage: React.FC = () => {
     if (!formData.title.trim()) newErrors.title = 'Judul campaign wajib diisi';
     if (!formData.description.trim()) newErrors.description = 'Deskripsi wajib diisi';
     if (formData.description.length < 50) newErrors.description = 'Deskripsi minimal 50 karakter';
-    if (!formData.hospital.trim()) newErrors.hospital = 'Nama rumah sakit wajib diisi';
+    if (!formData.hospital_id || formData.hospital_id === 0) newErrors.hospital_id = 'Rumah sakit wajib dipilih';
     if (!formData.location.trim()) newErrors.location = 'Lokasi wajib diisi';
     if (formData.bloodType.length === 0) newErrors.bloodType = 'Pilih minimal satu golongan darah';
     if (formData.targetDonors < 10) newErrors.targetDonors = 'Target donor minimal 10 orang';
@@ -95,6 +125,13 @@ const CreateCampaignPage: React.FC = () => {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleHospitalAdded = (newHospital: Hospital) => {
+    setHospitals(prev => [...prev, newHospital]);
+    setFormData(prev => ({ ...prev, hospital_id: newHospital.id }));
+    setIsAddHospitalModalOpen(false);
+    notifications.success('Berhasil!', 'Rumah sakit baru telah ditambahkan');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -194,23 +231,38 @@ const CreateCampaignPage: React.FC = () => {
             {/* Hospital & Location */}
             <div className="space-y-6">
               <div>
-                <label htmlFor="hospital" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="hospital_id" className="block text-sm font-medium text-gray-700 mb-2">
                   Rumah Sakit / Institusi *
                 </label>
                 <div className="relative">
-                  <MapPinIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                  <input
-                    id="hospital"
-                    type="text"
-                    value={formData.hospital}
-                    onChange={(e) => handleInputChange('hospital', e.target.value)}
-                    className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.hospital ? 'border-red-500' : 'border-gray-300'
+                  <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                  <select
+                    id="hospital_id"
+                    value={formData.hospital_id}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === 'add-new') {
+                        setIsAddHospitalModalOpen(true);
+                      } else {
+                        handleInputChange('hospital_id', parseInt(value));
+                      }
+                    }}
+                    className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                      errors.hospital_id ? 'border-red-500' : 'border-gray-300'
                     }`}
-                    placeholder="RS Cipto Mangunkusumo"
-                  />
+                  >
+                    <option value="">Pilih Rumah Sakit</option>
+                    {hospitals.map((hospital) => (
+                      <option key={hospital.id} value={hospital.id}>
+                        {hospital.name} - {hospital.city}, {hospital.province}
+                      </option>
+                    ))}
+                    <option value="add-new" className="font-medium text-blue-600">
+                      + Tambah Rumah Sakit Baru
+                    </option>
+                  </select>
                 </div>
-                {errors.hospital && <p className="mt-1 text-sm text-red-600">{errors.hospital}</p>}
+                {errors.hospital_id && <p className="mt-1 text-sm text-red-600">{errors.hospital_id}</p>}
               </div>
 
               <div>
@@ -374,7 +426,7 @@ const CreateCampaignPage: React.FC = () => {
                   ))}
                 </div>
                 <div className="text-sm text-gray-600">
-                  <p>📍 {formData.hospital}, {formData.location}</p>
+                  <p>📍 {hospitals.find(h => h.id === formData.hospital_id)?.name || 'Pilih rumah sakit'}, {formData.location}</p>
                   <p>🎯 Target: {formData.targetDonors} donor</p>
                   <p>📞 {formData.contactPerson} - {formData.contactPhone}</p>
                 </div>
@@ -401,6 +453,13 @@ const CreateCampaignPage: React.FC = () => {
           </form>
         </div>
       </div>
+
+      {/* Add Hospital Modal */}
+      <AddHospitalModal
+        isOpen={isAddHospitalModalOpen}
+        onClose={() => setIsAddHospitalModalOpen(false)}
+        onHospitalAdded={handleHospitalAdded}
+      />
     </div>
   );
 };

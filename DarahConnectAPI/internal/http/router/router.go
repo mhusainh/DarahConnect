@@ -86,7 +86,6 @@ func PublicRoutes(
 			Handler: donationHandler.WebHookTransaction,
 		},
 		// Certificate Handler
-
 	}
 }
 
@@ -227,10 +226,11 @@ func PrivateRoutes(
 		},
 		{
 			Method:  http.MethodPost,
-			Path:    "blood-donation/:id",
-			Handler: bloodDonationHandler.Update,
+			Path:    "user/wallet-address",
+			Handler: userHandler.WalletAddress,
 			Roles:   userOnly,
 		},
+
 		// =============================================
 		// ADMIN ONLY ROUTES
 		// =============================================
@@ -255,15 +255,21 @@ func PrivateRoutes(
 		},
 		{
 			Method:  http.MethodDelete,
-			Path:    "admin/health-passport",
+			Path:    "admin/health-passport/:id",
 			Handler: healthPassportHandler.DeleteHealthPassport,
 			Roles:   adminOnly,
 		},
 		// Blood Request - Admin Only
 		{
 			Method:  http.MethodGet,
-			Path:    "blood-requests",
+			Path:    "admin/blood-requests",
 			Handler: bloodRequestHandler.GetBloodRequestsByAdmin,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodPut,
+			Path:    "admin/blood-request/:id",
+			Handler: bloodRequestHandler.StatusBloodRequest,
 			Roles:   adminOnly,
 		},
 		// Blood Request/Campaign - Admin Only
@@ -277,12 +283,6 @@ func PrivateRoutes(
 			Method:  http.MethodPut,
 			Path:    "admin/campaign/:id",
 			Handler: bloodRequestHandler.UpdateCampaign,
-			Roles:   adminOnly,
-		},
-		{
-			Method:  http.MethodPut,
-			Path:    "admin/campaign/:id",
-			Handler: bloodRequestHandler.StatusBloodRequest,
 			Roles:   adminOnly,
 		},
 		// Notification - Admin Only

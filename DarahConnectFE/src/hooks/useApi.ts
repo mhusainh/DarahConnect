@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { fetchApi, getApi, postApi, putApi, patchApi, deleteApi, ApiResponse, RequestOptions } from '../services/fetchApi';
 import { debugConsole } from '../config/api';
+import { check401Error, AuthErrorOptions } from '../utils/jwt';
 
 // Interface untuk state API
 export interface ApiState<T = any> {
@@ -8,6 +9,11 @@ export interface ApiState<T = any> {
   loading: boolean;
   error: string | null;
   success: boolean;
+}
+
+// Interface untuk options API call dengan auth error handling
+export interface ApiCallOptions extends RequestOptions {
+  authErrorOptions?: AuthErrorOptions;
 }
 
 // Hook untuk API calls dengan state management
@@ -29,9 +35,11 @@ export const useApi = <T = any>(initialData: T | null = null) => {
     });
   }, [initialData]);
 
-  // Execute API call
+  // Execute API call with enhanced error handling
   const executeApi = useCallback(async (
-    apiCall: () => Promise<ApiResponse<T>>
+    apiCall: () => Promise<ApiResponse<T>>,
+    endpoint: string = 'unknown',
+    options?: ApiCallOptions
   ): Promise<ApiResponse<T>> => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     
@@ -47,6 +55,20 @@ export const useApi = <T = any>(initialData: T | null = null) => {
         });
         debugConsole.success('useApi: Request berhasil', response.data);
       } else {
+        // Check for 401 errors and handle them automatically
+        const is401Error = check401Error(
+          response.status, 
+          response.error || 'Unknown error', 
+          endpoint,
+          options?.authErrorOptions
+        );
+        
+        if (is401Error) {
+          // For 401 errors, don't update state as user will be redirected
+          debugConsole.log('useApi: 401 error handled, user will be redirected');
+          return response;
+        }
+        
         setState({
           data: null,
           loading: false,
@@ -78,52 +100,52 @@ export const useApi = <T = any>(initialData: T | null = null) => {
   // GET request
   const get = useCallback(async (
     endpoint: string,
-    options?: RequestOptions
+    options?: ApiCallOptions
   ): Promise<ApiResponse<T>> => {
-    return executeApi(() => getApi<T>(endpoint, options));
+    return executeApi(() => getApi<T>(endpoint, options), endpoint, options);
   }, [executeApi]);
 
   // POST request
   const post = useCallback(async (
     endpoint: string,
     data?: any,
-    options?: RequestOptions
+    options?: ApiCallOptions
   ): Promise<ApiResponse<T>> => {
-    return executeApi(() => postApi<T>(endpoint, data, options));
+    return executeApi(() => postApi<T>(endpoint, data, options), endpoint, options);
   }, [executeApi]);
 
   // PUT request
   const put = useCallback(async (
     endpoint: string,
     data?: any,
-    options?: RequestOptions
+    options?: ApiCallOptions
   ): Promise<ApiResponse<T>> => {
-    return executeApi(() => putApi<T>(endpoint, data, options));
+    return executeApi(() => putApi<T>(endpoint, data, options), endpoint, options);
   }, [executeApi]);
 
   // PATCH request
   const patch = useCallback(async (
     endpoint: string,
     data?: any,
-    options?: RequestOptions
+    options?: ApiCallOptions
   ): Promise<ApiResponse<T>> => {
-    return executeApi(() => patchApi<T>(endpoint, data, options));
+    return executeApi(() => patchApi<T>(endpoint, data, options), endpoint, options);
   }, [executeApi]);
 
   // DELETE request
   const remove = useCallback(async (
     endpoint: string,
-    options?: RequestOptions
+    options?: ApiCallOptions
   ): Promise<ApiResponse<T>> => {
-    return executeApi(() => deleteApi<T>(endpoint, options));
+    return executeApi(() => deleteApi<T>(endpoint, options), endpoint, options);
   }, [executeApi]);
 
   // Custom fetch
   const customFetch = useCallback(async (
     endpoint: string,
-    options?: RequestInit & RequestOptions
+    options?: RequestInit & ApiCallOptions
   ): Promise<ApiResponse<T>> => {
-    return executeApi(() => fetchApi<T>(endpoint, options));
+    return executeApi(() => fetchApi<T>(endpoint, options), endpoint, options);
   }, [executeApi]);
 
   return {
@@ -167,7 +189,16 @@ export const useMultipleApi = () => {
         if (response.status === 'fulfilled') {
           results.push(response.value);
           if (!response.value.success) {
-            newErrors.push(`API ${index + 1}: ${response.value.error}`);
+            // Check for 401 errors in multiple API responses
+            if (response.value.status === 401) {
+              check401Error(
+                response.value.status,
+                response.value.error || 'Unauthorized',
+                `Multiple API Call ${index + 1}`
+              );
+            } else {
+              newErrors.push(`API ${index + 1}: ${response.value.error}`);
+            }
           }
         } else {
           const error = `API ${index + 1}: ${response.reason?.message || 'Unknown error'}`;

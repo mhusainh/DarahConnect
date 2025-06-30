@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { debugConsole } from '../config/api';
 
 declare global {
   interface Window {
@@ -80,9 +81,9 @@ export const useGoogleAuth = (): UseGoogleAuthReturn => {
       localStorage.setItem('userName', googleUser.name);
       localStorage.setItem('authMethod', 'google');
       
-      console.log('Google sign-in successful:', googleUser);
+      debugConsole.log('Google sign-in successful:', googleUser);
     } catch (error) {
-      console.error('Error processing Google sign-in:', error);
+      debugConsole.error('Error processing Google sign-in:', error);
     }
   };
 
@@ -90,7 +91,7 @@ export const useGoogleAuth = (): UseGoogleAuthReturn => {
     if (window.google && isLoaded) {
       window.google.accounts.id.prompt((notification: any) => {
         if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          console.log('Google sign-in prompt not displayed or skipped');
+          debugConsole.log('Google sign-in prompt not displayed or skipped');
         }
       });
     }

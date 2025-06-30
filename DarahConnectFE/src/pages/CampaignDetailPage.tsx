@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { BloodCampaign } from '../types';
 import { useCampaignService } from '../services/campaignService';
-import DonorConfirmationModal from '../components/DonorConfirmationModal';
+import DonorOptionModal from '../components/DonorOptionModal';
 import { useNotification } from '../hooks/useNotification';
 
 const CampaignDetailPage: React.FC = () => {
@@ -56,16 +56,16 @@ const CampaignDetailPage: React.FC = () => {
     loadCampaignDetail();
   }, [id]);
 
-  const handleDonorRegistration = async (notes: string) => {
+  const handleDonorNow = async (notes: string, hospitalId: number, description: string) => {
     if (!campaign) return;
     
     try {
-      const success = await campaignService.registerAsDonor(Number(campaign.id), notes);
+      const success = await campaignService.donorNowWithSchedule(Number(campaign.id), hospitalId, description, notes);
       if (success) {
         addNotification({
           type: 'success',
-          title: 'Pendaftaran Berhasil!',
-          message: 'Anda telah berhasil mendaftar sebagai donor. Tim akan menghubungi Anda segera.',
+          title: 'Pendaftaran dan Jadwal Berhasil!',
+          message: 'Anda telah berhasil mendaftar sebagai donor dan jadwal telah dibuat. Tim akan menghubungi Anda segera.',
           duration: 5000
         });
         // Refresh campaign data to update donor count
@@ -77,7 +77,37 @@ const CampaignDetailPage: React.FC = () => {
         addNotification({
           type: 'error',
           title: 'Pendaftaran Gagal',
-          message: 'Terjadi kesalahan saat mendaftar sebagai donor. Silakan coba lagi.',
+          message: 'Terjadi kesalahan saat mendaftar sebagai donor dan membuat jadwal. Silakan coba lagi.',
+          duration: 5000
+        });
+      }
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Terjadi kesalahan sistem. Silakan coba lagi nanti.',
+        duration: 5000
+      });
+    }
+  };
+
+  const handleScheduleOnly = async (hospitalId: number, description: string) => {
+    if (!campaign) return;
+    
+    try {
+      const success = await campaignService.createSchedule(Number(campaign.id), hospitalId, description);
+      if (success) {
+        addNotification({
+          type: 'success',
+          title: 'Jadwal Berhasil Dibuat!',
+          message: 'Jadwal donor darah telah berhasil dibuat. Tim akan menghubungi Anda untuk konfirmasi.',
+          duration: 5000
+        });
+      } else {
+        addNotification({
+          type: 'error',
+          title: 'Pembuatan Jadwal Gagal',
+          message: 'Terjadi kesalahan saat membuat jadwal. Silakan coba lagi.',
           duration: 5000
         });
       }
@@ -418,15 +448,16 @@ const CampaignDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Donor Confirmation Modal */}
-      <DonorConfirmationModal
+      {/* Donor Option Modal */}
+      <DonorOptionModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         campaign={campaign}
-        onConfirm={handleDonorRegistration}
+        onDonorNow={handleDonorNow}
+        onScheduleOnly={handleScheduleOnly}
       />
     </div>
   );
 };
 
-export default CampaignDetailPage; 
+export default CampaignDetailPage;

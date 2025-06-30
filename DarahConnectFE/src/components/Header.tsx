@@ -12,11 +12,22 @@ import {
   AlertCircleIcon,
   ChevronDownIcon,
   Settings,
-  User
+  User,
+  FileTextIcon,
+  BellIcon
 } from 'lucide-react';
 import NotificationDropdown from './NotificationDropdown';
 import { HoverScale, FadeIn } from './ui/AnimatedComponents';
 import { MagneticButton } from './ui/AdvancedAnimations';
+import { useApi } from '../hooks/useApi';
+
+type Notification = {
+  id: string | number;
+  title: string;
+  message: string;
+  unread: boolean;
+  time?: string;
+};
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -26,6 +37,12 @@ const Header: React.FC = () => {
   const [userName, setUserName] = useState('');
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifDetail, setNotifDetail] = useState<Notification | null>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
     // Check login status
@@ -93,6 +110,79 @@ const Header: React.FC = () => {
       .toUpperCase()
       .slice(0, 2);
   };
+
+  // Fetch notifications from API
+  const { get: getNotificationsApi, get: patchNotificationApi } = useApi<any>();
+  const { get: getUnreadCountApi } = useApi<any>();
+  const { get: getProfileApi } = useApi<any>();
+
+  // Fetch notifications list
+  const fetchNotifications = () => {
+    setNotifLoading(true);
+    getNotificationsApi('/user/notifications/').then((res) => {
+      setNotifLoading(false);
+      if (res && res.data && Array.isArray(res.data)) {
+        setNotifications(
+          res.data.map((n: any) => ({
+            id: n.id,
+            title: n.title,
+            message: n.message,
+            unread: !n.is_read,
+            time: n.created_at,
+          }))
+        );
+      } else {
+        setNotifications([]);
+      }
+    });
+  };
+
+  // Fetch unread count
+  const fetchUnreadCount = () => {
+    getUnreadCountApi('/user/notifications/count').then((res) => {
+      if (res && typeof res.data === 'number') {
+        setUnreadCount(res.data);
+      } else if (res && res.data && typeof res.data.count === 'number') {
+        setUnreadCount(res.data.count);
+      } else {
+        setUnreadCount(0);
+      }
+    });
+  };
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    fetchNotifications();
+    fetchUnreadCount();
+    getProfileApi('/user/profile').then((res) => {
+      if (res && res.data) setUserProfile(res.data);
+    });
+  }, [isLoggedIn, getNotificationsApi, getUnreadCountApi, getProfileApi]);
+
+  // Mark notification as read and show detail
+  const handleNotifClick = (notif: Notification) => {
+    setNotifDetail(notif);
+    if (notif.unread) {
+      patchNotificationApi(`/user/notifications/${notif.id}`).then(() => {
+        fetchNotifications();
+        fetchUnreadCount();
+      });
+    }
+  };
+
+  // Tutup dropdown jika klik di luar area
+  type ClickEvent = MouseEvent & { target: HTMLElement };
+  useEffect(() => {
+    if (!showNotifDropdown) return;
+    const handleClick = (e: any) => {
+      if (!document.getElementById('notif-bell')?.contains(e.target) &&
+          !document.getElementById('notif-dropdown')?.contains(e.target)) {
+        setShowNotifDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showNotifDropdown]);
 
   return (
     <FadeIn direction="down">
@@ -182,8 +272,12 @@ const Header: React.FC = () => {
                         className="group flex items-center space-x-2 bg-white/90 backdrop-blur-sm border border-gray-200 px-3 py-2.5 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-300 shadow-sm"
                         strength={0.2}
                       >
-                        <div className="w-7 h-7 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white text-xs font-semibold shadow-sm">
-                          {getUserInitials(userName)}
+                        <div className="w-7 h-7 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white text-xs font-semibold shadow-sm overflow-hidden">
+                          {userProfile && userProfile.url_file ? (
+                            <img src={userProfile.url_file} alt="Profile" className="w-full h-full object-cover rounded-full" />
+                          ) : (
+                            getUserInitials(userName)
+                          )}
                         </div>
                         <div className="hidden lg:block text-left">
                           <p className="text-xs font-semibold text-gray-900 leading-tight">Halo!</p>
@@ -196,11 +290,14 @@ const Header: React.FC = () => {
                     {/* User Dropdown Menu - Improved styling */}
                     {showUserMenu && (
                       <FadeIn direction="down" delay={0.1}>
-                        <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-200 py-1.5 z-50">
+                        <div className="absolute right-0 mt-2 w-42 bg-white rounded-xl shadow-lg border border-gray-200 py-1.5 z-50">
                           <div className="px-3 py-2.5 border-b border-gray-100">
-                            <div className="flex items-center space-x-2.5">
-                              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white text-sm font-semibold">
-                                {getUserInitials(userName)}
+                            <div className="flex items-center space-x-2.5">                              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white text-sm font-semibold overflow-hidden">
+                                {userProfile && userProfile.url_file ? (
+                                  <img src={userProfile.url_file} alt="Profile" className="w-full h-full object-cover rounded-full" />
+                                ) : (
+                                  getUserInitials(userName)
+                                )}
                               </div>
                               <div>
                                 <p className="text-sm font-semibold text-gray-900">{userName}</p>
@@ -219,6 +316,17 @@ const Header: React.FC = () => {
                             >
                               <User className="w-4 h-4" />
                               <span>Profil Saya</span>
+                            </button>
+                            
+                            <button
+                              onClick={() => {
+                                setShowUserMenu(false);
+                                navigate('/my-blood-requests');
+                              }}
+                              className="flex items-center space-x-2.5 w-full px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            >
+                              <FileTextIcon className="w-4 h-4" />
+                              <span>Permintaan Saya</span>
                             </button>
                             
                             <button
@@ -246,6 +354,68 @@ const Header: React.FC = () => {
                       </FadeIn>
                     )}
                   </div>
+
+                  {/* Tambahkan icon notifikasi di desktop */}
+                  {isLoggedIn && (
+                    <div className="relative ml-2">
+                      <button
+                        id="notif-bell"
+                        className="relative focus:outline-none"
+                        title="Notifikasi"
+                        onClick={() => setShowNotifDropdown((v) => !v)}
+                      >
+                        <BellIcon className="w-6 h-6 text-gray-600" />
+                        {unreadCount > 0 && (
+                          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 font-bold">
+                            {unreadCount}
+                          </span>
+                        )}
+                      </button>
+                      {showNotifDropdown && (
+                        <div
+                          id="notif-dropdown"
+                          className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50"
+                        >
+                          <div className="px-4 py-2 border-b font-semibold text-gray-800">Notifikasi</div>
+                          <div className="max-h-80 overflow-y-auto">
+                            {notifLoading ? (
+                              <div className="px-4 py-6 text-center text-gray-500 text-sm">Memuat notifikasi...</div>
+                            ) : notifications.length === 0 ? (
+                              <div className="px-4 py-6 text-center text-gray-500 text-sm">Tidak ada notifikasi</div>
+                            ) : (
+                              notifications.map((notif) => (
+                                <div
+                                  key={notif.id}
+                                  onClick={() => handleNotifClick(notif)}
+                                  className={`px-4 py-3 border-b last:border-b-0 cursor-pointer transition-colors ${notif.unread ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50'}`}
+                                >
+                                  <div className="font-medium text-gray-900 truncate">{notif.title}</div>
+                                  <div className="text-xs text-gray-600 mb-1 truncate">{notif.message}</div>
+                                  {notif.time && <div className="text-xs text-gray-400">{notif.time}</div>}
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      {/* Modal untuk detail notifikasi */}
+                      {notifDetail && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center min-h-screen bg-black/40">
+                          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 relative">
+                            <button
+                              className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl font-bold"
+                              onClick={() => setNotifDetail(null)}
+                            >
+                              &times;
+                            </button>
+                            <div className="mb-2 text-lg font-bold text-gray-900">{notifDetail.title}</div>
+                            <div className="mb-4 text-gray-700 whitespace-pre-line">{notifDetail.message}</div>
+                            {notifDetail.time && <div className="text-xs text-gray-400">{notifDetail.time}</div>}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -331,8 +501,12 @@ const Header: React.FC = () => {
                       {/* Mobile User Info - More compact */}
                       <div className="bg-gray-50/80 backdrop-blur-sm rounded-xl p-3 border border-gray-200/50">
                         <div className="flex items-center space-x-2.5 mb-2.5">
-                          <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white text-sm font-semibold shadow-sm">
-                            {getUserInitials(userName)}
+                          <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white text-sm font-semibold shadow-sm overflow-hidden">
+                            {userProfile && userProfile.url_file ? (
+                              <img src={userProfile.url_file} alt="Profile" className="w-full h-full object-cover rounded-full" />
+                            ) : (
+                              getUserInitials(userName)
+                            )}
                           </div>
                           <div className="flex-1">
                             <p className="text-sm font-semibold text-gray-900">Halo, {userName}!</p>
@@ -350,6 +524,17 @@ const Header: React.FC = () => {
                           >
                             <User className="w-4 h-4" />
                             <span>Profil Saya</span>
+                          </button>
+                          
+                          <button
+                            onClick={() => {
+                              navigate('/my-blood-requests');
+                              setIsMenuOpen(false);
+                            }}
+                            className="flex items-center space-x-2.5 w-full px-2.5 py-2 text-sm text-gray-700 hover:bg-white/70 rounded-lg transition-colors"
+                          >
+                            <FileTextIcon className="w-4 h-4" />
+                            <span>Permintaan Saya</span>
                           </button>
                           
                           <button

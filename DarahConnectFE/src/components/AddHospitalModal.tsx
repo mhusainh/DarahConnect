@@ -1,0 +1,409 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { X, MapPin, Building, Save, Search } from 'lucide-react';
+import { provinsiData, kotaData, getKotaByProvinsi } from '../data/wilayahIndonesia';
+import { useApi } from '../hooks/useApi';
+
+interface AddHospitalModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onHospitalAdded: (hospital: HospitalData) => void;
+}
+
+interface HospitalData {
+  id: number;
+  name: string;
+  address: string;
+  city: string;
+  province: string;
+  latitude: number;
+  longitude: number;
+}
+
+interface HospitalFormData {
+  name: string;
+  address: string;
+  city: string;
+  province: string;
+  latitude: number;
+  longitude: number;
+}
+
+declare global {
+  interface Window {
+    google: any;
+    initMap: () => void;
+  }
+}
+
+const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, onHospitalAdded }) => {
+  const [formData, setFormData] = useState<HospitalFormData>({
+    name: '',
+    address: '',
+    city: '',
+    province: '',
+    latitude: -6.2088,
+    longitude: 106.8456
+  });
+  
+  const [errors, setErrors] = useState<Partial<HospitalFormData>>({});
+  const [map, setMap] = useState<any>(null);
+  const [marker, setMarker] = useState<any>(null);
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [availableCities, setAvailableCities] = useState<typeof kotaData>([]);
+  
+  const { post, loading } = useApi();
+
+  // Load Google Maps
+  useEffect(() => {
+    if (isOpen && !window.google) {
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}&libraries=places`;
+      script.async = true;
+      script.defer = true;
+      script.onload = () => setIsMapLoaded(true);
+      document.head.appendChild(script);
+    } else if (window.google) {
+      setIsMapLoaded(true);
+    }
+  }, [isOpen]);
+
+  // Initialize map
+  useEffect(() => {
+    if (isMapLoaded && isOpen && !map) {
+      const mapElement = document.getElementById('hospital-map');
+      if (mapElement) {
+        const googleMap = new window.google.maps.Map(mapElement, {
+          center: { lat: formData.latitude, lng: formData.longitude },
+          zoom: 15,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+        });
+
+        const mapMarker = new window.google.maps.Marker({
+          position: { lat: formData.latitude, lng: formData.longitude },
+          map: googleMap,
+          draggable: true,
+          title: 'Lokasi Rumah Sakit'
+        });
+
+        // Add click listener to map
+        googleMap.addListener('click', (event: any) => {
+          const lat = event.latLng.lat();
+          const lng = event.latLng.lng();
+          mapMarker.setPosition({ lat, lng });
+          setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }));
+          
+          // Reverse geocoding to get address
+          const geocoder = new window.google.maps.Geocoder();
+          geocoder.geocode({ location: { lat, lng } }, (results: any[], status: string) => {
+            if (status === 'OK' && results[0]) {
+              setFormData(prev => ({ ...prev, address: results[0].formatted_address }));
+            }
+          });
+        });
+
+        // Add drag listener to marker
+        mapMarker.addListener('dragend', (event: any) => {
+          const lat = event.latLng.lat();
+          const lng = event.latLng.lng();
+          setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }));
+          
+          // Reverse geocoding
+          const geocoder = new window.google.maps.Geocoder();
+          geocoder.geocode({ location: { lat, lng } }, (results: any[], status: string) => {
+            if (status === 'OK' && results[0]) {
+              setFormData(prev => ({ ...prev, address: results[0].formatted_address }));
+            }
+          });
+        });
+
+        setMap(googleMap);
+        setMarker(mapMarker);
+      }
+    }
+  }, [isMapLoaded, isOpen, map, formData.latitude, formData.longitude]);
+
+  // Update cities when province changes
+  useEffect(() => {
+    if (formData.province) {
+      const cities = getKotaByProvinsi(formData.province);
+      setAvailableCities(cities);
+      setFormData(prev => ({ ...prev, city: '' }));
+    } else {
+      setAvailableCities([]);
+    }
+  }, [formData.province]);
+
+  const handleInputChange = (field: keyof HospitalFormData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const searchLocation = useCallback(() => {
+    if (!window.google || !map) return;
+
+    const searchQuery = `${formData.name} ${formData.address}`;
+    const geocoder = new window.google.maps.Geocoder();
+    
+    geocoder.geocode({ address: searchQuery }, (results: any[], status: string) => {
+      if (status === 'OK' && results[0]) {
+        const location = results[0].geometry.location;
+        const lat = location.lat();
+        const lng = location.lng();
+        
+        setFormData(prev => ({ 
+          ...prev, 
+          latitude: lat, 
+          longitude: lng,
+          address: results[0].formatted_address 
+        }));
+        
+        map.setCenter({ lat, lng });
+        marker.setPosition({ lat, lng });
+      }
+    });
+  }, [formData.name, formData.address, map, marker]);
+
+  const validateForm = (): boolean => {
+    const newErrors: Partial<HospitalFormData> = {};
+    
+    if (!formData.name.trim()) newErrors.name = 'Nama rumah sakit wajib diisi';
+    if (!formData.address.trim()) newErrors.address = 'Alamat wajib diisi';
+    if (!formData.province) newErrors.province = 'Provinsi wajib dipilih';
+    if (!formData.city) newErrors.city = 'Kota wajib dipilih';
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+
+    try {
+      const response = await post('/hospital', {
+        name: formData.name,
+        address: formData.address,
+        city: formData.city,
+        province: formData.province,
+        latitude: formData.latitude,
+        longitude: formData.longitude
+      });
+
+      if (response.success && response.data) {
+        onHospitalAdded(response.data);
+        handleClose();
+      }
+    } catch (error) {
+      console.error('Error adding hospital:', error);
+    }
+  };
+
+  const handleClose = () => {
+    setFormData({
+      name: '',
+      address: '',
+      city: '',
+      province: '',
+      latitude: -6.2088,
+      longitude: 106.8456
+    });
+    setErrors({});
+    setMap(null);
+    setMarker(null);
+    setIsMapLoaded(false);
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white rounded-t-2xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Building className="w-6 h-6" />
+              <h2 className="text-xl font-bold">Tambah Rumah Sakit Baru</h2>
+            </div>
+            <button 
+              onClick={handleClose}
+              className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <p className="text-blue-100 mt-2">Pilih lokasi dengan Google Maps dan lengkapi informasi rumah sakit</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Form Section */}
+            <div className="space-y-4">
+              {/* Hospital Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nama Rumah Sakit <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                    errors.name ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="RS Cipto Mangunkusumo"
+                />
+                {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+              </div>
+
+              {/* Province */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Provinsi <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.province}
+                  onChange={(e) => handleInputChange('province', e.target.value)}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                    errors.province ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="">Pilih Provinsi</option>
+                  {provinsiData.map((provinsi) => (
+                    <option key={provinsi.id} value={provinsi.id}>
+                      {provinsi.nama}
+                    </option>
+                  ))}
+                </select>
+                {errors.province && <p className="mt-1 text-sm text-red-600">{errors.province}</p>}
+              </div>
+
+              {/* City */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Kota <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.city}
+                  onChange={(e) => handleInputChange('city', e.target.value)}
+                  disabled={!formData.province}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed ${
+                    errors.city ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="">Pilih Kota</option>
+                  {availableCities.map((kota) => (
+                    <option key={kota.id} value={kota.id}>
+                      {kota.nama}
+                    </option>
+                  ))}
+                </select>
+                {errors.city && <p className="mt-1 text-sm text-red-600">{errors.city}</p>}
+              </div>
+
+              {/* Address */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Alamat Lengkap <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={formData.address}
+                  onChange={(e) => handleInputChange('address', e.target.value)}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                    errors.address ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Jl. Diponegoro No. 71, Kenari, Senen"
+                />
+                {errors.address && <p className="mt-1 text-sm text-red-600">{errors.address}</p>}
+              </div>
+
+              {/* Search Location Button */}
+              <button
+                type="button"
+                onClick={searchLocation}
+                disabled={!formData.name || !formData.address || !isMapLoaded}
+                className="w-full flex items-center justify-center px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Search className="w-4 h-4 mr-2" />
+                Cari Lokasi di Maps
+              </button>
+
+              {/* Coordinates Display */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Koordinat Lokasi</h3>
+                <div className="space-y-1 text-sm text-gray-600">
+                  <p>Latitude: {formData.latitude.toFixed(6)}</p>
+                  <p>Longitude: {formData.longitude.toFixed(6)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Map Section */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Lokasi di Google Maps <span className="text-red-500">*</span>
+                </label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden">
+                  {isMapLoaded ? (
+                    <div
+                      id="hospital-map"
+                      className="w-full h-80"
+                    />
+                  ) : (
+                    <div className="w-full h-80 flex items-center justify-center bg-gray-100">
+                      <div className="text-center">
+                        <MapPin className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-gray-500">Loading Google Maps...</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <p className="mt-2 text-sm text-gray-600">
+                  Klik pada map atau drag marker untuk memilih lokasi yang tepat
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Submit Buttons */}
+          <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200 mt-6">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={loading || !isMapLoaded}
+              className="px-8 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Menyimpan...
+                </>
+              ) : (
+                <>
+                  <Save className="w-5 h-5 mr-2" />
+                  Simpan Rumah Sakit
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default AddHospitalModal; 

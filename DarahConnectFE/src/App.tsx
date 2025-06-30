@@ -34,6 +34,7 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const EmailVerificationPage = lazy(() => import('./pages/EmailVerificationPage'));
 const CreateBloodRequestPage = lazy(() => import('./pages/CreateBloodRequestPage'));
 const BloodRequestsPage = lazy(() => import('./pages/BloodRequestsPage'));
+const MyBloodRequestsPage = lazy(() => import('./pages/MyBloodRequestsPage'));
 const HealthPassportPage = lazy(() => import('./pages/HealthPassportPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
@@ -459,6 +460,13 @@ function App() {
               <ProtectedRoute>
                 <Suspense fallback={<PageLoader />}>
                   <CreateBloodRequestPage />
+                </Suspense>
+              </ProtectedRoute>
+            } />
+            <Route path="/my-blood-requests" element={
+              <ProtectedRoute>
+                <Suspense fallback={<PageLoader />}>
+                  <MyBloodRequestsPage />
                 </Suspense>
               </ProtectedRoute>
             } />

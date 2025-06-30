@@ -112,10 +112,14 @@ func (s *Service) Callback(ctx echo.Context) (map[string]interface{}, error) {
 	log.Printf("Successfully authenticated user: %s", user.Email)
 
 	// Check if user already exists in the database
-	IsNew, err := s.userService.CheckGoogleOAuth(ctx.Request().Context(), user.Email, &user)
+	metamask := false
+	userEntity, IsNew, err := s.userService.CheckGoogleOAuth(ctx.Request().Context(), user.Email, &user)
 	if err != nil {
 		log.Printf("Error checking Google OAuth user: %v", err)
 		return nil, errors.New("ada kesalahan saat check google oauth")
+	}
+	if userEntity.WalletAddress != "" {
+		metamask = true
 	}
 
 	// Buat JWT claims dari data Google OAuth
@@ -125,6 +129,7 @@ func (s *Service) Callback(ctx echo.Context) (map[string]interface{}, error) {
 		Name:       user.Name,
 		PictureURL: user.AvatarURL,
 		Provider:   "google",
+		Metamask:   metamask,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(12 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

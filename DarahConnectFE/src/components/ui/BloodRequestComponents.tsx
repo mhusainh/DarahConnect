@@ -6,14 +6,14 @@ interface BloodRequest {
   patientName: string;
   bloodType: string;
   unitsNeeded: number;
-  urgency: 'critical' | 'urgent' | 'normal';
+  urgency: 'critical' | 'high' | 'normal';
   hospital: string;
   location: string;
   contactPerson: string;
   contactPhone: string;
   neededBy: string;
   description: string;
-  status: 'active' | 'fulfilled' | 'expired';
+  status: 'verified' | 'fulfilled' | 'expired';
   createdAt: string;
   donors: string[];
 }
@@ -36,7 +36,7 @@ export const BloodRequestList: React.FC<BloodRequestListProps> = ({ requests, on
     const matchesBloodType = bloodTypeFilter === 'all' || request.bloodType === bloodTypeFilter;
     const matchesSearch = request.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          request.hospital.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesFilter && matchesBloodType && matchesSearch && request.status === 'active';
+    return matchesFilter && matchesBloodType && matchesSearch && request.status === 'verified';
   });
 
   const getUrgencyColor = (urgency: string) => {
@@ -126,7 +126,7 @@ export const BloodRequestList: React.FC<BloodRequestListProps> = ({ requests, on
               key={request.id}
               className={`border-l-4 p-6 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow ${
                 request.urgency === 'critical' ? 'border-l-red-500 bg-red-50' :
-                request.urgency === 'urgent' ? 'border-l-orange-500 bg-orange-50' :
+                request.urgency === 'high' ? 'border-l-orange-500 bg-orange-50' :
                 'border-l-blue-500 bg-blue-50'
               }`}
             >
@@ -185,7 +185,7 @@ export const BloodRequestList: React.FC<BloodRequestListProps> = ({ requests, on
                     className={`px-6 py-3 rounded-lg font-medium transition-colors ${
                       request.urgency === 'critical' 
                         ? 'bg-red-600 hover:bg-red-700 text-white'
-                        : request.urgency === 'urgent'
+                        : request.urgency === 'high'
                         ? 'bg-orange-600 hover:bg-orange-700 text-white'
                         : 'bg-blue-600 hover:bg-blue-700 text-white'
                     }`}
@@ -223,7 +223,7 @@ export const EmergencyBloodRequestForm: React.FC<{
     patientName: '',
     bloodType: '',
     unitsNeeded: 1,
-    urgency: 'urgent' as 'critical' | 'urgent' | 'normal',
+    urgency: 'high' as 'critical' | 'high' | 'normal',
     hospital: '',
     location: '',
     contactPerson: '',
@@ -420,9 +420,10 @@ export const EmergencyBloodRequestForm: React.FC<{
 
 // Blood Request Stats Widget
 export const BloodRequestStats: React.FC<{ requests: BloodRequest[] }> = ({ requests }) => {
-  const criticalCount = requests.filter(r => r.urgency === 'critical' && r.status === 'active').length;
-  const urgentCount = requests.filter(r => r.urgency === 'urgent' && r.status === 'active').length;
-  const totalActive = requests.filter(r => r.status === 'active').length;
+  const criticalCount = requests.filter(r => r.urgency === 'critical' && r.status === 'verified').length;
+  const urgentCount = requests.filter(r => r.urgency === 'high' && r.status === 'verified').length;
+  const normalCount = requests.filter(r => r.urgency === 'normal' && r.status === 'verified').length;
+  const totalActive = requests.filter(r => r.status === 'verified').length;
   const fulfilledToday = requests.filter(r => 
     r.status === 'fulfilled' && 
     new Date(r.createdAt).toDateString() === new Date().toDateString()
@@ -453,7 +454,17 @@ export const BloodRequestStats: React.FC<{ requests: BloodRequest[] }> = ({ requ
           </div>
         </div>
       </div>
-
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+        <div className="flex items-center">
+          <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+            <User className="w-6 h-6 text-green-600" />
+          </div>
+          <div className="ml-4">
+            <p className="text-sm text-gray-600">Normal</p>
+            <p className="text-2xl font-bold text-green-600">{normalCount}</p>
+          </div>
+        </div>
+      </div>
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
         <div className="flex items-center">
           <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -466,17 +477,7 @@ export const BloodRequestStats: React.FC<{ requests: BloodRequest[] }> = ({ requ
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-        <div className="flex items-center">
-          <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-            <User className="w-6 h-6 text-green-600" />
-          </div>
-          <div className="ml-4">
-            <p className="text-sm text-gray-600">Terpenuhi Hari Ini</p>
-            <p className="text-2xl font-bold text-green-600">{fulfilledToday}</p>
-          </div>
-        </div>
-      </div>
+    
     </div>
   );
 };

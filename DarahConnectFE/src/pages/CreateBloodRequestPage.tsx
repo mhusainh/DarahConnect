@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, MapPinIcon, PhoneIcon, CalendarIcon, AlertTriangleIcon, UserIcon, BuildingIcon, HeartIcon, ClockIcon } from 'lucide-react';
+import { ArrowLeftIcon, MapPinIcon, PhoneIcon, CalendarIcon, AlertTriangleIcon, UserIcon, BuildingIcon, HeartIcon, ClockIcon, Plus } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 import { useQuickNotifications } from '../contexts/NotificationContext';
 import { getUserData } from '../utils/jwt';
 import { formatDateForBackend, formatDateForDisplay, isDateInFuture, EXAMPLE_FORMATTED_DATE } from '../utils/dateUtils';
+import AddHospitalModal from '../components/AddHospitalModal';
 
 interface CreateBloodRequestForm {
   user_id: number;
@@ -30,17 +31,22 @@ interface FormErrors {
 interface Hospital {
   id: number;
   name: string;
-  location: string;
+  address: string;
+  city: string;
+  province: string;
+  latitude: number;
+  longitude: number;
 }
 
 const CreateBloodRequestPage: React.FC = () => {
   const navigate = useNavigate();
   const createRequestApi = useApi();
+  const hospitalsApi = useApi<Hospital[]>();
   const notifications = useQuickNotifications();
   
   const [formData, setFormData] = useState<CreateBloodRequestForm>({
     user_id: 0,
-    hospital_id: 1,
+    hospital_id: 0,
     patient_name: '',
     event_date: '',
     blood_type: '',
@@ -50,37 +56,53 @@ const CreateBloodRequestPage: React.FC = () => {
   });
   
   const [errors, setErrors] = useState<FormErrors>({});
-
-  // Mock hospitals data - in real app, this would come from API
-  const hospitals: Hospital[] = [
-    { id: 1, name: 'RS Cipto Mangunkusumo', location: 'Jakarta Pusat' },
-    { id: 2, name: 'RS Fatmawati', location: 'Jakarta Selatan' },
-    { id: 3, name: 'RS Persahabatan', location: 'Jakarta Timur' },
-    { id: 4, name: 'RS Hasan Sadikin', location: 'Bandung' },
-    { id: 5, name: 'RS Sardjito', location: 'Yogyakarta' }
-  ];
+  const [hospitals, setHospitals] = useState<Hospital[]>([]);
+  const [isAddHospitalModalOpen, setIsAddHospitalModalOpen] = useState(false);
 
   const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   const urgencyLevels = [
-    { value: 'Low', label: 'Rendah', color: 'text-green-600', bgColor: 'bg-green-50 border-green-200' },
-    { value: 'Medium', label: 'Sedang', color: 'text-yellow-600', bgColor: 'bg-yellow-50 border-yellow-200' },
-    { value: 'High', label: 'Tinggi', color: 'text-orange-600', bgColor: 'bg-orange-50 border-orange-200' },
-    { value: 'Critical', label: 'Kritis', color: 'text-red-600', bgColor: 'bg-red-50 border-red-200' }
+    { value: 'low', label: 'Normal', color: 'text-green-600', bgColor: 'bg-green-50 border-green-200' },
+    { value: 'medium', label: 'Sedang', color: 'text-yellow-600', bgColor: 'bg-yellow-50 border-yellow-200' },
+    { value: 'high', label: 'Mendesak', color: 'text-orange-600', bgColor: 'bg-orange-50 border-orange-200' },
+    { value: 'critical', label: 'Sangat Mendesak', color: 'text-red-600', bgColor: 'bg-red-50 border-red-200' }
   ];
 
-  // Set user_id from localStorage on component mount
+  // Set user_id from localStorage and fetch hospitals on component mount
   useEffect(() => {
     const userData = getUserData();
     if (userData?.id) {
       setFormData(prev => ({ ...prev, user_id: userData.id }));
     }
+    
+    // Fetch hospitals from API
+    hospitalsApi.get('/hospital');
   }, []);
 
+  // Update hospitals when API call completes
+  useEffect(() => {
+    if (hospitalsApi.data) {
+      setHospitals(Array.isArray(hospitalsApi.data) ? hospitalsApi.data : []);
+    }
+  }, [hospitalsApi.data]);
+
   const handleInputChange = (field: keyof CreateBloodRequestForm, value: any) => {
+    // Special handling for hospital selection
+    if (field === 'hospital_id' && value === 'add-new') {
+      setIsAddHospitalModalOpen(true);
+      return;
+    }
+    
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
+  };
+
+  const handleHospitalAdded = (newHospital: Hospital) => {
+    setHospitals(prev => [...prev, newHospital]);
+    setFormData(prev => ({ ...prev, hospital_id: newHospital.id }));
+    setIsAddHospitalModalOpen(false);
+    notifications.success('Berhasil!', 'Rumah sakit baru telah ditambahkan');
   };
 
   const validateForm = () => {
@@ -119,24 +141,26 @@ const CreateBloodRequestPage: React.FC = () => {
     }
 
     try {
-      // Format the date using utility function
-      const formattedData = {
-        ...formData,
-        event_date: formatDateForBackend(formData.event_date)
-      };
-      
-      console.log('🔧 Sending blood request with formatted data:', formattedData);
-      console.log('🔧 Expected format example:', EXAMPLE_FORMATTED_DATE);
-      
-      const response = await createRequestApi.post('/user/create-blood-request', formattedData);
+      // Convert formData to FormData object for multipart/form-data
+      const formPayload = new FormData();
+      formPayload.append('user_id', String(formData.user_id));
+      formPayload.append('hospital_id', String(formData.hospital_id));
+      formPayload.append('patient_name', formData.patient_name);
+      formPayload.append('event_date', formatDateForBackend(formData.event_date));
+      formPayload.append('blood_type', formData.blood_type);
+      formPayload.append('quantity', String(formData.quantity));
+      formPayload.append('urgency_level', formData.urgency_level);
+      formPayload.append('diagnosis', formData.diagnosis);
+
+      console.log('🔧 Sending blood request as FormData:', Array.from(formPayload.entries()));
+
+      const response = await createRequestApi.post('/user/create-blood-request', formPayload);
       
       if (response.success) {
         notifications.success(
           'Request Berhasil!', 
           `Request donor darah untuk pasien "${formData.patient_name}" telah berhasil dibuat`
         );
-        
-        // Redirect to dashboard or requests list
         setTimeout(() => {
           navigate('/dashboard', { replace: true });
         }, 2000);
@@ -147,19 +171,14 @@ const CreateBloodRequestPage: React.FC = () => {
       }
     } catch (error: any) {
       console.error('❌ Create blood request error:', error);
-      
-      // Check if it's a date formatting error
       if (error.message && error.message.includes('parsing time')) {
         notifications.error('Format Tanggal Bermasalah', 'Mohon pilih tanggal yang valid');
       } else if (error.response) {
-        // Server responded with error status
         const errorMessage = error.response.data?.message || 'Server error occurred';
         notifications.error('Server Error', errorMessage);
       } else if (error.request) {
-        // Network error
         notifications.error('Koneksi Bermasalah', 'Tidak dapat terhubung ke server');
       } else {
-        // Other error
         notifications.error('Error', error.message || 'Terjadi kesalahan tidak terduga');
       }
     }
@@ -257,9 +276,12 @@ const CreateBloodRequestPage: React.FC = () => {
                   <option value="">Pilih Rumah Sakit</option>
                   {hospitals.map((hospital) => (
                     <option key={hospital.id} value={hospital.id}>
-                      {hospital.name} - {hospital.location}
+                      {hospital.name} - {hospital.city}, {hospital.province}
                     </option>
                   ))}
+                  <option value="add-new" className="font-medium text-blue-600">
+                    + Tambah Rumah Sakit Baru
+                  </option>
                 </select>
               </div>
               {errors.hospital_id && <p className="mt-1 text-sm text-red-600">{errors.hospital_id}</p>}
@@ -322,7 +344,7 @@ const CreateBloodRequestPage: React.FC = () => {
                     onClick={() => handleInputChange('urgency_level', urgency.value)}
                     className={`px-4 py-3 rounded-lg border-2 transition-colors text-sm font-medium ${
                       formData.urgency_level === urgency.value
-                        ? `border-${urgency.value === 'Critical' ? 'red' : urgency.value === 'High' ? 'orange' : urgency.value === 'Medium' ? 'yellow' : 'green'}-500 ${urgency.bgColor} ${urgency.color}`
+                        ? `border-${urgency.value === 'critical' ? 'red' : urgency.value === 'high' ? 'orange' : urgency.value === 'medium' ? 'yellow' : 'green'}-500 ${urgency.bgColor} ${urgency.color}`
                         : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
                     }`}
                   >
@@ -369,7 +391,7 @@ const CreateBloodRequestPage: React.FC = () => {
                   <div className="space-y-2 text-sm text-gray-600">
                     <p className="flex items-center">
                       <BuildingIcon className="w-4 h-4 mr-2" />
-                      {selectedHospital?.name} - {selectedHospital?.location}
+                      {selectedHospital?.name} - {selectedHospital?.city}, {selectedHospital?.province}
                     </p>
                     <p className="flex items-center">
                       <HeartIcon className="w-4 h-4 mr-2" />
@@ -435,6 +457,13 @@ const CreateBloodRequestPage: React.FC = () => {
           </form>
         </div>
       </div>
+
+      {/* Add Hospital Modal */}
+      <AddHospitalModal
+        isOpen={isAddHospitalModalOpen}
+        onClose={() => setIsAddHospitalModalOpen(false)}
+        onHospitalAdded={handleHospitalAdded}
+      />
     </div>
   );
 };
