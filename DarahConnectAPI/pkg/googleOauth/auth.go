@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -12,6 +13,7 @@ import (
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/google"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/configs"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/service"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/token"
 )
@@ -105,17 +107,24 @@ func (s *Service) Callback(ctx echo.Context) (string, error) {
 		return "", fmt.Errorf("OAuth error: %s", errParam)
 	}
 
-	user, err := gothic.CompleteUserAuth(res, req)
+	googleUser, err := gothic.CompleteUserAuth(res, req)
 	if err != nil {
 		log.Printf("Error completing user auth: %v", err)
 		return "", fmt.Errorf("authentication failed: %v", err)
 	}
+	var reqq dto.GetAllUserRequest
 
-	log.Printf("Successfully authenticated user: %s", user.Email)
+	reqq.Email = googleUser.Email
+
+	user, _, err := s.userService.GetAll(ctx.Request().Context(), reqq)
+	if err != nil {
+		log.Printf("Error getting user by email: %v", err)
+		return "", errors.New("ada kesalahan saat get user by email")
+	}
 
 	// Check if user already exists in the database
 	metamask := false
-	userEntity, IsNew, err := s.userService.CheckGoogleOAuth(ctx.Request().Context(), user.Email, &user)
+	userEntity, IsNew, err := s.userService.CheckGoogleOAuth(ctx.Request().Context(), googleUser.Email, &googleUser)
 	if err != nil {
 		log.Printf("Error checking Google OAuth user: %v", err)
 		return "", errors.New("ada kesalahan saat check google oauth")
@@ -126,10 +135,10 @@ func (s *Service) Callback(ctx echo.Context) (string, error) {
 
 	// Buat JWT claims dari data Google OAuth
 	claims := &token.GoogleOAuthClaims{
-		Id:         user.UserID,
-		Email:      user.Email,
-		Name:       user.Name,
-		PictureURL: user.AvatarURL,
+		Id:         strconv.FormatInt(user[0].Id, 10),
+		Email:      user[0].Email,
+		Name:       user[0].Name,
+		PictureURL: user[0].UrlFile,
 		Provider:   "google",
 		Metamask:   metamask,
 		IsNew:      IsNew,
