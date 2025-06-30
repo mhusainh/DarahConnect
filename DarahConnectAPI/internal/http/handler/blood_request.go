@@ -122,7 +122,7 @@ func (h *BloodRequestHandler) CreateCampaign(ctx echo.Context) error {
 	}
 	
 	// Retrieve user claims from the JWT token
-	claims, ok := ctx.Get("User").(*jwt.Token)
+	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {
 		return ctx.JSON(http.StatusInternalServerError, "unable to get user claims")
 	}
