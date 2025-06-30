@@ -202,6 +202,12 @@ func PrivateRoutes(
 			Roles:   userOnly,
 		},
 		{
+			Method:  http.MethodGet,
+			Path:    "user/blood-request",
+			Handler: bloodRequestHandler.GetBloodRequestByUser,
+			Roles:   userOnly,
+		},
+		{
 			Method:  http.MethodPost,
 			Path:    "user/create-blood-request",
 			Handler: bloodRequestHandler.CreateBloodRequest,

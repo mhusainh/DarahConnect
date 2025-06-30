@@ -1,0 +1,10 @@
+{
+  "name": "darah-connect",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.0.0",
+    "@openzeppelin/contracts": "^5.3.0",
+    "dotenv": "^16.4.5",
+    "hardhat": "^2.25.0"
+  },
+  "dependencies": {}
+}
