@@ -32,9 +32,9 @@ func (s *dashboardService) DashboardUser(ctx context.Context, userId int64) (map
 		lastDonation = bloodDonations[0].CreatedAt
 	}
 	data := map[string]interface{}{
-		"total donor":      int(len(bloodDonations)),
-		"last donation":    lastDonation,
-		"total sertifikat": countCompletedDonations(bloodDonations),
+		"total_donor":      int(len(bloodDonations)),
+		"last_donation":    lastDonation,
+		"total_sertifikat": countCompletedDonations(bloodDonations),
 	}
 	return data, nil
 }

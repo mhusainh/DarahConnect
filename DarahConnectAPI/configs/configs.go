@@ -18,6 +18,13 @@ type Config struct {
 	CloudinaryConfig CloudinaryConfig `envPrefix:"CLOUDINARY_" mapstructure:"CLOUDINARY"`
 	MidtransConfig   MidtransConfig   `envPrefix:"MIDTRANS_" mapstructure:"MIDTRANS"`
 	GoogleOauth      GoogleOauth      `envPrefix:"GOOGLE_" mapstructure:"GOOGLE_"`
+	Blockchain       BlockchainConfig `envPrefix:"BLOCKCHAIN_"`
+}
+
+type BlockchainConfig struct {
+	RPCURL          string `env:"SEPOLIA_RPC_URL"`
+	PrivateKey      string `env:"PRIVATE_KEY"`
+	ContractAddress string `env:"CONTRACT_ADDRESS"`
 }
 
 type RedisConfig struct {

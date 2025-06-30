@@ -60,7 +60,7 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clou
 	return router.PublicRoutes(userHandler, bloodRequestHandler, bloodDonationHandler, certificateHandler, donationHandler)
 }
 
-func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, cloudinaryService *cloudinary.Service, mailer *mailer.Mailer) []route.Route {
+func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, cloudinaryService *cloudinary.Service, mailer *mailer.Mailer, blockchain service.BlockchainService) []route.Route {
 	cacheable := cache.NewCacheable(rdb)
 	tokenUseCase := token.NewTokenUseCase(cfg.JWT.SecretKey)
 
