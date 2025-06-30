@@ -153,18 +153,18 @@ func (h *BloodRequestHandler) GetBloodRequests(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("successfully showing all blood requests", bloodRequests, req.Page, req.Limit, total))
 }
 
-func (h *BloodRequestHandler) GetBloodRequestsByAdmin(ctx echo.Context) error {
-	var req dto.GetAllBloodRequestRequest
-	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
-	}
+// func (h *BloodRequestHandler) GetBloodRequestsByAdmin(ctx echo.Context) error {
+// 	var req dto.GetAllBloodRequestRequest
+// 	if err := ctx.Bind(&req); err != nil {
+// 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+// 	}
 
-	bloodRequests, total, err := h.bloodRequestService.GetAllAdminBloodRequest(ctx.Request().Context(), req)
-	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
-	}
-	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("successfully showing all blood requests", bloodRequests, req.Page, req.Limit, total))
-}
+// 	bloodRequests, total, err := h.bloodRequestService.GetAllAdminBloodRequest(ctx.Request().Context(), req)
+// 	if err != nil {
+// 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+// 	}
+// 	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("successfully showing all blood requests", bloodRequests, req.Page, req.Limit, total))
+// }
 
 func (h *BloodRequestHandler) GetCampaigns(ctx echo.Context) error {
 	var req dto.GetAllBloodRequestRequest

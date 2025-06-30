@@ -126,7 +126,7 @@ func (r *donorRegistrationRepository) GetAllByUserId(ctx context.Context, userId
 
 func (r *donorRegistrationRepository) GetByRequestId(ctx context.Context, requestId int64) (*entity.DonorRegistration, error) {
 	result := new(entity.DonorRegistration)
-	if err := r.db.WithContext(ctx).Where("request_id = ?", requestId).First(result).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("Id = ?", requestId).First(result).Error; err != nil {
 		return nil, err
 	}
 	return result, nil

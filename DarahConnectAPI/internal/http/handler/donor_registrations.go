@@ -84,6 +84,10 @@ func (h *DonorRegistrationHandler) GetDonorRegistration(ctx echo.Context) error 
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 
+	if donorRegistration == nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "pendaftaran donor tidak ditemukan"))
+	}
+
 	if claimsData.Role == "User" && donorRegistration.UserId != claimsData.Id {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Anda tidak memiliki akses"))
 	}
@@ -137,7 +141,12 @@ func (h *DonorRegistrationHandler) CreateDonorRegistration(ctx echo.Context) err
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 	if bloodRequest.Status != "verified" {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Request blood masih/sudah" + bloodRequest.Status))
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Request blood masih/sudah " + bloodRequest.Status))
+	}
+	
+	donorRegistration, err := h.donorRegistrationService.GetByRequestId(ctx.Request().Context(), req.RequestId)
+	if err == nil && donorRegistration != nil && donorRegistration.UserId == claimsData.Id {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Anda sudah mendaftar di event ini"))
 	}
 
 	req.UserId = claimsData.Id
@@ -191,6 +200,10 @@ func (h *DonorRegistrationHandler) UpdateDonorRegistration(ctx echo.Context) err
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 
+	if donorRegistration == nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "pendaftaran donor tidak ditemukan"))
+	}
+
 	if claimsData.Role == "User"{
 		if donorRegistration.UserId != claimsData.Id {
 			return ctx.JSON(http.StatusUnauthorized, response.ErrorResponse(http.StatusUnauthorized, "unauthorized"))
@@ -229,6 +242,10 @@ func (h *DonorRegistrationHandler) DeleteDonorRegistration(ctx echo.Context) err
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 	
+	if donorRegistration == nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "pendaftaran donor tidak ditemukan"))
+	}
+
 	if claimsData.Id != donorRegistration.UserId {
 		return ctx.JSON(http.StatusUnauthorized, response.ErrorResponse(http.StatusUnauthorized, "unauthorized"))
 	}

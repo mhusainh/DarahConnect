@@ -248,12 +248,12 @@ func PrivateRoutes(
 			Roles:   adminOnly,
 		},
 		// Blood Request - Admin Only
-		{
-			Method:  http.MethodGet,
-			Path:    "blood-requests",
-			Handler: bloodRequestHandler.GetBloodRequestsByAdmin,
-			Roles:   adminOnly,
-		},
+		// {
+		// 	Method:  http.MethodGet,
+		// 	Path:    "blood-requests",
+		// 	Handler: bloodRequestHandler.GetBloodRequestsByAdmin,
+		// 	Roles:   adminOnly,
+		// },
 		// Blood Request/Campaign - Admin Only
 		{
 			Method:  http.MethodPost,

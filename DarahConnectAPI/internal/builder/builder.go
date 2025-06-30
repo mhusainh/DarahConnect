@@ -98,6 +98,7 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clo
 	healthPassportHandler := handler.NewHealthPassportHandler(healthPassportService)
 	bloodRequestHandler := handler.NewBloodRequestHandler(bloodRequestService,notificationService)
 	donorRegistrationHandler := handler.NewDonorRegistrationHandler(donorRegistrationService,healthPassportService,notificationService, bloodRequestService)
+
 	donorScheduleHandler := handler.NewDonorScheduleHandler(donorScheduleService)
 	hospitalHandler := handler.NewHospitalHandler(hospitalService)
 	bloodDonationHandler := handler.NewBloodDonationHandler(bloodDonationService, notificationService, certificateService)
@@ -106,5 +107,5 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clo
 	dashboardHandler := handler.NewDashboardHandler(dashboardService)
 	//end
 
-	return router.PrivateRoutes(userHandler, notificationHandler, healthPassportHandler, bloodRequestHandler, donorRegistrationHandler, donorScheduleHandler, hospitalHandler, bloodDonationHandler, certificateHandler, donationHandler, dashboardHandler)
+	return router.PrivateRoutes(userHandler, notificationHandler, healthPassportHandler, bloodRequestHandler, donorRegistrationHandler, donorScheduleHandler, hospitalHandler, bloodDonationHandler, certificateHandler, donationHandler,dashboardHandler)
 }
