@@ -95,7 +95,7 @@ func (r *donorScheduleRepository) GetAll(ctx context.Context, UserId int64, req 
 	var donorSchedule []entity.DonorSchedule
 	var total int64
 
-	dataQuery := r.db.WithContext(ctx).Model(&entity.DonorSchedule{}).Where("user_id = ?", UserId).Preload("Hospital").Preload("BloodRequest")
+	dataQuery := r.db.WithContext(ctx).Model(&entity.DonorSchedule{}).Preload("Hospital").Preload("BloodRequest").Where("user_id = ?", UserId)
 	dataQuery, req = r.applyFilters(dataQuery, req)
 	if err := dataQuery.Count(&total).Error; err != nil {
 		return nil, 0, err
