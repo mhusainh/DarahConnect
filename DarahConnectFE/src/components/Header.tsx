@@ -112,7 +112,7 @@ const Header: React.FC = () => {
   };
 
   // Fetch notifications from API
-  const { get: getNotificationsApi, patch: patchNotificationApi } = useApi<any>();
+  const { get: getNotificationsApi, get: patchNotificationApi } = useApi<any>();
   const { get: getUnreadCountApi } = useApi<any>();
   const { get: getProfileApi } = useApi<any>();
 

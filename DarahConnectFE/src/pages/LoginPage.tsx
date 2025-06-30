@@ -113,10 +113,17 @@ const LoginPage: React.FC = () => {
             saveAuthData(token, userData);
             localStorage.setItem('authMethod', 'email');
             
-            console.log('✅ Login berhasil:', userData);
-            
-            // Redirect to original destination or dashboard
-            navigate(from, { replace: true });
+            // Check if user is admin for redirect logic
+            const isAdmin = userData.role === 'Administrator';
+            if (isAdmin) {
+              console.log('✅ Admin login berhasil:', userData);
+              // Redirect admin to admin dashboard
+              navigate('/admin/dashboard', { replace: true });
+            } else {
+              console.log('✅ User login berhasil:', userData);
+              // Redirect to original destination or regular dashboard
+              navigate(from, { replace: true });
+            }
           } else {
             // Token invalid atau expired
             setErrors({ 

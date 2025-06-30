@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, MapPinIcon, PhoneIcon, CalendarIcon, AlertTriangleIcon, UserIcon, BuildingIcon, HeartIcon, ClockIcon } from 'lucide-react';
+import { ArrowLeftIcon, MapPinIcon, PhoneIcon, CalendarIcon, AlertTriangleIcon, UserIcon, BuildingIcon, HeartIcon, ClockIcon, Plus } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 import { useQuickNotifications } from '../contexts/NotificationContext';
 import { getUserData } from '../utils/jwt';
 import { formatDateForBackend, formatDateForDisplay, isDateInFuture, EXAMPLE_FORMATTED_DATE } from '../utils/dateUtils';
+import AddHospitalModal from '../components/AddHospitalModal';
 
 interface CreateBloodRequestForm {
   user_id: number;
@@ -30,17 +31,22 @@ interface FormErrors {
 interface Hospital {
   id: number;
   name: string;
-  location: string;
+  address: string;
+  city: string;
+  province: string;
+  latitude: number;
+  longitude: number;
 }
 
 const CreateBloodRequestPage: React.FC = () => {
   const navigate = useNavigate();
   const createRequestApi = useApi();
+  const hospitalsApi = useApi<Hospital[]>();
   const notifications = useQuickNotifications();
   
   const [formData, setFormData] = useState<CreateBloodRequestForm>({
     user_id: 0,
-    hospital_id: 1,
+    hospital_id: 0,
     patient_name: '',
     event_date: '',
     blood_type: '',
@@ -50,15 +56,8 @@ const CreateBloodRequestPage: React.FC = () => {
   });
   
   const [errors, setErrors] = useState<FormErrors>({});
-
-  // Mock hospitals data - in real app, this would come from API
-  const hospitals: Hospital[] = [
-    { id: 1, name: 'RS Cipto Mangunkusumo', location: 'Jakarta Pusat' },
-    { id: 2, name: 'RS Fatmawati', location: 'Jakarta Selatan' },
-    { id: 3, name: 'RS Persahabatan', location: 'Jakarta Timur' },
-    { id: 4, name: 'RS Hasan Sadikin', location: 'Bandung' },
-    { id: 5, name: 'RS Sardjito', location: 'Yogyakarta' }
-  ];
+  const [hospitals, setHospitals] = useState<Hospital[]>([]);
+  const [isAddHospitalModalOpen, setIsAddHospitalModalOpen] = useState(false);
 
   const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   const urgencyLevels = [
@@ -68,19 +67,42 @@ const CreateBloodRequestPage: React.FC = () => {
     { value: 'critical', label: 'Sangat Mendesak', color: 'text-red-600', bgColor: 'bg-red-50 border-red-200' }
   ];
 
-  // Set user_id from localStorage on component mount
+  // Set user_id from localStorage and fetch hospitals on component mount
   useEffect(() => {
     const userData = getUserData();
     if (userData?.id) {
       setFormData(prev => ({ ...prev, user_id: userData.id }));
     }
+    
+    // Fetch hospitals from API
+    hospitalsApi.get('/hospital');
   }, []);
 
+  // Update hospitals when API call completes
+  useEffect(() => {
+    if (hospitalsApi.data) {
+      setHospitals(Array.isArray(hospitalsApi.data) ? hospitalsApi.data : []);
+    }
+  }, [hospitalsApi.data]);
+
   const handleInputChange = (field: keyof CreateBloodRequestForm, value: any) => {
+    // Special handling for hospital selection
+    if (field === 'hospital_id' && value === 'add-new') {
+      setIsAddHospitalModalOpen(true);
+      return;
+    }
+    
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
+  };
+
+  const handleHospitalAdded = (newHospital: Hospital) => {
+    setHospitals(prev => [...prev, newHospital]);
+    setFormData(prev => ({ ...prev, hospital_id: newHospital.id }));
+    setIsAddHospitalModalOpen(false);
+    notifications.success('Berhasil!', 'Rumah sakit baru telah ditambahkan');
   };
 
   const validateForm = () => {
@@ -254,9 +276,12 @@ const CreateBloodRequestPage: React.FC = () => {
                   <option value="">Pilih Rumah Sakit</option>
                   {hospitals.map((hospital) => (
                     <option key={hospital.id} value={hospital.id}>
-                      {hospital.name} - {hospital.location}
+                      {hospital.name} - {hospital.city}, {hospital.province}
                     </option>
                   ))}
+                  <option value="add-new" className="font-medium text-blue-600">
+                    + Tambah Rumah Sakit Baru
+                  </option>
                 </select>
               </div>
               {errors.hospital_id && <p className="mt-1 text-sm text-red-600">{errors.hospital_id}</p>}
@@ -366,7 +391,7 @@ const CreateBloodRequestPage: React.FC = () => {
                   <div className="space-y-2 text-sm text-gray-600">
                     <p className="flex items-center">
                       <BuildingIcon className="w-4 h-4 mr-2" />
-                      {selectedHospital?.name} - {selectedHospital?.location}
+                      {selectedHospital?.name} - {selectedHospital?.city}, {selectedHospital?.province}
                     </p>
                     <p className="flex items-center">
                       <HeartIcon className="w-4 h-4 mr-2" />
@@ -432,6 +457,13 @@ const CreateBloodRequestPage: React.FC = () => {
           </form>
         </div>
       </div>
+
+      {/* Add Hospital Modal */}
+      <AddHospitalModal
+        isOpen={isAddHospitalModalOpen}
+        onClose={() => setIsAddHospitalModalOpen(false)}
+        onHospitalAdded={handleHospitalAdded}
+      />
     </div>
   );
 };

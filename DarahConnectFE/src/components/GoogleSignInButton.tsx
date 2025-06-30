@@ -1,5 +1,6 @@
 import React from 'react';
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
+import { useApi } from '../hooks/useApi';
 
 interface GoogleSignInButtonProps {
   onSuccess?: (user: any) => void;
@@ -23,10 +24,14 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
       onSuccess(user);
     }
   }, [isSignedIn, user, onSuccess]);
-
-  const handleSignIn = () => {
+  const {get} = useApi();
+  const handleSignIn = async () => {
     try {
-      signIn();
+      // signIn();
+      const ngelink = 'http://localhost:8081/api/v1/login/google';
+      window.location.href = ngelink;
+      // const response = await get('/login/google');
+      // console.log(response);
     } catch (error) {
       console.error('Google sign-in error:', error);
       if (onError) {
