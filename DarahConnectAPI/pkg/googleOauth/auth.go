@@ -133,6 +133,7 @@ func (s *Service) Callback(ctx echo.Context) (string, error) {
 		Provider:   "google",
 		Metamask:   metamask,
 		IsNew:      IsNew,
+		Role:       "User",
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(12 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

@@ -38,6 +38,7 @@ type GoogleOAuthClaims struct {
 	Provider   string `json:"provider"` // "google"
 	Metamask   bool   `json:"metamask"`
 	IsNew      bool   `json:"is_new"`
+	Role       string `json:"role"`
 	jwt.RegisteredClaims
 }
 
