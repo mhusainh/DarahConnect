@@ -121,7 +121,7 @@ func (r *bloodRequestRepository) GetAllAdminBloodRequest(ctx context.Context, re
 	var total int64
 
 	// Hitung total item sebelum pagination
-	dataQuery := r.db.WithContext(ctx).Model(&entity.BloodRequest{}).Where("event_type = ?", "blood_request").Preload("User").Preload("Hospital")
+	dataQuery := r.db.WithContext(ctx).Model(&entity.BloodRequest{}).Preload("User").Preload("Hospital")
 	dataQuery, req = r.applyFilters(dataQuery, req)
 	if err := dataQuery.Count(&total).Error; err != nil {
 		return nil, 0, err

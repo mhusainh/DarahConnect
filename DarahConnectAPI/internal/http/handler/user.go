@@ -61,9 +61,14 @@ func (h *UserHandler) Login(ctx echo.Context) error {
 			response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
 
-	token, err := h.userService.Login(ctx.Request().Context(), loginRequest.Email, loginRequest.Password)
+	token, isVerified, err := h.userService.Login(ctx.Request().Context(), loginRequest.Email, loginRequest.Password)
 	if err != nil {
 		return ctx.JSON(http.StatusUnauthorized, response.ErrorResponse(http.StatusUnauthorized, err.Error()))
+	}
+	if !isVerified {
+		return ctx.JSON(http.StatusOK, response.SuccessResponse("Email belum diverifikasi, silahkan verifikasi email anda", map[string]interface{}{
+			"verify_expired_at": token,
+		}))
 	}
 
 	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully login", map[string]interface{}{
@@ -210,7 +215,7 @@ func (h *UserHandler) UpdateUser(ctx echo.Context) error {
 
 	// Langkah 2: Tangani file upload secara manual dan terpisah.
 	// Ini membuat penanganan file opsional menjadi lebih eksplisit dan aman.
-	if imageFile, err := ctx.FormFile("image");err != nil {
+	if imageFile, err := ctx.FormFile("image"); err != nil {
 		// Jika error bukan karena file tidak ada, berarti ada masalah lain.
 		if err != http.ErrMissingFile {
 			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "error processing image file: "+err.Error()))
@@ -224,7 +229,7 @@ func (h *UserHandler) UpdateUser(ctx echo.Context) error {
 	var acceptedImages = map[string]struct{}{
 		"image/png":  {},
 		"image/jpeg": {},
-		"image/jpg": {},
+		"image/jpg":  {},
 	}
 	if req.Image != nil {
 		if _, ok := acceptedImages[req.Image.Header.Get("Content-Type")]; !ok {
@@ -243,8 +248,8 @@ func (h *UserHandler) UpdateUser(ctx echo.Context) error {
 	if !ok {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user information from claims"))
 	}
-	
-	req.Id = claimsData.Id 
+
+	req.Id = claimsData.Id
 
 	// Update user data
 	err := h.userService.Update(ctx.Request().Context(), req)

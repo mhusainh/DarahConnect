@@ -72,7 +72,7 @@ func (r *healthPassportRepository) Create(ctx context.Context, healthPassport *e
 
 func (r *healthPassportRepository) GetById(ctx context.Context, id int64) (*entity.HealthPassport, error) {
 	result := new(entity.HealthPassport)
-	if err := r.db.WithContext(ctx).Where("id = ?", id).First(result).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("id = ?", id).Preload("User").First(result).Error; err != nil {
 		return nil, err
 	}
 	return result, nil

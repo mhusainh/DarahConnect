@@ -249,17 +249,23 @@ func PrivateRoutes(
 		},
 		{
 			Method:  http.MethodDelete,
-			Path:    "admin/health-passport",
+			Path:    "admin/health-passport/:id",
 			Handler: healthPassportHandler.DeleteHealthPassport,
 			Roles:   adminOnly,
 		},
 		// Blood Request - Admin Only
-		// {
-		// 	Method:  http.MethodGet,
-		// 	Path:    "blood-requests",
-		// 	Handler: bloodRequestHandler.GetBloodRequestsByAdmin,
-		// 	Roles:   adminOnly,
-		// },
+		{
+			Method:  http.MethodGet,
+			Path:    "admin/blood-requests",
+			Handler: bloodRequestHandler.GetBloodRequestsByAdmin,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodPut,
+			Path:    "admin/blood-request/:id",
+			Handler: bloodRequestHandler.StatusBloodRequest,
+			Roles:   adminOnly,
+		},
 		// Blood Request/Campaign - Admin Only
 		{
 			Method:  http.MethodPost,
@@ -271,12 +277,6 @@ func PrivateRoutes(
 			Method:  http.MethodPut,
 			Path:    "admin/campaign/:id",
 			Handler: bloodRequestHandler.UpdateCampaign,
-			Roles:   adminOnly,
-		},
-		{
-			Method:  http.MethodPut,
-			Path:    "admin/campaign/:id",
-			Handler: bloodRequestHandler.StatusBloodRequest,
 			Roles:   adminOnly,
 		},
 		// Notification - Admin Only
