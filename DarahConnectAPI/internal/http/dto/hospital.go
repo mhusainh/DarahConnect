@@ -5,8 +5,8 @@ type HospitalCreateRequest struct {
 	Address   string  `json:"address" form:"address" validate:"required"`
 	City      string  `json:"city" form:"city" validate:"required"`
 	Province  string  `json:"province" form:"province" validate:"required"`
-	Latitude  float64 `json:"latitude" form:"latitude" validate:"required"`
-	Longitude float64 `json:"longitude" form:"longitude" validate:"required"`
+	Latitude  float64 `json:"latitude" form:"latitude"`
+	Longitude float64 `json:"longitude" form:"longitude"`
 }
 
 type HospitalUpdateRequest struct {
