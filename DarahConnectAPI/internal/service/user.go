@@ -34,6 +34,7 @@ type UserService interface {
 	VerifyEmail(ctx context.Context, req dto.VerifyEmailRequest) error
 	RequestResetPassword(ctx context.Context, email string) error
 	ResetPassword(ctx context.Context, req dto.ResetPasswordRequest) error
+	WalletAddress(ctx context.Context, user *entity.User, req dto.WalletAddressRequest) error
 }
 
 type userService struct {
@@ -376,6 +377,14 @@ func (s *userService) CheckGoogleOAuth(ctx context.Context, email string, user *
 		return existingUser, true, nil
 	}
 	return existingUser, false, nil
+}
+
+func (s *userService) WalletAddress(ctx context.Context, user *entity.User, req dto.WalletAddressRequest) error {
+	user.WalletAddress = req.WalletAddress
+	if err := s.userRepository.Update(ctx, user); err != nil {
+		return err
+	}
+	return nil
 }
 
 // func (s *userService) GetAll(ctx context.Context) (result []entity.User, err error) {

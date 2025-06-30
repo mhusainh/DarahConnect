@@ -279,3 +279,31 @@ func (h *UserHandler) CallbackGoogleAuth(ctx echo.Context) error {
 
 	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully callback", data))
 }
+
+func (h *UserHandler) WalletAddress(ctx echo.Context) error {
+	var req dto.WalletAddressRequest
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+
+	claims, ok := ctx.Get("user").(*jwt.Token)
+	if !ok {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user claims"))
+	}
+
+	// Extract user information from claims
+	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
+	if !ok {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user information from claims"))
+	}
+
+	user, err := h.userService.GetById(ctx.Request().Context(), claimsData.Id)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+
+	if err := h.userService.WalletAddress(ctx.Request().Context(), user, req); err != nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully update wallet address", nil))
+}

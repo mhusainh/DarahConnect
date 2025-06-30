@@ -86,7 +86,6 @@ func PublicRoutes(
 			Handler: donationHandler.WebHookTransaction,
 		},
 		// Certificate Handler
-
 	}
 }
 
@@ -225,6 +224,13 @@ func PrivateRoutes(
 			Handler: bloodDonationHandler.GetByUser,
 			Roles:   userOnly,
 		},
+		{
+			Method:  http.MethodPost,
+			Path:    "user/wallet-address",
+			Handler: userHandler.WalletAddress,
+			Roles:   userOnly,
+		},
+
 		// =============================================
 		// ADMIN ONLY ROUTES
 		// =============================================

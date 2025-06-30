@@ -55,6 +55,10 @@ type GetUserByIdByUserRequest struct {
 	Email  string `json:"email" form:"email" validate:"required"`
 }
 
+type WalletAddressRequest struct {
+	WalletAddress string `json:"wallet_address" validate:"required"`
+}
+
 type ResetPasswordRequest struct {
 	Token    string `query:"token"`
 	Password string `json:"password" form:"password" validate:"required"`
