@@ -10,6 +10,7 @@ import (
 
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/configs"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/builder"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/service"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cache"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cloudinary"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/database"
@@ -32,7 +33,7 @@ func main() {
 
 	err = timezone.InitTimezone()
 	checkError(err)
-	
+
 	cloudinaryService, err := cloudinary.NewService(&cfg.CloudinaryConfig)
 	checkError(err)
 
@@ -42,11 +43,14 @@ func main() {
 	err = googleoauth.InitGoogle(&cfg.GoogleOauth)
 	checkError(err)
 
-	_,err = midtrans.InitMidtrans(&cfg.MidtransConfig)
+	_, err = midtrans.InitMidtrans(&cfg.MidtransConfig)
+	checkError(err)
+
+	blockchain, err := service.NewBlockchainService(cfg.Blockchain)
 	checkError(err)
 
 	publicRoutes := builder.BuildPublicRoutes(cfg, db, rdb, cloudinaryService, mailer)
-	privateRoutes := builder.BuildPrivateRoutes(cfg, db, rdb, cloudinaryService, mailer)
+	privateRoutes := builder.BuildPrivateRoutes(cfg, db, rdb, cloudinaryService, mailer, blockchain)
 
 	srv := server.NewServer(cfg, publicRoutes, privateRoutes)
 	runServer(srv, cfg.PORT)
