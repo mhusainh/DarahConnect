@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
@@ -346,9 +347,19 @@ func (h *BloodRequestHandler) StatusBloodRequest(ctx echo.Context) error {
 
 func (h *BloodRequestHandler) DeleteBloodRequest(ctx echo.Context) error {
 	var req dto.BloodRequestByIdRequest
-	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	// Mengambil ID dari parameter URL, bukan dari body request
+	idStr := ctx.Param("id")
+	if idStr == "" {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "id parameter is required"))
 	}
+	
+	// Parse ID ke int64
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "invalid id format"))
+	}
+	
+	req.Id = id
 
 	// Retrieve user claims from the JWT token
 	claims, ok := ctx.Get("user").(*jwt.Token)
@@ -366,15 +377,15 @@ func (h *BloodRequestHandler) DeleteBloodRequest(ctx echo.Context) error {
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
+	if claimsData.Role == "User" {
+		if claimsData.Id != bloodRequest.UserId {
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Anda tdak mempunyai akses"))
+		}
 
-	if claimsData.Id != bloodRequest.UserId {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "campaign tidak dapat dihapus"))
+		if bloodRequest.Status != "pending" {
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "campaign tidak dapat dihapus karena status " + bloodRequest.Status))
+		}
 	}
-
-	if bloodRequest.Status != "pending" {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "campaign tidak dapat dihapus"))
-	}
-
 	if err := h.bloodRequestService.Delete(ctx.Request().Context(), req.Id); err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}

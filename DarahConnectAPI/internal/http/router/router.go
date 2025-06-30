@@ -279,12 +279,6 @@ func PrivateRoutes(
 			Handler: bloodRequestHandler.StatusBloodRequest,
 			Roles:   adminOnly,
 		},
-		{
-			Method:  http.MethodDelete,
-			Path:    "admin/campaign/:id",
-			Handler: bloodRequestHandler.DeleteBloodRequest,
-			Roles:   adminOnly,
-		},
 		// Notification - Admin Only
 		{
 			Method:  http.MethodGet,
@@ -432,6 +426,12 @@ func PrivateRoutes(
 			Method:  http.MethodGet,
 			Path:    "certificates/user",
 			Handler: certificateHandler.GetByUser,
+			Roles:   allRoles,
+		},
+		{
+			Method:  http.MethodDelete,
+			Path:    "campaign/:id",
+			Handler: bloodRequestHandler.DeleteBloodRequest,
 			Roles:   allRoles,
 		},
 	}
