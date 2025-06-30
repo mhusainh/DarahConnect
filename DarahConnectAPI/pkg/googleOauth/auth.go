@@ -112,15 +112,6 @@ func (s *Service) Callback(ctx echo.Context) (string, error) {
 		log.Printf("Error completing user auth: %v", err)
 		return "", fmt.Errorf("authentication failed: %v", err)
 	}
-	var reqq dto.GetAllUserRequest
-
-	reqq.Email = googleUser.Email
-
-	user, _, err := s.userService.GetAll(ctx.Request().Context(), reqq)
-	if err != nil {
-		log.Printf("Error getting user by email: %v", err)
-		return "", errors.New("ada kesalahan saat get user by email")
-	}
 
 	// Check if user already exists in the database
 	metamask := false
@@ -133,6 +124,13 @@ func (s *Service) Callback(ctx echo.Context) (string, error) {
 		metamask = true
 	}
 
+	var reqq dto.GetAllUserRequest
+	reqq.Email = googleUser.Email
+
+	user, _, err := s.userService.GetAll(ctx.Request().Context(), reqq)
+	if err != nil {
+		return "", errors.New("ada kesalahan saat get user by email")
+	}
 	// Buat JWT claims dari data Google OAuth
 	claims := &token.GoogleOAuthClaims{
 		Id:         strconv.FormatInt(user[0].Id, 10),
