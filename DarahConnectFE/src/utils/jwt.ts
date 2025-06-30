@@ -6,6 +6,7 @@ export interface JWTPayload {
   id: string;
   email: string;
   name: string;
+  role: string;
   exp: number;
   iat: number;
 }
@@ -85,9 +86,15 @@ export const saveAuthData = (token: string, userData: JWTPayload) => {
     localStorage.setItem('userEmail', userData.email);
     localStorage.setItem('userName', userData.name);
     
+    // Set admin flag based on user role
+    const isAdmin = userData.role === 'Administrator';
+    localStorage.setItem('isAdmin', isAdmin ? 'true' : 'false');
+    
     debugConsole.log('Auth data saved successfully', {
       email: userData.email,
       name: userData.name,
+      role: userData.role,
+      isAdmin: isAdmin,
       expires: new Date(userData.exp * 1000)
     });
   } catch (error) {
@@ -105,6 +112,7 @@ export const clearAuthData = () => {
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userName');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('isAdmin');
     
     debugConsole.log('Auth data cleared successfully');
   } catch (error) {
