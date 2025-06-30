@@ -37,6 +37,7 @@ type GoogleOauth struct {
 	ClientId     string `env:"CLIENT_ID" mapstructure:"CLIENT_ID"`
 	ClientSecret string `env:"CLIENT_SECRET" mapstructure:"CLIENT_SECRET"`
 	CallbackURL  string `env:"CLIENT_CALLBACK_URL" mapstructure:"CLIENT_CALLBACK_URL"`
+	RedirectURL  string `env:"REDIRECT_URL" mapstructure:"REDIRECT_URL"`
 }
 type JWTConfig struct {
 	SecretKey string `env:"SECRET_KEY" envDefault:"secret" mapstructure:"SECRET_KEY"`

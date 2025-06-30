@@ -37,6 +37,7 @@ type GoogleOAuthClaims struct {
 	PictureURL string `json:"picture_url,omitempty"`
 	Provider   string `json:"provider"` // "google"
 	Metamask   bool   `json:"metamask"`
+	IsNew      bool   `json:"is_new"`
 	jwt.RegisteredClaims
 }
 

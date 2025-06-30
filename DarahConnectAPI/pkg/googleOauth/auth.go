@@ -23,12 +23,14 @@ type GoogleAuthService interface {
 type Service struct {
 	tokenService token.TokenUseCase
 	userService  service.UserService
+	cfg          *configs.GoogleOauth
 }
 
-func NewGoogleOAuthService(tokenService token.TokenUseCase, userService service.UserService) *Service {
+func NewGoogleOAuthService(tokenService token.TokenUseCase, userService service.UserService, cfg *configs.GoogleOauth) *Service {
 	return &Service{
 		tokenService,
 		userService,
+		cfg,
 	}
 }
 
@@ -71,11 +73,11 @@ func (s *Service) Login(ctx echo.Context) (goth.User, error) {
 	return goth.User{}, nil
 }
 
-func (s *Service) Callback(ctx echo.Context) (map[string]interface{}, error) {
+func (s *Service) Callback(ctx echo.Context) (string, error) {
 	// Add provider parameter to query for goth
 	provider := ctx.Param("provider")
 	if provider == "" {
-		return nil, errors.New("Provider not specified")
+		return "", errors.New("Provider not specified")
 	}
 
 	q := ctx.Request().URL.Query()
@@ -93,20 +95,20 @@ func (s *Service) Callback(ctx echo.Context) (map[string]interface{}, error) {
 	authCode := req.URL.Query().Get("code")
 	if authCode == "" {
 		log.Printf("No authorization code found in callback")
-		return nil, errors.New("authorization code not found")
+		return "", errors.New("authorization code not found")
 	}
 	log.Printf("Authorization code received (length: %d)", len(authCode))
 
 	// Check for error parameter
 	if errParam := req.URL.Query().Get("error"); errParam != "" {
 		log.Printf("OAuth error parameter: %s", errParam)
-		return nil, fmt.Errorf("OAuth error: %s", errParam)
+		return "", fmt.Errorf("OAuth error: %s", errParam)
 	}
 
 	user, err := gothic.CompleteUserAuth(res, req)
 	if err != nil {
 		log.Printf("Error completing user auth: %v", err)
-		return nil, fmt.Errorf("authentication failed: %v", err)
+		return "", fmt.Errorf("authentication failed: %v", err)
 	}
 
 	log.Printf("Successfully authenticated user: %s", user.Email)
@@ -116,7 +118,7 @@ func (s *Service) Callback(ctx echo.Context) (map[string]interface{}, error) {
 	userEntity, IsNew, err := s.userService.CheckGoogleOAuth(ctx.Request().Context(), user.Email, &user)
 	if err != nil {
 		log.Printf("Error checking Google OAuth user: %v", err)
-		return nil, errors.New("ada kesalahan saat check google oauth")
+		return "", errors.New("ada kesalahan saat check google oauth")
 	}
 	if userEntity.WalletAddress != "" {
 		metamask = true
@@ -130,6 +132,7 @@ func (s *Service) Callback(ctx echo.Context) (map[string]interface{}, error) {
 		PictureURL: user.AvatarURL,
 		Provider:   "google",
 		Metamask:   metamask,
+		IsNew:      IsNew,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(12 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -140,13 +143,9 @@ func (s *Service) Callback(ctx echo.Context) (map[string]interface{}, error) {
 	accessToken, err := s.tokenService.GenerateAccessToken(claims)
 	if err != nil {
 		log.Printf("Error generating access token: %v", err)
-		return nil, errors.New("ada kesalahan saat generate token")
+		return "", errors.New("ada kesalahan saat generate token")
 	}
-
+	redirectURL := s.cfg.RedirectURL
 	// Return token dan data user
-	return map[string]interface{}{
-		"token": accessToken,
-		"user":  user,
-		"IsNew": IsNew,
-	}, nil
+	return redirectURL + accessToken, nil
 }
