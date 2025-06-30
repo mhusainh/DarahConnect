@@ -4,6 +4,7 @@ import { BloodCampaign } from '../types';
 import { adaptCampaignsFromApi, adaptCampaignFromApi } from './campaignAdapter';
 import { debugConsole } from '../config/api';
 
+
 export const useCampaignService = () => {
   const api = useApi();
 
@@ -118,11 +119,67 @@ export const useCampaignService = () => {
     }
   };
 
+  const createSchedule = async (requestId: number, hospitalId: number, description: string): Promise<boolean> => {
+    try {
+      const response = await api.post('/user/schedule/', {
+        request_id: requestId,
+        hospital_id: hospitalId,
+        description: description
+      });
+      
+      if (response.success) {
+        debugConsole.success(`Successfully created schedule for request ID: ${requestId}`);
+        return true;
+      } else {
+        debugConsole.error('Schedule creation failed', response.error);
+        return false;
+      }
+    } catch (error) {
+      debugConsole.error('Error during schedule creation', error);
+      return false;
+    }
+  };
+
+  const donorNowWithSchedule = async (requestId: number, hospitalId: number, description: string, notes: string): Promise<boolean> => {
+    try {
+      // First create schedule
+      const scheduleResponse = await api.post('/user/schedule/', {
+        request_id: requestId,
+        hospital_id: hospitalId,
+        description: description
+      });
+      
+      if (!scheduleResponse.success) {
+        debugConsole.error('Schedule creation failed in donor now process', scheduleResponse.error);
+        return false;
+      }
+      
+      // Then register as donor
+      const donorResponse = await api.post('/user/donor-registration', {
+        request_id: requestId,
+        notes: notes
+      });
+      
+      if (donorResponse.success) {
+        debugConsole.success(`Successfully completed donor now with schedule for request ID: ${requestId}`);
+        return true;
+      } else {
+        debugConsole.error('Donor registration failed in donor now process', donorResponse.error);
+        return false;
+      }
+    } catch (error) {
+      debugConsole.error('Error during donor now with schedule process', error);
+      return false;
+    }
+  };
+
   return {
     fetchCampaigns,
     getCampaignById,
     getCampaignDetail,
-    registerAsDonor
+    registerAsDonor,
+    createSchedule,
+    donorNowWithSchedule
   };
 };
 
@@ -193,4 +250,4 @@ export const formatCampaignData = {
       default: return '📋';
     }
   }
-}; 
+};
