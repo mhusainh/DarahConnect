@@ -109,7 +109,7 @@ export const DonationScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ sche
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold mb-2">Jadwal Donor Darah</h2>
-            <p className="text-red-100">Temukan jadwal donor darah terdekat</p>
+            <p className="text-red-100">Jadwal donor darah terdekat milik Anda</p>
           </div>
           <div className="flex items-center space-x-2">
             <button
@@ -467,17 +467,6 @@ export const DonationScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ sche
                 className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-100 transition-colors"
               >
                 Tutup
-              </button>
-              <button
-                onClick={handleRegister}
-                disabled={selectedSchedule.registered >= selectedSchedule.capacity}
-                className={`flex-1 px-6 py-3 rounded-xl font-medium transition-colors ${
-                  selectedSchedule.registered >= selectedSchedule.capacity
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-red-600 to-pink-600 text-white hover:from-red-700 hover:to-pink-700'
-                }`}
-              >
-                {selectedSchedule.registered >= selectedSchedule.capacity ? 'Penuh' : 'Daftar Sekarang'}
               </button>
             </div>
           </div>

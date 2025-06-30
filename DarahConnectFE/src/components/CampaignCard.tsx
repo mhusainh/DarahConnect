@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   MapPinIcon, 
   CalendarIcon, 
@@ -10,6 +10,9 @@ import {
 import { BloodCampaign } from '../types';
 import { HoverScale, FadeIn, Pulse } from './ui/AnimatedComponents';
 import { RippleEffect } from './ui/AdvancedAnimations';
+import DonorOptionModal from './DonorOptionModal';
+import { useCampaignService } from '../services/campaignService';
+import { useNotification } from '../hooks/useNotification';
 
 interface CampaignCardProps {
   campaign: BloodCampaign;
@@ -24,6 +27,9 @@ const CampaignCard: React.FC<CampaignCardProps> = ({
   onDonate,
   onCryptoDonate 
 }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const campaignService = useCampaignService();
+  const { addNotification } = useNotification();
   const progress = (campaign.currentDonors / campaign.targetDonors) * 100;
   
   const getUrgencyColor = (urgency: string) => {
@@ -47,6 +53,62 @@ const CampaignCard: React.FC<CampaignCardProps> = ({
   };
 
   const daysLeft = Math.ceil((new Date(campaign.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+
+  const handleDonorNow = async (notes: string, hospitalId: number, description: string) => {
+    try {
+      const success = await campaignService.donorNowWithSchedule(Number(campaign.id), hospitalId, description, notes);
+      if (success) {
+        addNotification({
+          type: 'success',
+          title: 'Pendaftaran dan Jadwal Berhasil!',
+          message: 'Anda telah berhasil mendaftar sebagai donor dan jadwal telah dibuat. Tim akan menghubungi Anda segera.',
+          duration: 5000
+        });
+      } else {
+        addNotification({
+          type: 'error',
+          title: 'Pendaftaran Gagal',
+          message: 'Terjadi kesalahan saat mendaftar sebagai donor dan membuat jadwal. Silakan coba lagi.',
+          duration: 5000
+        });
+      }
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Terjadi kesalahan sistem. Silakan coba lagi nanti.',
+        duration: 5000
+      });
+    }
+  };
+
+  const handleScheduleOnly = async (hospitalId: number, description: string) => {
+    try {
+      const success = await campaignService.createSchedule(Number(campaign.id), hospitalId, description);
+      if (success) {
+        addNotification({
+          type: 'success',
+          title: 'Jadwal Berhasil Dibuat!',
+          message: 'Jadwal donor darah telah berhasil dibuat. Tim akan menghubungi Anda untuk konfirmasi.',
+          duration: 5000
+        });
+      } else {
+        addNotification({
+          type: 'error',
+          title: 'Pembuatan Jadwal Gagal',
+          message: 'Terjadi kesalahan saat membuat jadwal. Silakan coba lagi.',
+          duration: 5000
+        });
+      }
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Terjadi kesalahan sistem. Silakan coba lagi nanti.',
+        duration: 5000
+      });
+    }
+  };
 
   return (
     <FadeIn direction="up" delay={0.1}>
@@ -182,7 +244,7 @@ const CampaignCard: React.FC<CampaignCardProps> = ({
                   color="rgba(255, 255, 255, 0.4)"
                 >
                   <button 
-                    onClick={() => onDonate?.(campaign)}
+                    onClick={() => setIsModalOpen(true)}
                     className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:from-primary-700 hover:to-primary-800 transform hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
                   >
                     Donor Sekarang
@@ -209,8 +271,17 @@ const CampaignCard: React.FC<CampaignCardProps> = ({
           </div>
         </div>
       </HoverScale>
+
+      {/* Donor Option Modal */}
+      <DonorOptionModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        campaign={campaign}
+        onDonorNow={handleDonorNow}
+        onScheduleOnly={handleScheduleOnly}
+      />
     </FadeIn>
   );
 };
 
-export default CampaignCard; 
+export default CampaignCard;

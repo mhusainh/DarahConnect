@@ -15,7 +15,60 @@ export interface RequestOptions {
   headers?: Record<string, string>;
   timeout?: number;
   signal?: AbortSignal;
+  skipAuthRedirect?: boolean; // Option to skip auto redirect for specific calls
 }
+
+// Fungsi untuk clear session data
+const clearSession = () => {
+  try {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('refreshToken');
+    
+    debugConsole.log('Session data cleared');
+  } catch (error) {
+    debugConsole.error('Error clearing session data', error);
+  }
+};
+
+// Fungsi untuk redirect ke login dengan error message
+const redirectToLogin = (errorMessage: string, endpoint: string) => {
+  // Store error message for display on login page
+  try {
+    localStorage.setItem('loginError', errorMessage);
+    localStorage.setItem('loginErrorTime', Date.now().toString());
+    
+    debugConsole.log(`Redirecting to login due to 401 on ${endpoint}`, { errorMessage });
+    
+    // Clear session data
+    clearSession();
+    
+    // Show notification
+    notificationManager.showError(
+      'Sesi Berakhir',
+      'Anda harus login ulang untuk melanjutkan'
+    );
+    
+    // Redirect to login page
+    window.location.href = '/login';
+  } catch (error) {
+    debugConsole.error('Error during redirect to login', error);
+    // Fallback - just redirect without storing error
+    window.location.href = '/login';
+  }
+};
+
+// Helper untuk mendapatkan auth token dari localStorage
+const getAuthToken = (): string | null => {
+  try {
+    return localStorage.getItem('authToken');
+  } catch (error) {
+    debugConsole.error('Error getting auth token from localStorage', error);
+    return null;
+  }
+};
 
 // Fungsi untuk membuat timeout
 const createTimeout = (ms: number): Promise<never> => {
@@ -40,16 +93,6 @@ const requiresAuth = (endpoint: string): boolean => {
   return !publicEndpoints.some(publicEndpoint => 
     endpoint.includes(publicEndpoint) || endpoint.endsWith(publicEndpoint)
   );
-};
-
-// Helper untuk mendapatkan auth token dari localStorage
-const getAuthToken = (): string | null => {
-  try {
-    return localStorage.getItem('authToken');
-  } catch (error) {
-    debugConsole.error('Error getting auth token from localStorage', error);
-    return null;
-  }
 };
 
 // Helper untuk performance timing
@@ -275,11 +318,36 @@ export const fetchApi = async <T = any>(
         statusText: response.statusText,
         data: responseData
       });
+
       logPerformance(method, endpoint, startTime);
+      
+      // Handle 401 Unauthorized - Auto redirect to login
+      if (response.status === 401 && !options.skipAuthRedirect) {
+        let errorMessage = 'Sesi Anda telah berakhir. Silakan login kembali.';
+        
+        // Extract error message from response
+        if (responseData?.meta?.message) {
+          errorMessage = responseData.meta.message;
+        } else if (responseData?.message) {
+          errorMessage = responseData.message;
+        } else if (responseData?.error) {
+          errorMessage = responseData.error;
+        }
+        
+        // Redirect to login
+        redirectToLogin(errorMessage, endpoint);
+        
+        return {
+          success: false,
+          error: errorMessage,
+          status: response.status,
+          data: responseData,
+        };
+      }
       
       // Cek berbagai struktur error message dari backend
       let errorMessage = 'Request failed';
-      
+
       if (responseData?.meta?.message) {
         // Format: { data: null, meta: { message: "Error message" } }
         errorMessage = responseData.meta.message;

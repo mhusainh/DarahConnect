@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { HeartHandshakeIcon, EyeIcon, EyeOffIcon, MailIcon, LockIcon, AlertCircleIcon } from 'lucide-react';
+import { HeartHandshakeIcon, EyeIcon, EyeOffIcon, MailIcon, LockIcon, AlertCircleIcon, ShieldAlertIcon } from 'lucide-react';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
 import { useApi } from '../hooks/useApi';
 import { decodeJWTToken, saveAuthData } from '../utils/jwt';
@@ -25,15 +25,45 @@ const LoginPage: React.FC = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{email?: string; password?: string}>({});
+  const [unauthorizedMessage, setUnauthorizedMessage] = useState<string | null>(null);
 
   // Get redirect info from location state
   const from = location.state?.from || '/dashboard';
   const message = location.state?.message;
 
+  // Check for stored 401 error message on component mount
+  useEffect(() => {
+    try {
+      const loginError = localStorage.getItem('loginError');
+      const loginErrorTime = localStorage.getItem('loginErrorTime');
+      
+      if (loginError && loginErrorTime) {
+        const errorTime = parseInt(loginErrorTime);
+        const now = Date.now();
+        
+        // Only show error if it's less than 5 minutes old
+        if (now - errorTime < 5 * 60 * 1000) {
+          setUnauthorizedMessage(loginError);
+          debugConsole.log('Displaying 401 error message', { loginError, timeAgo: now - errorTime });
+        }
+        
+        // Clear stored error message after displaying
+        localStorage.removeItem('loginError');
+        localStorage.removeItem('loginErrorTime');
+      }
+    } catch (error) {
+      debugConsole.error('Error reading login error from localStorage', error);
+    }
+  }, []);
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field as keyof typeof errors]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+    // Clear unauthorized message when user starts typing
+    if (unauthorizedMessage) {
+      setUnauthorizedMessage(null);
     }
   };
 
@@ -60,6 +90,9 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     
     if (!validateForm()) return;
+    
+    // Clear unauthorized message when submitting
+    setUnauthorizedMessage(null);
     
     // Format data sesuai dengan API backend
     const apiData: LoginApiData = {
@@ -137,6 +170,19 @@ const LoginPage: React.FC = () => {
             Bergabunglah dengan komunitas hero penyelamat nyawa
           </p>
         </div>
+
+        {/* 401 Unauthorized Message */}
+        {unauthorizedMessage && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-start">
+              <ShieldAlertIcon className="h-5 w-5 text-red-600 mr-3 mt-0.5 flex-shrink-0" />
+              <div>
+                <h3 className="text-sm font-medium text-red-800 mb-1">Sesi Berakhir</h3>
+                <p className="text-sm text-red-700">{unauthorizedMessage}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Login Required Message */}
         {message && (
