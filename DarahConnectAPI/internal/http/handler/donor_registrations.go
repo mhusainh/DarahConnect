@@ -144,8 +144,9 @@ func (h *DonorRegistrationHandler) CreateDonorRegistration(ctx echo.Context) err
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Request blood masih/sudah " + bloodRequest.Status))
 	}
 	
-	donorRegistration, err := h.donorRegistrationService.GetByRequestId(ctx.Request().Context(), req.RequestId)
-	if err == nil && donorRegistration != nil && donorRegistration.UserId == claimsData.Id {
+	donorRegistration, _ := h.donorRegistrationService.GetByRequestId(ctx.Request().Context(), req.RequestId, claimsData.Id)
+
+	if donorRegistration != nil {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Anda sudah mendaftar di event ini"))
 	}
 
@@ -242,10 +243,6 @@ func (h *DonorRegistrationHandler) DeleteDonorRegistration(ctx echo.Context) err
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 	
-	if donorRegistration == nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "pendaftaran donor tidak ditemukan"))
-	}
-
 	if claimsData.Id != donorRegistration.UserId {
 		return ctx.JSON(http.StatusUnauthorized, response.ErrorResponse(http.StatusUnauthorized, "unauthorized"))
 	}

@@ -16,7 +16,7 @@ type DonorRegistrationService interface {
 	GetById(ctx context.Context, id int64) (*entity.DonorRegistration, error)
 	Update(ctx context.Context, req dto.DonorRegistrationUpdateRequest, donorRegistration *entity.DonorRegistration) error
 	Delete(ctx context.Context, id int64) error
-	GetByRequestId(ctx context.Context, requestId int64) (*entity.DonorRegistration, error)
+	GetByRequestId(ctx context.Context, requestId int64, user_id int64) (*entity.DonorRegistration, error)
 }
 
 type donorRegistrationService struct {
@@ -42,8 +42,8 @@ func (s *donorRegistrationService) Create(ctx context.Context, req dto.DonorRegi
 	return nil
 }
 
-func (s *donorRegistrationService)GetByRequestId(ctx context.Context, requestId int64) (*entity.DonorRegistration, error) {
-	donorRegistration, err := s.donorRegistrationRepository.GetByRequestId(ctx, requestId)
+func (s *donorRegistrationService)GetByRequestId(ctx context.Context, requestId int64, user_id int64) (*entity.DonorRegistration, error) {
+	donorRegistration, err := s.donorRegistrationRepository.GetByRequestId(ctx, requestId, user_id)
 	if err!= nil {
 		return nil, errors.New("pendaftaran donor tidak ditemukan")
 	}
