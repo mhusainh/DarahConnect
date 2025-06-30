@@ -79,4 +79,5 @@ type GetAllBloodRequestRequest struct {
 	MinQuantity  int64  `query:"min_quantity"`
 	UrgencyLevel string `query:"urgency_level"`
 	BloodType    string `query:"blood_type"`
+	EventType    string `query:"event_type"`
 }

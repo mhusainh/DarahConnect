@@ -35,6 +35,10 @@ func (r *bloodRequestRepository) applyFilters(query *gorm.DB, req dto.GetAllBloo
 		query = query.Where("LOWER(urgency_level) = ?", req.UrgencyLevel)
 	}
 
+	if req.EventType != "" {
+		query = query.Where("LOWER(event_type) = ?", req.EventType)
+	}
+
 	if req.BloodType != "" {
 		query = query.Where("LOWER(blood_type) = ?", req.BloodType)
 	}
