@@ -27,9 +27,13 @@ func (s *dashboardService) DashboardUser(ctx context.Context, userId int64) (map
 	if err != nil {
 		return nil, errors.New("Gagal mendapatkan data dashboard")
 	}
+	var lastDonation interface{}
+	if len(bloodDonations) > 0 {
+		lastDonation = bloodDonations[0].CreatedAt
+	}
 	data := map[string]interface{}{
 		"total donor":      int(len(bloodDonations)),
-		"last donation":    bloodDonations[0].CreatedAt,
+		"last donation":    lastDonation,
 		"total sertifikat": countCompletedDonations(bloodDonations),
 	}
 	return data, nil
