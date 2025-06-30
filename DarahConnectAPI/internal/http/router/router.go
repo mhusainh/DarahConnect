@@ -225,6 +225,12 @@ func PrivateRoutes(
 			Handler: bloodDonationHandler.GetByUser,
 			Roles:   userOnly,
 		},
+		{
+			Method:  http.MethodPost,
+			Path:    "blood-donation/:id",
+			Handler: bloodDonationHandler.Update,
+			Roles:   userOnly,
+		},
 		// =============================================
 		// ADMIN ONLY ROUTES
 		// =============================================
@@ -254,12 +260,12 @@ func PrivateRoutes(
 			Roles:   adminOnly,
 		},
 		// Blood Request - Admin Only
-		// {
-		// 	Method:  http.MethodGet,
-		// 	Path:    "blood-requests",
-		// 	Handler: bloodRequestHandler.GetBloodRequestsByAdmin,
-		// 	Roles:   adminOnly,
-		// },
+		{
+			Method:  http.MethodGet,
+			Path:    "blood-requests",
+			Handler: bloodRequestHandler.GetBloodRequestsByAdmin,
+			Roles:   adminOnly,
+		},
 		// Blood Request/Campaign - Admin Only
 		{
 			Method:  http.MethodPost,
@@ -335,7 +341,12 @@ func PrivateRoutes(
 			Handler: bloodDonationHandler.GetAll,
 			Roles:   adminOnly,
 		},
-
+		{
+			Method:  http.MethodPut,
+			Path:    "blood-donation/:id/status",
+			Handler: bloodDonationHandler.StatusBloodDonation,
+			Roles:   adminOnly,
+		},
 		// =============================================
 		// ALL ROLES ROUTES (Admin & User)
 		// =============================================
@@ -408,18 +419,6 @@ func PrivateRoutes(
 			Path:    "blood-donation",
 			Handler: bloodDonationHandler.Create,
 			Roles:   allRoles,
-		},
-		{
-			Method:  http.MethodPost,
-			Path:    "blood-donation/:id",
-			Handler: bloodDonationHandler.Update,
-			Roles:   userOnly,
-		},
-		{
-			Method:  http.MethodPut,
-			Path:    "blood-donation/:id/status",
-			Handler: bloodDonationHandler.StatusBloodDonation,
-			Roles:   adminOnly,
 		},
 		{
 			Method:  http.MethodDelete,
