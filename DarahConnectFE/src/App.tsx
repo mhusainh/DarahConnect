@@ -45,6 +45,7 @@ const AdminCampaignsPage = lazy(() => import('./pages/AdminCampaignsPage'));
 const AdminDonorsPage = lazy(() => import('./pages/AdminDonorsPage'));
 const AdminRequestsPage = lazy(() => import('./pages/AdminRequestsPage'));
 const AdminCertificatesPage = lazy(() => import('./pages/AdminCertificatesPage'));
+const AdminHealthPassportPage = lazy(() => import('./pages/AdminHealthPassportPage'));
 const AdminReportsPage = lazy(() => import('./pages/AdminReportsPage'));
 const AdminSettingsPage = lazy(() => import('./pages/AdminSettingsPage'));
 const AdminProfilePage = lazy(() => import('./pages/AdminProfilePage'));
@@ -514,10 +515,10 @@ function App() {
                 </Suspense>
               </AdminProtectedRoute>
             } />
-            <Route path="/admin/reports" element={
+            <Route path="/admin/health-passports" element={
               <AdminProtectedRoute>
                 <Suspense fallback={<PageLoader />}>
-                  <AdminReportsPage />
+                  <AdminHealthPassportPage />
                 </Suspense>
               </AdminProtectedRoute>
             } />

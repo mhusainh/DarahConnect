@@ -503,6 +503,60 @@ export const deleteApi = async <T = any>(
   });
 };
 
+// Admin Blood Requests/Campaigns Services
+export const adminBloodRequestsApi = {
+  // Get blood requests (permintaan darah)
+  getBloodRequests: async (page?: number, perPage?: number) => {
+    const params = new URLSearchParams();
+    params.append('event_type', 'blood_request');
+    if (page) params.append('page', page.toString());
+    if (perPage) params.append('per_page', perPage.toString());
+    
+    return getApi(`/admin/blood-requests?${params.toString()}`);
+  },
+
+  // Get campaigns
+  getCampaigns: async (page?: number, perPage?: number) => {
+    const params = new URLSearchParams();
+    params.append('event_type', 'campaign');
+    if (page) params.append('page', page.toString());
+    if (perPage) params.append('per_page', perPage.toString());
+    
+    return getApi(`/admin/blood-requests?${params.toString()}`);
+  },
+
+  // Get health passports
+  getHealthPassports: async (page?: number, perPage?: number) => {
+    const params = new URLSearchParams();
+    if (page) params.append('page', page.toString());
+    if (perPage) params.append('per_page', perPage.toString());
+    
+    return getApi(`/admin/health-passports?${params.toString()}`);
+  },
+
+  // Update status of blood request/campaign
+  updateStatus: async (id: number, status: string) => {
+    return patchApi(`/admin/blood-requests/${id}`, { status });
+  },
+
+  // Update health passport status
+  updateHealthPassportStatus: async (id: number, status: string) => {
+    // PUT to /admin/health-passport/{id}
+    return putApi(`/admin/health-passport/${id}`, { status });
+  },
+
+  // Delete blood request/campaign
+  delete: async (id: number) => {
+    return deleteApi(`/admin/blood-requests/${id}`);
+  },
+
+  // Delete health passport
+  deleteHealthPassport: async (id: number) => {
+    // DELETE to /admin/health-passport/{id}
+    return deleteApi(`/admin/health-passport/${id}`);
+  }
+};
+
 export default {
   fetchApi,
   getApi,
@@ -510,4 +564,5 @@ export default {
   putApi,
   patchApi,
   deleteApi,
+  adminBloodRequestsApi,
 }; 

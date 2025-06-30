@@ -12,6 +12,8 @@ import {
   Clock,
   AlertTriangle
 } from 'lucide-react';
+import { useApi } from '../hooks/useApi';
+import AdminProfileCard from './AdminProfileCard';
 
 interface AdminHeaderProps {
   onMenuToggle: () => void;
@@ -23,37 +25,22 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ onMenuToggle }) => {
   const notificationRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
-  // Sample notifications data
-  const notifications = [
-    {
-      id: '1',
-      type: 'certificate',
-      title: 'Sertifikat Baru Menunggu Approval',
-      message: 'Ahmad Suryadi telah mengajukan sertifikat donor darah',
-      timestamp: '5 menit lalu',
-      read: false,
-      priority: 'high'
-    },
-    {
-      id: '2',
-      type: 'urgent',
-      title: 'Campaign Darurat',
-      message: 'RS Hasan Sadikin membutuhkan donor O+',
-      timestamp: '15 menit lalu',
-      read: false,
-      priority: 'critical'
-    }
-  ];
+  // Ambil data profil admin dari API
+  const { data: profileData, get: getProfile } = useApi<any>();
+  const [adminProfile, setAdminProfile] = useState<any>(null);
+  useEffect(() => { getProfile('/user/profile'); }, [getProfile]);
+  useEffect(() => { if (profileData) setAdminProfile(profileData); }, [profileData]);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-
-  // Admin profile data
-  const adminProfile = {
-    name: 'Dr. Andi Wijaya',
-    email: 'admin@darahconnect.com',
-    role: 'Super Administrator',
-    avatar: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80'
-  };
+  // Ambil notifikasi admin dari API
+  const { data: notifData, get: getNotif } = useApi<any>();
+  const [notifications, setNotifications] = useState<any[]>([]);
+  useEffect(() => { getNotif('/admin/notifications'); }, [getNotif]);
+  useEffect(() => {
+    if (notifData && Array.isArray(notifData.data)) setNotifications(notifData.data);
+    else if (Array.isArray(notifData)) setNotifications(notifData);
+    else setNotifications([]);
+  }, [notifData]);
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -116,14 +103,14 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ onMenuToggle }) => {
           {/* Right side - Notifications and Profile */}
           <div className="flex items-center space-x-3">
             {/* Notifications */}
-            <div className="relative" ref={notificationRef}>
+            <div className="relative mr-4" ref={notificationRef}>
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
                 className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <Bell className="h-5 w-5" />
+                <Bell className="h-6 w-6" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                     {unreadCount}
                   </span>
                 )}
@@ -146,12 +133,10 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ onMenuToggle }) => {
                   </div>
                   
                   <div className="max-h-64 overflow-y-auto">
-                    {notifications.map((notification) => (
+                    {notifications.map((notification: any) => (
                       <div
                         key={notification.id}
-                        className={`p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
-                          !notification.read ? 'bg-blue-50' : ''
-                        }`}
+                        className={`p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${!notification.read ? 'bg-blue-50' : ''}`}
                       >
                         <div className="flex items-start space-x-2">
                           <div className="flex-shrink-0 mt-0.5">
@@ -159,12 +144,12 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ onMenuToggle }) => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <h4 className="text-xs font-medium text-gray-900 truncate">
-                              {notification.title}
+                              {notification.title || notification.type}
                             </h4>
                             <p className="text-xs text-gray-600 mt-1 line-clamp-2">{notification.message}</p>
                             <div className="flex items-center mt-1">
                               <Clock className="w-3 h-3 text-gray-400 mr-1" />
-                              <span className="text-xs text-gray-500">{notification.timestamp}</span>
+                              <span className="text-xs text-gray-500">{notification.timestamp || notification.created_at}</span>
                               {!notification.read && (
                                 <span className="ml-2 w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
                               )}
@@ -186,73 +171,70 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ onMenuToggle }) => {
             </div>
 
             {/* Profile */}
-            <div className="relative" ref={profileRef}>
-              <button
-                onClick={() => setShowProfile(!showProfile)}
-                className="flex items-center space-x-2 p-1 rounded-lg hover:bg-gray-100 transition-colors"
-              >
+            {adminProfile && (
+              <div className="relative flex items-center space-x-3">
                 <img
-                  src={adminProfile.avatar}
+                  src={adminProfile.url_file || '/api/placeholder/40/40'}
                   alt={adminProfile.name}
-                  className="w-8 h-8 rounded-full object-cover border-2 border-gray-200"
+                  className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
                 />
-                <div className="hidden sm:block text-left">
-                  <p className="text-sm font-medium text-gray-900">{adminProfile.name}</p>
-                  <p className="text-xs text-gray-500">{adminProfile.role}</p>
+                <div className="text-right">
+                  <div className="font-semibold text-base text-gray-900 leading-tight">{adminProfile.name}</div>
+                  <div className="text-xs text-gray-500">{adminProfile.role}</div>
                 </div>
-                <ChevronDown className="h-3 w-3 text-gray-500" />
-              </button>
-
-              {/* Profile Dropdown */}
-              {showProfile && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                  <div className="p-4 border-b border-gray-200">
-                    <div className="flex items-center space-x-3">
-                      <img
-                        src={adminProfile.avatar}
-                        alt={adminProfile.name}
-                        className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
-                      />
-                      <div>
-                        <h3 className="text-sm font-semibold text-gray-900">{adminProfile.name}</h3>
-                        <p className="text-xs text-gray-600">{adminProfile.email}</p>
-                        <p className="text-xs text-gray-500">{adminProfile.role}</p>
+                <button
+                  onClick={() => setShowProfile(!showProfile)}
+                  className="ml-1 p-1 rounded-full hover:bg-gray-100"
+                >
+                  <ChevronDown className="h-4 w-4 text-gray-500" />
+                </button>
+                {showProfile && (
+                  <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    <div className="p-4 border-b border-gray-200">
+                      <div className="flex items-center space-x-3">
+                        <img
+                          src={adminProfile.url_file || '/api/placeholder/40/40'}
+                          alt={adminProfile.name}
+                          className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
+                        />
+                        <div>
+                          <h3 className="text-sm font-semibold text-gray-900">{adminProfile.name}</h3>
+                          <p className="text-xs text-gray-600">{adminProfile.email}</p>
+                          <p className="text-xs text-gray-500">{adminProfile.role}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="py-1">
+                      <Link
+                        to="/admin/profile"
+                        className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                        onClick={() => setShowProfile(false)}
+                      >
+                        <User className="h-4 w-4 text-gray-500" />
+                        <span>Profil Admin</span>
+                      </Link>
+                      <Link
+                        to="/admin/settings"
+                        className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                        onClick={() => setShowProfile(false)}
+                      >
+                        <Settings className="h-4 w-4 text-gray-500" />
+                        <span>Pengaturan</span>
+                      </Link>
+                      <div className="border-t border-gray-100 mt-1 pt-1">
+                        <button
+                          onClick={handleLogout}
+                          className="flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors w-full text-left"
+                        >
+                          <LogOut className="h-4 w-4" />
+                          <span>Logout</span>
+                        </button>
                       </div>
                     </div>
                   </div>
-                  
-                  <div className="py-1">
-                    <Link
-                      to="/admin/profile"
-                      className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                      onClick={() => setShowProfile(false)}
-                    >
-                      <User className="h-4 w-4 text-gray-500" />
-                      <span>Profil Admin</span>
-                    </Link>
-                    
-                    <Link
-                      to="/admin/settings"
-                      className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                      onClick={() => setShowProfile(false)}
-                    >
-                      <Settings className="h-4 w-4 text-gray-500" />
-                      <span>Pengaturan</span>
-                    </Link>
-                    
-                    <div className="border-t border-gray-100 mt-1 pt-1">
-                      <button
-                        onClick={handleLogout}
-                        className="flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors w-full text-left"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        <span>Logout</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
