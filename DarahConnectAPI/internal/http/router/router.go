@@ -390,6 +390,12 @@ func PrivateRoutes(
 			Handler: hospitalHandler.GetById,
 			Roles:   allRoles,
 		},
+		{
+			Method:  http.MethodPost,
+			Path:    "hospital",
+			Handler: hospitalHandler.Create,
+			Roles:   allRoles,
+		},
 		// Blood Donation - All Roles
 		{
 			Method:  http.MethodGet,

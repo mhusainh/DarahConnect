@@ -41,7 +41,7 @@ func (s *bloodDonationService) Create(ctx context.Context, req dto.BloodDonation
 	bloodDonation.RegistrationId = req.RegistrationId
 	bloodDonation.DonationDate = req.DonationDate
 	bloodDonation.BloodType = req.BloodType
-	bloodDonation.Status = "pending"
+	bloodDonation.Status = req.Status
 
 	UrlFile, publicId, err := s.cloudinaryService.UploadFile(req.Image, "BloodDonations")
 	if err != nil {
