@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
@@ -277,7 +278,13 @@ func (h *UserHandler) CallbackGoogleAuth(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully callback", data))
+	token, ok := data["token"].(string)
+	if !ok {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "invalid token type"))
+	}
+
+	redirectURL := fmt.Sprintf("http://localhost:3000/oauth/callback?token=%s", token)
+	return ctx.Redirect(http.StatusTemporaryRedirect, redirectURL)
 }
 
 func (h *UserHandler) WalletAddress(ctx echo.Context) error {
