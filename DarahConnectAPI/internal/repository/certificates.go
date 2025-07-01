@@ -109,7 +109,7 @@ func (r *certificateRepository) GetByUser(ctx context.Context, userId int64, req
 	var total int64
 
 	// Hitung total item sebelum pagination
-	dataQuery := r.db.WithContext(ctx).Model(&entity.Certificate{}).Where("user_id = ?", userId).Preload("Donation")
+	dataQuery := r.db.WithContext(ctx).Model(&entity.Certificate{}).Preload("User").Where("user_id = ?", userId)
 	dataQuery, req = r.applyFilters(dataQuery, req)
 	if err := dataQuery.Count(&total).Error; err != nil {
 		return nil, 0, err

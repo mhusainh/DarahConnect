@@ -197,7 +197,7 @@ func PrivateRoutes(
 		{
 			Method:  http.MethodGet,
 			Path:    "user/certificates",
-			Handler: certificateHandler.GetAll,
+			Handler: certificateHandler.GetByUser,
 			Roles:   userOnly,
 		},
 		{
