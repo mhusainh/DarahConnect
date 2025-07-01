@@ -34,6 +34,7 @@ type GoogleOAuthClaims struct {
 	Id         string `json:"id"`
 	Email      string `json:"email"`
 	Name       string `json:"name"`
+	Role       string `json:"role"`
 	PictureURL string `json:"picture_url,omitempty"`
 	Provider   string `json:"provider"` // "google"
 	Metamask   bool   `json:"metamask"`

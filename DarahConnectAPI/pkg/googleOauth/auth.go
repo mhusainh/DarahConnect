@@ -127,6 +127,7 @@ func (s *Service) Callback(ctx echo.Context) (map[string]interface{}, error) {
 		Id:         user.UserID,
 		Email:      user.Email,
 		Name:       user.Name,
+		Role:       userEntity.Role,
 		PictureURL: user.AvatarURL,
 		Provider:   "google",
 		Metamask:   metamask,
