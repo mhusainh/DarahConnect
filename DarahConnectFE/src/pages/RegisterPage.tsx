@@ -141,7 +141,7 @@ const RegisterPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // if (!validateStep2()) return;
+    if (!validateStep2()) return;
 
     // Format data sesuai dengan API backend
     const apiData: RegisterApiData = {
