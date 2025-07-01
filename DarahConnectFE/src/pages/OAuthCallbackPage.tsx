@@ -107,7 +107,7 @@ const OAuthCallbackPage: React.FC = () => {
     if (!form.gender) newErrors.gender = 'Jenis kelamin wajib dipilih';
     if (!form.birth_date) newErrors.birth_date = 'Tanggal lahir wajib diisi';
     if (!form.blood_type) newErrors.blood_type = 'Golongan darah wajib dipilih';
-    if (!form.address.trim()) newErrors.location = 'Lokasi wajib diisi';
+    if (!form.location.trim()) newErrors.location = 'Lokasi wajib diisi';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);

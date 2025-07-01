@@ -307,13 +307,13 @@ const LoginPage: React.FC = () => {
             />
 
             {/* Demo Accounts */}
-            <div className="bg-blue-50 p-4 rounded-lg">
+            {/* <div className="bg-blue-50 p-4 rounded-lg">
               <p className="text-sm font-medium text-blue-800 mb-2">Demo Accounts:</p>
               <div className="text-xs text-blue-600 space-y-1">
                 <p><strong>Donor:</strong> donor@DonorConnect.id / password123</p>
                 <p><strong>Admin:</strong> admin@DonorConnect.id / password123</p>
               </div>
-            </div>
+            </div> */}
           </form>
 
           {/* Register Link */}

@@ -1,0 +1,24 @@
+# Stage 1: Build React App
+FROM node:18 AS build
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+RUN npm run build
+
+# Stage 2: Serve with nginx
+FROM nginx:alpine
+
+# Salin hasil build React ke direktori html nginx
+COPY --from=build /app/build /usr/share/nginx/html
+
+# Tambahkan config nginx untuk SPA (tidak ganggu default.conf yang lama)
+COPY nginx.react.conf /etc/nginx/conf.d/react.conf
+COPY nginx.react.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
