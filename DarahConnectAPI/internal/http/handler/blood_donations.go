@@ -263,8 +263,8 @@ func (h *BloodDonationHandler) StatusBloodDonation(ctx echo.Context) error {
 	notif.Title = "Status Donasi Darah"
 	if req.Status == "completed" {
 		donorAlamat := bloodDonation.Hospital.Address + ", " + bloodDonation.Hospital.City + ", " + bloodDonation.Hospital.Province
-		txHash, certificateNumber, err := h.blockchainService.CreateCertificate(user.WalletAddress, user.Name, donorAlamat)
-		if err != nil {
+		txHash, certificateNumber, errBlockchain := h.blockchainService.CreateCertificate(user.WalletAddress, user.Name, donorAlamat)
+		if errBlockchain != nil {
 			return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 		}
 		_, err = h.certificateService.Create(ctx.Request().Context(), bloodDonation, certificateNumber, txHash)
