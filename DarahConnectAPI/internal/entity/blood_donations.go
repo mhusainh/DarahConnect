@@ -11,7 +11,7 @@ type BloodDonation struct {
 	Registration   DonorRegistration `json:"registration" gorm:"foreignKey:RegistrationId;references:Id"`
 	DonationDate   time.Time         `json:"donation_date"`
 	BloodType      string            `json:"blood_type"` // e.g., "A+", "O-", etc.
-	PublicId       string             `json:"public_id"`
+	PublicId       string            `json:"public_id"`
 	UrlFile        string            `json:"url_file"`
 	Status         string            `json:"status"` // e.g., "completed", "pending", "cancelled"
 	CreatedAt      time.Time         `json:"created_at"`

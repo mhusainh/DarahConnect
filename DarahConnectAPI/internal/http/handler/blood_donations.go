@@ -271,7 +271,8 @@ func (h *BloodDonationHandler) StatusBloodDonation(ctx echo.Context) error {
 		if err != nil {
 			return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 		}
-		notif.Message = "Status donasi darah anda telah " + req.Status + " dengan nomor sertifikat " + certificateNumber
+		notif.Message = "Status donasi darah anda telah " + req.Status + " dengan nomor sertifikat " + certificateNumber + " dan digital signature (transaktion hash) " + txHash
+
 	} else {
 		notif.Message = "Status donasi darah anda telah " + req.Status
 	}
@@ -285,7 +286,7 @@ func (h *BloodDonationHandler) StatusBloodDonation(ctx echo.Context) error {
 	if err := h.notificationService.Create(ctx.Request().Context(), notif); err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully updating status blood donation", nil))
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully updating status blood donation and Create Certificate", nil))
 }
 
 func (h *BloodDonationHandler) Delete(ctx echo.Context) error {
