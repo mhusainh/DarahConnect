@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/service"
@@ -25,12 +26,33 @@ func NewUserHandler(userService service.UserService, cloudinaryService *cloudina
 }
 
 func (h *UserHandler) GetUsers(ctx echo.Context) error {
+	// Untuk endpoint GET, gunakan query parameters
 	var req dto.GetAllUserRequest
-	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	
+	// Ambil query parameters secara manual
+	if page := ctx.QueryParam("page"); page != "" {
+		pageInt, err := strconv.ParseInt(page, 10, 64)
+		if err == nil {
+			req.Page = pageInt
+		}
 	}
+	
+	if limit := ctx.QueryParam("limit"); limit != "" {
+		limitInt, err := strconv.ParseInt(limit, 10, 64)
+		if err == nil {
+			req.Limit = limitInt
+		}
+	}
+	
+	// Ambil query parameters string langsung
+	req.Email = ctx.QueryParam("email")
+	req.Search = ctx.QueryParam("search")
+	req.Sort = ctx.QueryParam("sort")
+	req.Order = ctx.QueryParam("order")
+	req.BloodType = ctx.QueryParam("blood_type")
 
-	users, total, err := h.userService.GetAll(ctx.Request().Context(), dto.GetAllUserRequest{})
+	// Gunakan req yang sudah diisi dengan query parameters
+	users, total, err := h.userService.GetAll(ctx.Request().Context(), req)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError,
 			response.ErrorResponse(http.StatusInternalServerError, err.Error()))
@@ -39,13 +61,14 @@ func (h *UserHandler) GetUsers(ctx echo.Context) error {
 }
 
 func (h *UserHandler) GetUser(ctx echo.Context) error {
-	var req dto.GetUserByIdRequest
-
-	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	// Ambil ID dari parameter path
+	idStr := ctx.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Invalid ID format"))
 	}
 
-	user, err := h.userService.GetById(ctx.Request().Context(), req.Id)
+	user, err := h.userService.GetById(ctx.Request().Context(), id)
 	if err != nil {
 		return ctx.JSON(http.StatusNotFound, response.ErrorResponse(http.StatusNotFound, err.Error()))
 	}
@@ -114,13 +137,14 @@ func (h *UserHandler) GetProfile(ctx echo.Context) error {
 }
 
 func (h *UserHandler) DeleteUser(ctx echo.Context) error {
-	var req dto.DeleteUserRequest
-
-	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	// Ambil ID dari parameter path
+	idStr := ctx.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Invalid ID format"))
 	}
 
-	user, err := h.userService.GetById(ctx.Request().Context(), req.Id)
+	user, err := h.userService.GetById(ctx.Request().Context(), id)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
