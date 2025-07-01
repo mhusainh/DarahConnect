@@ -45,7 +45,7 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clou
 	// Set donationsRepository
 	midtransService.DonationsRepository = donationsRepository
 
-	googleAuthService := googleoauth.NewGoogleOAuthService(tokenUseCase, userService)
+	googleAuthService := googleoauth.NewGoogleOAuthService(tokenUseCase, userService, &cfg.GoogleOauth)
 	//end
 
 	//handler
@@ -92,7 +92,9 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clo
 	midtransService := midtrans.NewMidtransService(&cfg.MidtransConfig)
 	// Set donationsRepository
 	midtransService.DonationsRepository = donationsRepository
-	googleAuthService := googleoauth.NewGoogleOAuthService(tokenUseCase, userService)
+	googleAuthService := googleoauth.NewGoogleOAuthService(tokenUseCase, userService, &cfg.GoogleOauth)
+
+
 	dashboardService := service.NewDashboardService(bloodDonationRepository)
 	//end
 

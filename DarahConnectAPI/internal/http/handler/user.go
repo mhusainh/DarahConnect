@@ -277,7 +277,7 @@ func (h *UserHandler) CallbackGoogleAuth(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully callback", data))
+	return ctx.Redirect(http.StatusTemporaryRedirect, data)
 }
 
 func (h *UserHandler) WalletAddress(ctx echo.Context) error {

@@ -78,6 +78,7 @@ type VerifyEmailRequest struct {
 
 type GetAllUserRequest struct {
 	Page      int64  `query:"page" `
+	Email     string `query:"email"`
 	Limit     int64  `query:"limit" `
 	Search    string `query:"search"`
 	Sort      string `query:"sort"`

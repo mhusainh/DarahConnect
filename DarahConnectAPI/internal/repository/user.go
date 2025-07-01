@@ -36,6 +36,9 @@ func (r *userRepository) applyFilters(query *gorm.DB, req dto.GetAllUserRequest)
 	if req.BloodType != "" {
 		query = query.Where("LOWER(blood_type) = ?", req.BloodType)
 	}
+	if req.Email != "" {
+		query = query.Where("LOWER(email) = ?", req.Email)
+	}
 	// Filter berdasarkan Search (pada judul atau pesan)
 	if req.Search != "" {
 		search := strings.ToLower(req.Search)

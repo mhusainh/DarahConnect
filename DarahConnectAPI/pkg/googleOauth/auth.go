@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -12,6 +13,7 @@ import (
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/google"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/configs"
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/service"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/token"
 )
@@ -23,12 +25,14 @@ type GoogleAuthService interface {
 type Service struct {
 	tokenService token.TokenUseCase
 	userService  service.UserService
+	cfg          *configs.GoogleOauth
 }
 
-func NewGoogleOAuthService(tokenService token.TokenUseCase, userService service.UserService) *Service {
+func NewGoogleOAuthService(tokenService token.TokenUseCase, userService service.UserService, cfg *configs.GoogleOauth) *Service {
 	return &Service{
 		tokenService,
 		userService,
+		cfg,
 	}
 }
 
@@ -71,11 +75,11 @@ func (s *Service) Login(ctx echo.Context) (goth.User, error) {
 	return goth.User{}, nil
 }
 
-func (s *Service) Callback(ctx echo.Context) (map[string]interface{}, error) {
+func (s *Service) Callback(ctx echo.Context) (string, error) {
 	// Add provider parameter to query for goth
 	provider := ctx.Param("provider")
 	if provider == "" {
-		return nil, errors.New("Provider not specified")
+		return "", errors.New("Provider not specified")
 	}
 
 	q := ctx.Request().URL.Query()
@@ -93,30 +97,37 @@ func (s *Service) Callback(ctx echo.Context) (map[string]interface{}, error) {
 	authCode := req.URL.Query().Get("code")
 	if authCode == "" {
 		log.Printf("No authorization code found in callback")
-		return nil, errors.New("authorization code not found")
+		return "", errors.New("authorization code not found")
 	}
 	log.Printf("Authorization code received (length: %d)", len(authCode))
 
 	// Check for error parameter
 	if errParam := req.URL.Query().Get("error"); errParam != "" {
 		log.Printf("OAuth error parameter: %s", errParam)
-		return nil, fmt.Errorf("OAuth error: %s", errParam)
+		return "", fmt.Errorf("OAuth error: %s", errParam)
 	}
 
-	user, err := gothic.CompleteUserAuth(res, req)
+	googleUser, err := gothic.CompleteUserAuth(res, req)
 	if err != nil {
 		log.Printf("Error completing user auth: %v", err)
-		return nil, fmt.Errorf("authentication failed: %v", err)
+		return "", fmt.Errorf("authentication failed: %v", err)
 	}
+	var reqq dto.GetAllUserRequest
 
-	log.Printf("Successfully authenticated user: %s", user.Email)
+	reqq.Email = googleUser.Email
+
+	user, _, err := s.userService.GetAll(ctx.Request().Context(), reqq)
+	if err != nil {
+		log.Printf("Error getting user by email: %v", err)
+		return "", errors.New("ada kesalahan saat get user by email")
+	}
 
 	// Check if user already exists in the database
 	metamask := false
-	userEntity, IsNew, err := s.userService.CheckGoogleOAuth(ctx.Request().Context(), user.Email, &user)
+	userEntity, IsNew, err := s.userService.CheckGoogleOAuth(ctx.Request().Context(), googleUser.Email, &googleUser)
 	if err != nil {
 		log.Printf("Error checking Google OAuth user: %v", err)
-		return nil, errors.New("ada kesalahan saat check google oauth")
+		return "", errors.New("ada kesalahan saat check google oauth")
 	}
 	if userEntity.WalletAddress != "" {
 		metamask = true
@@ -124,6 +135,10 @@ func (s *Service) Callback(ctx echo.Context) (map[string]interface{}, error) {
 
 	// Buat JWT claims dari data Google OAuth
 	claims := &token.GoogleOAuthClaims{
+		Id:         strconv.FormatInt(user[0].Id, 10),
+		Email:      user[0].Email,
+		Name:       user[0].Name,
+		PictureURL: user[0].UrlFile,
 		Id:         user.UserID,
 		Email:      user.Email,
 		Name:       user.Name,
@@ -131,6 +146,8 @@ func (s *Service) Callback(ctx echo.Context) (map[string]interface{}, error) {
 		PictureURL: user.AvatarURL,
 		Provider:   "google",
 		Metamask:   metamask,
+		IsNew:      IsNew,
+		Role:       "User",
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(12 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -141,13 +158,9 @@ func (s *Service) Callback(ctx echo.Context) (map[string]interface{}, error) {
 	accessToken, err := s.tokenService.GenerateAccessToken(claims)
 	if err != nil {
 		log.Printf("Error generating access token: %v", err)
-		return nil, errors.New("ada kesalahan saat generate token")
+		return "", errors.New("ada kesalahan saat generate token")
 	}
-
+	redirectURL := s.cfg.RedirectURL
 	// Return token dan data user
-	return map[string]interface{}{
-		"token": accessToken,
-		"user":  user,
-		"IsNew": IsNew,
-	}, nil
+	return redirectURL + accessToken, nil
 }

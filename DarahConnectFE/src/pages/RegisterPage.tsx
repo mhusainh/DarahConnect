@@ -465,7 +465,7 @@ const RegisterPage: React.FC = () => {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
                   {/* Blood Type */}
                   <div>
                     <label htmlFor="bloodType" className="block text-sm font-medium text-gray-700 mb-2">
@@ -483,42 +483,7 @@ const RegisterPage: React.FC = () => {
                     </select>
                   </div>
 
-                  {/* Age */}
-                  <div>
-                    <label htmlFor="age" className="block text-sm font-medium text-gray-700 mb-2">
-                      Usia
-                    </label>
-                    <input
-                      id="age"
-                      type="number"
-                      min="17"
-                      max="65"
-                      value={formData.age}
-                      onChange={(e) => handleInputChange('age', parseInt(e.target.value))}
-                      className={`w-full px-3 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                        errors.age ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    />
-                    {errors.age && <p className="mt-1 text-sm text-red-600">{errors.age}</p>}
-                  </div>
-
-                  {/* Weight */}
-                  <div>
-                    <label htmlFor="weight" className="block text-sm font-medium text-gray-700 mb-2">
-                      Berat Badan (kg)
-                    </label>
-                    <input
-                      id="weight"
-                      type="number"
-                      min="45"
-                      value={formData.weight}
-                      onChange={(e) => handleInputChange('weight', parseInt(e.target.value))}
-                      className={`w-full px-3 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                        errors.weight ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    />
-                    {errors.weight && <p className="mt-1 text-sm text-red-600">{errors.weight}</p>}
-                  </div>
+                 
                 </div>
 
                 {/* Location */}

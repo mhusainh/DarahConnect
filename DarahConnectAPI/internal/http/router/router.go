@@ -341,7 +341,12 @@ func PrivateRoutes(
 			Handler: bloodDonationHandler.GetAll,
 			Roles:   adminOnly,
 		},
-
+		{
+			Method:  http.MethodPut,
+			Path:    "blood-donation/:id/status",
+			Handler: bloodDonationHandler.StatusBloodDonation,
+			Roles:   adminOnly,
+		},
 		// =============================================
 		// ALL ROLES ROUTES (Admin & User)
 		// =============================================
@@ -414,18 +419,6 @@ func PrivateRoutes(
 			Path:    "blood-donation",
 			Handler: bloodDonationHandler.Create,
 			Roles:   allRoles,
-		},
-		{
-			Method:  http.MethodPost,
-			Path:    "blood-donation/:id",
-			Handler: bloodDonationHandler.Update,
-			Roles:   userOnly,
-		},
-		{
-			Method:  http.MethodPut,
-			Path:    "blood-donation/:id/status",
-			Handler: bloodDonationHandler.StatusBloodDonation,
-			Roles:   adminOnly,
 		},
 		{
 			Method:  http.MethodDelete,

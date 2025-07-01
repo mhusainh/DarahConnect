@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Heart, 
   Search, 
@@ -17,14 +17,17 @@ import {
   Mail,
   Clock,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  User
 } from 'lucide-react';
-import { campaigns } from '../data/dummy';
-import { BloodCampaign } from '../types';
+import { BloodCampaign, AdminBloodRequestResponse } from '../types/index';
+import { adminBloodRequestsApi } from '../services/fetchApi';
 import AdminLayout from '../components/AdminLayout';
 
 const AdminCampaignsPage: React.FC = () => {
-  const [campaignsList, setCampaignsList] = useState<BloodCampaign[]>(campaigns);
+  const [campaignsList, setCampaignsList] = useState<BloodCampaign[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterUrgency, setFilterUrgency] = useState('all');
@@ -32,12 +35,57 @@ const AdminCampaignsPage: React.FC = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Fetch campaigns from API
+  useEffect(() => {
+    const fetchCampaigns = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await adminBloodRequestsApi.getCampaigns();
+        
+        if (response.success && response.data) {
+          // Handle both direct array and nested response structure
+          let campaignsData: BloodCampaign[] = [];
+          
+          if (Array.isArray(response.data)) {
+            campaignsData = response.data as BloodCampaign[];
+          } else if (response.data.data && Array.isArray(response.data.data)) {
+            campaignsData = response.data.data as BloodCampaign[];
+          }
+          
+          setCampaignsList(campaignsData);
+        } else {
+          setError(response.error || 'Failed to fetch campaigns');
+          setCampaignsList([]);
+        }
+      } catch (err) {
+        setError('Failed to fetch campaigns');
+        setCampaignsList([]);
+        console.error('Error fetching campaigns:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCampaigns();
+  }, []);
+
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
       case 'critical': return 'text-red-600 bg-red-100 border-red-200';
       case 'high': return 'text-orange-600 bg-orange-100 border-orange-200';
       case 'medium': return 'text-yellow-600 bg-yellow-100 border-yellow-200';
       case 'low': return 'text-green-600 bg-green-100 border-green-200';
+      default: return 'text-gray-600 bg-gray-100 border-gray-200';
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'verified': return 'text-green-600 bg-green-100 border-green-200';
+      case 'pending': return 'text-yellow-600 bg-yellow-100 border-yellow-200';
+      case 'rejected': return 'text-red-600 bg-red-100 border-red-200';
+      case 'completed': return 'text-blue-600 bg-blue-100 border-blue-200';
       default: return 'text-gray-600 bg-gray-100 border-gray-200';
     }
   };
@@ -50,43 +98,109 @@ const AdminCampaignsPage: React.FC = () => {
     return new Date(deadline) < new Date();
   };
 
-  const filteredCampaigns = campaignsList.filter(campaign => {
-    const matchesSearch = campaign.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         campaign.hospital.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         campaign.location.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredCampaigns = (campaignsList || []).filter(campaign => {
+    // Safety check - ensure campaign has all required properties
+    if (!campaign || !campaign.event_name || !campaign.hospital || !campaign.user) {
+      return false;
+    }
     
-    const matchesUrgency = filterUrgency === 'all' || campaign.urgencyLevel === filterUrgency;
+    const matchesSearch = campaign.event_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         campaign.hospital.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         campaign.user.name.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const expired = isExpired(campaign.deadline);
+    const matchesUrgency = filterUrgency === 'all' || campaign.urgency_level === filterUrgency;
+    
+    const expired = isExpired(campaign.event_date);
     const matchesStatus = filterStatus === 'all' || 
-                         (filterStatus === 'active' && !expired) ||
+                         (filterStatus === 'active' && !expired && campaign.status !== 'completed') ||
                          (filterStatus === 'expired' && expired) ||
-                         (filterStatus === 'completed' && campaign.currentDonors >= campaign.targetDonors);
+                         (filterStatus === 'completed' && campaign.status === 'completed') ||
+                         (filterStatus === 'pending' && campaign.status === 'pending') ||
+                         (filterStatus === 'verified' && campaign.status === 'verified');
 
     return matchesSearch && matchesUrgency && matchesStatus;
   });
 
-  const handleApproveCampaign = (id: string) => {
-    setCampaignsList(prev => prev.map(campaign => 
-      campaign.id === id ? { ...campaign, verified: true } : campaign
-    ));
+  const handleApproveCampaign = async (id: number) => {
+    try {
+      const response = await adminBloodRequestsApi.updateStatus(id, 'verified');
+      if (response.success) {
+        setCampaignsList(prev => prev.map(campaign => 
+          campaign.id === id ? { ...campaign, status: 'verified' as const } : campaign
+        ));
+      } else {
+        setError(response.error || 'Failed to approve campaign');
+      }
+    } catch (err) {
+      setError('Failed to approve campaign');
+      console.error('Error approving campaign:', err);
+    }
   };
 
-  const handleRejectCampaign = (id: string) => {
-    // In real app, this would mark as rejected instead of deleting
-    setCampaignsList(prev => prev.filter(campaign => campaign.id !== id));
+  const handleRejectCampaign = async (id: number) => {
+    try {
+      const response = await adminBloodRequestsApi.updateStatus(id, 'rejected');
+      if (response.success) {
+        setCampaignsList(prev => prev.map(campaign => 
+          campaign.id === id ? { ...campaign, status: 'rejected' as const } : campaign
+        ));
+      } else {
+        setError(response.error || 'Failed to reject campaign');
+      }
+    } catch (err) {
+      setError('Failed to reject campaign');
+      console.error('Error rejecting campaign:', err);
+    }
   };
 
-  const handleDeleteCampaign = (id: string) => {
-    setCampaignsList(prev => prev.filter(campaign => campaign.id !== id));
-    setShowDeleteConfirm(false);
-    setSelectedCampaign(null);
+  const handleDeleteCampaign = async (id: number) => {
+    try {
+      const response = await adminBloodRequestsApi.delete(id);
+      if (response.success) {
+        setCampaignsList(prev => prev.filter(campaign => campaign.id !== id));
+        setShowDeleteConfirm(false);
+        setSelectedCampaign(null);
+      } else {
+        setError(response.error || 'Failed to delete campaign');
+      }
+    } catch (err) {
+      setError('Failed to delete campaign');
+      console.error('Error deleting campaign:', err);
+    }
   };
 
   const handleViewDetails = (campaign: BloodCampaign) => {
     setSelectedCampaign(campaign);
     setShowDetailModal(true);
   };
+
+  if (loading) {
+    return (
+      <AdminLayout title="Kelola Campaign" subtitle="Verifikasi dan kelola campaign donor darah">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+            <span className="ml-2 text-gray-600">Loading campaigns...</span>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AdminLayout title="Kelola Campaign" subtitle="Verifikasi dan kelola campaign donor darah">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />
+              <p className="text-red-800">{error}</p>
+            </div>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout title="Kelola Campaign" subtitle="Verifikasi dan kelola campaign donor darah">
@@ -123,9 +237,11 @@ const AdminCampaignsPage: React.FC = () => {
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
               >
                 <option value="all">Semua Status</option>
-                <option value="active">Aktif</option>
+                <option value="pending">Pending</option>
+                <option value="verified">Verified</option>
+                <option value="completed">Completed</option>
+                <option value="rejected">Rejected</option>
                 <option value="expired">Expired</option>
-                <option value="completed">Tercapai</option>
               </select>
               <select
                 value={filterUrgency}
@@ -140,7 +256,7 @@ const AdminCampaignsPage: React.FC = () => {
               </select>
             </div>
             <div className="text-sm text-gray-600">
-              Menampilkan {filteredCampaigns.length} dari {campaignsList.length} campaign
+              Menampilkan {filteredCampaigns.length} dari {campaignsList?.length || 0} campaign
             </div>
           </div>
         </div>
@@ -151,77 +267,79 @@ const AdminCampaignsPage: React.FC = () => {
             <div key={campaign.id} className="bg-white rounded-xl shadow-sm border overflow-hidden">
               <div className="relative">
                 <img 
-                  src={campaign.imageUrl} 
-                  alt={campaign.title}
+                  src={campaign.url_file || '/api/placeholder/400/200'} 
+                  alt={campaign.event_name}
                   className="w-full h-48 object-cover"
                 />
                 <div className="absolute top-4 left-4">
-                  <span className={`px-3 py-1 text-xs font-medium rounded-full border ${getUrgencyColor(campaign.urgencyLevel)}`}>
-                    {campaign.urgencyLevel}
+                  <span className={`px-3 py-1 text-xs font-medium rounded-full border ${getUrgencyColor(campaign.urgency_level)}`}>
+                    {campaign.urgency_level}
                   </span>
                 </div>
                 <div className="absolute top-4 right-4">
-                  {campaign.organizer.verified ? (
-                    <span className="bg-green-100 text-green-600 px-2 py-1 text-xs font-medium rounded-full border border-green-200">
-                      Verified
-                    </span>
-                  ) : (
-                    <span className="bg-yellow-100 text-yellow-600 px-2 py-1 text-xs font-medium rounded-full border border-yellow-200">
-                      Pending
-                    </span>
-                  )}
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(campaign.status)}`}>
+                    {campaign.status}
+                  </span>
                 </div>
               </div>
 
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                  {campaign.title}
+                  {campaign.event_name}
                 </h3>
                 
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center text-sm text-gray-600">
                     <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span className="truncate">{campaign.hospital}</span>
+                    <span className="truncate">{campaign.hospital.name}</span>
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
                     <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span>{new Date(campaign.deadline).toLocaleDateString('id-ID')}</span>
-                    {isExpired(campaign.deadline) && (
+                    <span>{new Date(campaign.event_date).toLocaleDateString('id-ID')}</span>
+                    {isExpired(campaign.event_date) && (
                       <span className="ml-2 text-red-600 text-xs font-medium">EXPIRED</span>
                     )}
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
                     <Phone className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span>{campaign.contactPhone}</span>
+                    <span>{campaign.user.phone}</span>
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600">
+                    <User className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span>{campaign.user.name}</span>
                   </div>
                 </div>
 
                 {/* Progress */}
                 <div className="mb-4">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-gray-700">Progress Donor</span>
+                    <span className="text-sm font-medium text-gray-700">Progress Slot</span>
                     <span className="text-sm text-gray-600">
-                      {campaign.currentDonors}/{campaign.targetDonors}
+                      {campaign.slots_booked}/{campaign.slots_available}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
                       className="bg-red-600 h-2 rounded-full transition-all"
-                      style={{ width: `${getProgressPercentage(campaign.currentDonors, campaign.targetDonors)}%` }}
+                      style={{ width: `${getProgressPercentage(campaign.slots_booked, campaign.slots_available)}%` }}
                     />
                   </div>
                 </div>
 
-                {/* Blood Types */}
+                {/* Blood Type and Quantity */}
                 <div className="mb-4">
-                  <p className="text-sm font-medium text-gray-700 mb-2">Golongan Darah:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {campaign.bloodType.map((type) => (
-                      <span key={type} className="bg-red-100 text-red-600 px-2 py-1 text-xs font-medium rounded border border-red-200">
-                        {type}
-                      </span>
-                    ))}
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium text-gray-700">Golongan Darah:</span>
+                    <span className="bg-red-100 text-red-600 px-2 py-1 text-xs font-medium rounded border border-red-200">
+                      {campaign.blood_type}
+                    </span>
                   </div>
+                  {campaign.quantity > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">Quantity:</span>
+                      <span className="text-sm text-gray-600">{campaign.quantity} unit</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions */}
@@ -233,7 +351,7 @@ const AdminCampaignsPage: React.FC = () => {
                     <Eye className="h-4 w-4" />
                     <span>Detail</span>
                   </button>
-                  {!campaign.organizer.verified && (
+                  {campaign.status === 'pending' && (
                     <>
                       <button
                         onClick={() => handleApproveCampaign(campaign.id)}
@@ -295,15 +413,15 @@ const AdminCampaignsPage: React.FC = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div>
                   <img 
-                    src={selectedCampaign.imageUrl} 
-                    alt={selectedCampaign.title}
+                    src={selectedCampaign.url_file || '/api/placeholder/400/300'} 
+                    alt={selectedCampaign.event_name}
                     className="w-full h-64 object-cover rounded-lg mb-4"
                   />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {selectedCampaign.title}
+                    {selectedCampaign.event_name}
                   </h3>
                   <p className="text-gray-600 mb-4">
-                    {selectedCampaign.description}
+                    {selectedCampaign.diagnosis}
                   </p>
                 </div>
                 
@@ -313,28 +431,38 @@ const AdminCampaignsPage: React.FC = () => {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Rumah Sakit:</span>
-                        <span className="font-medium">{selectedCampaign.hospital}</span>
+                        <span className="font-medium">{selectedCampaign.hospital.name}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Lokasi:</span>
-                        <span className="font-medium">{selectedCampaign.location}</span>
+                        <span className="text-gray-600">Alamat:</span>
+                        <span className="font-medium">{selectedCampaign.hospital.address}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Target Donor:</span>
-                        <span className="font-medium">{selectedCampaign.targetDonors} orang</span>
+                        <span className="text-gray-600">Kota:</span>
+                        <span className="font-medium">{selectedCampaign.hospital.city}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Donor Terkumpul:</span>
-                        <span className="font-medium">{selectedCampaign.currentDonors} orang</span>
+                        <span className="text-gray-600">Slot Tersedia:</span>
+                        <span className="font-medium">{selectedCampaign.slots_available} slot</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Deadline:</span>
-                        <span className="font-medium">{new Date(selectedCampaign.deadline).toLocaleDateString('id-ID')}</span>
+                        <span className="text-gray-600">Slot Terboking:</span>
+                        <span className="font-medium">{selectedCampaign.slots_booked} slot</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Tanggal Event:</span>
+                        <span className="font-medium">{new Date(selectedCampaign.event_date).toLocaleDateString('id-ID')}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Urgensi:</span>
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getUrgencyColor(selectedCampaign.urgencyLevel)}`}>
-                          {selectedCampaign.urgencyLevel}
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getUrgencyColor(selectedCampaign.urgency_level)}`}>
+                          {selectedCampaign.urgency_level}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Status:</span>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(selectedCampaign.status)}`}>
+                          {selectedCampaign.status}
                         </span>
                       </div>
                     </div>
@@ -345,11 +473,15 @@ const AdminCampaignsPage: React.FC = () => {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Nama:</span>
-                        <span className="font-medium">{selectedCampaign.contactPerson}</span>
+                        <span className="font-medium">{selectedCampaign.user.name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Email:</span>
+                        <span className="font-medium">{selectedCampaign.user.email}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Telepon:</span>
-                        <span className="font-medium">{selectedCampaign.contactPhone}</span>
+                        <span className="font-medium">{selectedCampaign.user.phone}</span>
                       </div>
                     </div>
                   </div>
@@ -357,27 +489,30 @@ const AdminCampaignsPage: React.FC = () => {
                   <div>
                     <h4 className="text-sm font-medium text-gray-900 mb-2">Golongan Darah Dibutuhkan</h4>
                     <div className="flex flex-wrap gap-2">
-                      {selectedCampaign.bloodType.map((type) => (
-                        <span key={type} className="bg-red-100 text-red-600 px-3 py-1 text-sm font-medium rounded-full border border-red-200">
-                          {type}
-                        </span>
-                      ))}
+                      <span className="bg-red-100 text-red-600 px-3 py-1 text-sm font-medium rounded-full border border-red-200">
+                        {selectedCampaign.blood_type}
+                      </span>
                     </div>
+                    {selectedCampaign.quantity > 0 && (
+                      <div className="mt-2">
+                        <span className="text-sm text-gray-600">Quantity: {selectedCampaign.quantity} unit</span>
+                      </div>
+                    )}
                   </div>
 
                   <div>
                     <h4 className="text-sm font-medium text-gray-900 mb-2">Organizer</h4>
                     <div className="flex items-center space-x-3">
                       <img 
-                        src={selectedCampaign.organizer.avatar} 
-                        alt={selectedCampaign.organizer.name}
-                        className="w-10 h-10 rounded-full object-cover"
+                        src={selectedCampaign.user.url_file || '/api/placeholder/40/40'} 
+                        alt={selectedCampaign.user.name}
+                        className="w-10 h-10 rounded-full object-cover border"
                       />
                       <div>
-                        <p className="font-medium text-gray-900">{selectedCampaign.organizer.name}</p>
-                        <p className="text-sm text-gray-600">{selectedCampaign.organizer.role}</p>
+                        <p className="font-medium text-gray-900">{selectedCampaign.user.name}</p>
+                        <p className="text-sm text-gray-600">{selectedCampaign.user.role}</p>
                       </div>
-                      {selectedCampaign.organizer.verified && (
+                      {selectedCampaign.user.is_verified && (
                         <CheckCircle className="h-5 w-5 text-green-500" />
                       )}
                     </div>
@@ -400,7 +535,7 @@ const AdminCampaignsPage: React.FC = () => {
               <h3 className="text-lg font-semibold text-gray-900">Hapus Campaign</h3>
             </div>
             <p className="text-gray-600 mb-6">
-              Apakah Anda yakin ingin menghapus campaign "{selectedCampaign.title}"? 
+              Apakah Anda yakin ingin menghapus campaign "{selectedCampaign.event_name}"? 
               Tindakan ini tidak dapat dibatalkan.
             </p>
             <div className="flex space-x-3">
