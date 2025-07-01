@@ -115,18 +115,35 @@ func (h *BloodDonationHandler) Create(ctx echo.Context) error {
 	var req dto.BloodDonationCreateRequest
 	var regis dto.DonorRegistrationUpdateRequest
 	// Manually bind the image file
-	imageFile, err := ctx.FormFile("image")
-	if err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Image file is required"))
+	imageFile, errImage := ctx.FormFile("image")
+	if errImage != nil {
+		// Jika error bukan karena file tidak ada, berarti ada masalah lain.
+		if errImage != http.ErrMissingFile {
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "error processing image file: "+errImage.Error()))
+		}
+		// Jika errornya adalah http.ErrMissingFile, tidak apa-apa, karena gambar bersifat opsional.
+		// req.Image akan tetap nil.
+	} else {
+		// Jika file ada, masukkan ke dalam struct request.
+		req.Image = imageFile
 	}
-	req.Image = imageFile
+	var acceptedImages = map[string]struct{}{
+		"image/png":  {},
+		"image/jpeg": {},
+		"image/jpg":  {},
+	}
+	if req.Image != nil {
+		if _, ok := acceptedImages[req.Image.Header.Get("Content-Type")]; !ok {
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "unsupported image type"))
+		}
+	}
 
-	if err = ctx.Bind(&req); err != nil {
+	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
 
 	// Validasi request
-	if err = ctx.Validate(&req); err != nil {
+	if err := ctx.Validate(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
 

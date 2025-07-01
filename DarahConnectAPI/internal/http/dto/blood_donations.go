@@ -6,7 +6,7 @@ import (
 )
 
 type BloodDonationCreateRequest struct {
-	UserId         int64                 `json:"user_id" form:"user_id" validate:"required"`
+	UserId         int64                 `json:"user_id" form:"user_id"`
 	HospitalId     int64                 `json:"hospital_id" form:"hospital_id" validate:"required"`
 	RegistrationId int64                 `json:"registration_id" form:"registration_id" validate:"required"`
 	DonationDate   time.Time             `json:"donation_date" form:"donation_date" validate:"required"`
