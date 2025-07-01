@@ -31,7 +31,7 @@ type ResetPasswordClaims struct {
 }
 
 type GoogleOAuthClaims struct {
-	Id         string `json:"id"`
+	Id         int64 `json:"id"`
 	Email      string `json:"email"`
 	Name       string `json:"name"`
 	Role       string `json:"role"`
@@ -39,7 +39,6 @@ type GoogleOAuthClaims struct {
 	Provider   string `json:"provider"` // "google"
 	Metamask   bool   `json:"metamask"`
 	IsNew      bool   `json:"is_new"`
-	Role       string `json:"role"`
 	jwt.RegisteredClaims
 }
 
