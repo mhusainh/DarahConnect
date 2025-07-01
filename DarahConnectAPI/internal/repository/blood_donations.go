@@ -83,7 +83,7 @@ func (r *bloodDonationRepository) Create(ctx context.Context, bloodDonation *ent
 
 func (r *bloodDonationRepository) GetById(ctx context.Context, id int64) (*entity.BloodDonation, error) {
 	result := new(entity.BloodDonation)
-	if err := r.db.WithContext(ctx).Where("id = ?", id).First(result).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("id = ?", id).Preload("Hospital").Preload("Registration").First(result).Error; err != nil {
 		return nil, err
 	}
 	return result, nil

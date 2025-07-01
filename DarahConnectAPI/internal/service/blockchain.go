@@ -10,6 +10,7 @@ import (
 
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/configs"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/contracts" // Impor package kontrak hasil generate abigen
+	"github.com/mhusainh/DarahConnect/DarahConnectAPI/utils"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -20,7 +21,7 @@ import (
 // BlockchainService mendefinisikan fungsi-fungsi untuk interaksi dengan blockchain.
 type BlockchainService interface {
 	// Mengembalikan: Transaction Hash (string), Error
-	CreateCertificate(donorAddress, donorName, donorAlamat string, certificateNumber uint64) (string, error)
+	CreateCertificate(donorAddress, donorName, donorAlamat string) (string, string, error)
 }
 
 // Struct implementasi dari interface di atas.
@@ -70,29 +71,36 @@ func NewBlockchainService(cfg configs.BlockchainConfig) (BlockchainService, erro
 }
 
 // CreateCertificate memanggil fungsi mintSertifikat di smart contract.
-func (s *blockchainService) CreateCertificate(donorAddress, donorName, donorAlamat string, certificateNumber uint64) (string, error) {
+func (s *blockchainService) CreateCertificate(donorAddress, donorName, donorAlamat string) (string, string, error) {
 	// Buat "transactor" (penanda tangan transaksi) dari private key backend
 	auth, err := bind.NewKeyedTransactorWithChainID(s.privateKey, s.chainID)
 	if err != nil {
-		return "", errors.New("gagal membuat transactor")
+		return "", "", errors.New("gagal membuat transactor")
+	}
+
+	certificateNumber, err := utils.GenerateUniqueCertificateNumber()
+	if err != nil {
+		return "", "", errors.New("Gagal membuat nomor sertifikat")
 	}
 
 	// Konversi tipe data Go ke tipe data yang dimengerti Solidity
 	pendonorAddress := common.HexToAddress(donorAddress)
-	nomorSertifikat := new(big.Int).SetUint64(certificateNumber)
+	nomorSertifikat, success := new(big.Int).SetString(certificateNumber, 10)
+	if !success {
+		return "", "", errors.New("failed to convert certificate number to big.Int: " + certificateNumber)
+	}
 
 	log.Println("Mengirim transaksi MintSertifikat ke blockchain...")
 
 	// Panggil fungsi dari smart contract (dari file hasil generate abigen)
 	tx, err := s.contractInstance.MintSertifikat(auth, pendonorAddress, donorName, nomorSertifikat, donorAlamat)
 	if err != nil {
-		return "", errors.New("gagal memanggil fungsi MintSertifikat: " + err.Error())
+		return "", "", errors.New("gagal memanggil fungsi MintSertifikat: " + err.Error())
 	}
 
 	// Ambil Transaction Hash dari objek transaksi!
 	txHash := tx.Hash().Hex()
 	log.Printf("Transaksi berhasil dikirim! Tx Hash: %s", txHash)
-
 	// Kembalikan hash tersebut untuk disimpan ke database
-	return txHash, nil
+	return txHash, certificateNumber, nil
 }

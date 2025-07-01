@@ -7,11 +7,10 @@ import (
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/repository"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPI/utils"
 )
 
 type CertificateService interface {
-	Create(ctx context.Context, bloodDonation *entity.BloodDonation) (*entity.Certificate, error)
+	Create(ctx context.Context, bloodDonation *entity.BloodDonation, certificateNumber, digitalSignature string) (*entity.Certificate, error)
 	GetAll(ctx context.Context, req dto.GetAllCertificateRequest) ([]entity.Certificate, int64, error)
 	GetById(ctx context.Context, id int64) (*entity.Certificate, error)
 	GetByUser(ctx context.Context, userId int64, req dto.GetAllCertificateRequest) ([]entity.Certificate, int64, error)
@@ -22,21 +21,15 @@ type certificateService struct {
 	certificateRepository repository.CertificateRepository
 }
 
-func NewCertificateService(certificateRepository repository.CertificateRepository) CertificateService {
+func NewCertificateService(
+	certificateRepository repository.CertificateRepository,
+) CertificateService {
 	return &certificateService{
 		certificateRepository,
 	}
 }
 
-func (s *certificateService) Create(ctx context.Context, bloodDonation *entity.BloodDonation) (*entity.Certificate, error) {
-	certificateNumber, err := utils.GenerateUniqueCertificateNumber()
-	if err != nil {
-		return nil, errors.New("Gagal membuat sertifikat")
-	}
-	digitalSignature, err := utils.GenerateCertificateNumber()
-	if err != nil {
-		return nil, errors.New("Gagal membuat sertifikat")
-	}
+func (s *certificateService) Create(ctx context.Context, bloodDonation *entity.BloodDonation, certificateNumber, digitalSignature string) (*entity.Certificate, error) {
 	certificate := &entity.Certificate{
 		DonationId:        bloodDonation.Id,
 		UserId:            bloodDonation.UserId,
@@ -44,7 +37,7 @@ func (s *certificateService) Create(ctx context.Context, bloodDonation *entity.B
 		DigitalSignature:  digitalSignature,
 	}
 	if err := s.certificateRepository.Create(ctx, certificate); err != nil {
-		return nil, errors.New("Gagal membuat sertifikat")
+		return nil, errors.New("Gagal membuat sertifikat" + err.Error())
 	}
 	return certificate, nil
 }

@@ -49,7 +49,7 @@ func main() {
 	blockchain, err := service.NewBlockchainService(cfg.Blockchain)
 	checkError(err)
 
-	publicRoutes := builder.BuildPublicRoutes(cfg, db, rdb, cloudinaryService, mailer)
+	publicRoutes := builder.BuildPublicRoutes(cfg, db, rdb, cloudinaryService, mailer, blockchain)
 	privateRoutes := builder.BuildPrivateRoutes(cfg, db, rdb, cloudinaryService, mailer, blockchain)
 
 	srv := server.NewServer(cfg, publicRoutes, privateRoutes)
