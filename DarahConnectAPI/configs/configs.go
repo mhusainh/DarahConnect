@@ -13,7 +13,6 @@ type Config struct {
 	PORT             string           `env:"PORT" envDefault:"8081" mapstructure:"PORT"`
 	PostgresConfig   PostgresConfig   `envPrefix:"POSTGRES_" mapstructure:"POSTGRES"`
 	JWT              JWTConfig        `envPrefix:"JWT_" mapstructure:"JWT"`
-	RedisConfig      RedisConfig      `envPrefix:"REDIS_" mapstructure:"REDIS"`
 	SMTPConfig       SMTPConfig       `envPrefix:"SMTP_" mapstructure:"SMTP"`
 	CloudinaryConfig CloudinaryConfig `envPrefix:"CLOUDINARY_" mapstructure:"CLOUDINARY"`
 	MidtransConfig   MidtransConfig   `envPrefix:"MIDTRANS_" mapstructure:"MIDTRANS"`
@@ -26,12 +25,6 @@ type BlockchainConfig struct {
 	RPCURL          string `env:"SEPOLIA_RPC_URL"`
 	PrivateKey      string `env:"PRIVATE_KEY"`
 	ContractAddress string `env:"CONTRACT_ADDRESS"`
-}
-
-type RedisConfig struct {
-	Host     string `env:"HOST" envDefault:"localhost" mapstructure:"HOST"`
-	Port     string `env:"PORT" envDefault:"6379" mapstructure:"PORT"`
-	Password string `env:"PASSWORD" envDefault:"" mapstructure:"PASSWORD"`
 }
 
 type GoogleOauth struct {

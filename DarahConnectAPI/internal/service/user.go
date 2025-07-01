@@ -131,7 +131,7 @@ func (s *userService) Register(ctx context.Context, req dto.UserRegisterRequest)
 			Link string
 		}{
 			Token: user.VerifyEmailToken,
-			Link: s.cfg.VerifyEmailBaseURL + "?token=" + user.VerifyEmailToken,
+			Link: s.cfg.VerifyEmailBaseURL + "/verify-email?token=" + user.VerifyEmailToken,
 		},
 	}
 
@@ -291,8 +291,10 @@ func (s *userService) RequestResetPassword(ctx context.Context, email string) er
 		Template: "reset-password.html",
 		Data: struct {
 			Token string
+			Link string
 		}{
 			Token: user.ResetPasswordToken,
+			Link: s.cfg.VerifyEmailBaseURL + "/reset-password?token=" + user.ResetPasswordToken,
 		},
 	}
 
