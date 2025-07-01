@@ -20,6 +20,9 @@ type BloodRequestRepository interface {
 	GetAllCampaign(ctx context.Context, req dto.GetAllBloodRequestRequest) ([]entity.BloodRequest, int64, error)
 	Update(ctx context.Context, bloodRequest *entity.BloodRequest) error
 	Delete(ctx context.Context, bloodRequest *entity.BloodRequest) error
+	CountBloodRequest(ctx context.Context, status string, eventType string) (int64, error)
+	CountCampaignActive(ctx context.Context, status string, eventType string) (int64, error)
+	CountTotal(ctx context.Context, eventType string) (int64, error)
 }
 
 type bloodRequestRepository struct {
@@ -215,4 +218,28 @@ func (r *bloodRequestRepository) Update(ctx context.Context, bloodRequest *entit
 
 func (r *bloodRequestRepository) Delete(ctx context.Context, bloodRequest *entity.BloodRequest) error {
 	return r.db.WithContext(ctx).Delete(bloodRequest).Error
+}
+
+func (r *bloodRequestRepository) CountBloodRequest(ctx context.Context, status string, eventType string) (int64, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).Model(&entity.BloodRequest{}).Where("status = ? AND event_type = ?", status, eventType).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (r *bloodRequestRepository) CountTotal(ctx context.Context, eventType string) (int64, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).Model(&entity.BloodRequest{}).Where("event_type = ?", eventType).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (r *bloodRequestRepository) CountCampaignActive(ctx context.Context, status string, eventType string) (int64, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).Model(&entity.BloodRequest{}).Where("status != ? AND event_type = ?", status, eventType).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
 }

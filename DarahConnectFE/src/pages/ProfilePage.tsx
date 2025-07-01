@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import WalletConnectBanner from "../components/WalletConnectBanner";
 import {
   User,
   Mail,
@@ -31,6 +32,7 @@ import LocationPicker from '../components/LocationPicker';
 import { useApi } from '../hooks/useApi';
 import { useNotification } from '../hooks/useNotification';
 import { calculateAge } from '../utils/dateUtils';
+import { connectWalletAddress } from '../services/walletService';
 
 interface UserProfile {
   id: number;
@@ -80,6 +82,7 @@ const ProfilePage: React.FC = () => {
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string>('');
   const [showImageModal, setShowImageModal] = useState<boolean>(false);
+  const [isConnectingWallet, setIsConnectingWallet] = useState<boolean>(false);
 
 
 
@@ -379,6 +382,40 @@ const ProfilePage: React.FC = () => {
     'Community Champion': <Gift className="w-5 h-5" />
   };
 
+  const handleConnectWalletToBackend = async () => {
+    if (!account) {
+      addNotification({
+        type: 'error',
+        title: 'Wallet Tidak Terhubung',
+        message: 'Harap hubungkan wallet MetaMask terlebih dahulu'
+      });
+      return;
+    }
+
+    setIsConnectingWallet(true);
+    try {
+      const response = await connectWalletAddress(account);
+      if (response.success) {
+        addNotification({
+          type: 'success',
+          title: 'Wallet Terhubung',
+          message: 'Alamat wallet berhasil dihubungkan ke akun Anda'
+        });
+      } else {
+        throw new Error(response.message || 'Gagal menghubungkan wallet');
+      }
+    } catch (error: any) {
+      console.error('Error connecting wallet to backend:', error);
+      addNotification({
+        type: 'error',
+        title: 'Gagal Menghubungkan Wallet',
+        message: error.message || 'Terjadi kesalahan saat menghubungkan wallet ke akun'
+      });
+    } finally {
+      setIsConnectingWallet(false);
+    }
+  };
+
   if (loading) {
     return (
       <>
@@ -421,6 +458,7 @@ const ProfilePage: React.FC = () => {
 
   return (
     <>
+    <WalletConnectBanner />
       <Header />
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -756,15 +794,26 @@ const ProfilePage: React.FC = () => {
                           </p>
                         </div>
                         
-                        <a
-                          href={`https://etherscan.io/address/${account}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="w-full flex items-center justify-center space-x-2 bg-blue-600 text-white py-2 rounded-xl font-medium hover:bg-blue-700 transition-colors text-sm"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          <span>View on Etherscan</span>
-                        </a>
+                        <div className="space-y-2">
+                          <button
+                            onClick={handleConnectWalletToBackend}
+                            disabled={isConnectingWallet}
+                            className="w-full flex items-center justify-center space-x-2 bg-green-600 text-white py-2 rounded-xl font-medium hover:bg-green-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Wallet className="w-4 h-4" />
+                            <span>{isConnectingWallet ? 'Menghubungkan...' : 'Hubungkan ke Akun'}</span>
+                          </button>
+                          
+                          <a
+                            href={`https://etherscan.io/address/${account}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full flex items-center justify-center space-x-2 bg-blue-600 text-white py-2 rounded-xl font-medium hover:bg-blue-700 transition-colors text-sm"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            <span>View on Etherscan</span>
+                          </a>
+                        </div>
                       </div>
                     )}
                     

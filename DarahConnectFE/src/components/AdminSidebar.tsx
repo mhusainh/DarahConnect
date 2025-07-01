@@ -10,7 +10,8 @@ import {
   BarChart3,
   Shield,
   X,
-  Award
+  Award,
+  CreditCard
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -54,10 +55,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) => {
       badge: '5' // Pending certificates
     },
     {
-      title: 'Laporan',
-      icon: BarChart3,
-      path: '/admin/reports',
-      description: 'Laporan & Statistik'
+      title: 'Health Passport',
+      icon: CreditCard,
+      path: '/admin/health-passports',
+      description: 'Kelola Health Passport'
     },
     {
       title: 'Pengaturan',

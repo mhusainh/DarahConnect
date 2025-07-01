@@ -39,7 +39,7 @@ export interface BloodCampaign {
   patient_name: string;
   blood_type: string;
   quantity: number;
-  urgency_level: 'Low' | 'Medium' | 'High' | 'Critical';
+  urgency_level: 'low' | 'medium' | 'high' | 'critical';
   diagnosis: string;
   event_name: string;
   event_date: string;
@@ -47,8 +47,10 @@ export interface BloodCampaign {
   end_time: string;
   slots_available: number;
   slots_booked: number;
-  status: 'pending' | 'approved' | 'completed' | 'Canceled';
-  event_type: string;
+  status: 'pending' | 'verified' | 'completed' | 'rejected';
+  event_type: 'campaign';
+  url_file: string;
+  public_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -127,4 +129,71 @@ export interface DonationTransaction extends WalletTransaction {
   campaignId: string;
   donorId: string;
   amount: string;
+}
+
+export interface BloodRequest {
+  id: number;
+  user_id: number;
+  user: User;
+  hospital_id: number;
+  hospital: Hospital;
+  patient_name: string;
+  blood_type: string;
+  quantity: number;
+  urgency_level: 'low' | 'medium' | 'high' | 'critical';
+  diagnosis: string;
+  event_name: string;
+  event_date: string;
+  start_time: string;
+  end_time: string;
+  slots_available: number;
+  slots_booked: number;
+  status: 'pending' | 'verified' | 'completed' | 'rejected';
+  event_type: 'blood_request';
+  url_file: string;
+  public_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Union type for both campaigns and blood requests
+export type AdminBloodEvent = BloodCampaign | BloodRequest;
+
+export interface AdminBloodRequestResponse {
+  meta: {
+    code: number;
+    message: string;
+  };
+  data: AdminBloodEvent[];
+  pagination: {
+    page: number;
+    per_page: number;
+    total_items: number;
+    total_pages: number;
+  };
+}
+
+export interface HealthPassport {
+  id: number;
+  user_id: number;
+  user: User;
+  passport_number: string;
+  expiry_date: string;
+  status: 'active' | 'expired' | 'suspended';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HealthPassportResponse {
+  meta: {
+    code: number;
+    message: string;
+  };
+  data: HealthPassport[];
+  pagination: {
+    page: number;
+    per_page: number;
+    total_items: number;
+    total_pages: number;
+  };
 } 

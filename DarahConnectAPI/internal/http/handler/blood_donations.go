@@ -13,11 +13,12 @@ import (
 )
 
 type BloodDonationHandler struct {
-	bloodDonationService service.BloodDonationService
-	notificationService  service.NotificationService
-	certificateService   service.CertificateService
+	bloodDonationService     service.BloodDonationService
+	notificationService      service.NotificationService
+	certificateService       service.CertificateService
 	donorRegistrationService service.DonorRegistrationService
-	userService service.UserService
+	userService              service.UserService
+	blockchainService        service.BlockchainService
 }
 
 func NewBloodDonationHandler(
@@ -26,6 +27,7 @@ func NewBloodDonationHandler(
 	certificateService service.CertificateService,
 	donorRegistrationService service.DonorRegistrationService,
 	userService service.UserService,
+	blockchain service.BlockchainService,
 ) BloodDonationHandler {
 	return BloodDonationHandler{
 		bloodDonationService,
@@ -33,7 +35,7 @@ func NewBloodDonationHandler(
 		certificateService,
 		donorRegistrationService,
 		userService,
-
+		blockchain,
 	}
 }
 
@@ -170,7 +172,7 @@ func (h *BloodDonationHandler) Create(ctx echo.Context) error {
 // hanya untuk user
 func (h *BloodDonationHandler) Update(ctx echo.Context) error {
 	var req dto.BloodDonationUpdateRequest
-	req.Status="pending"
+	req.Status = "pending"
 
 	// Manually bind the image file
 	if imageFile, err := ctx.FormFile("image"); err != nil {
@@ -220,7 +222,7 @@ func (h *BloodDonationHandler) Update(ctx echo.Context) error {
 	var acceptedImages = map[string]struct{}{
 		"image/png":  {},
 		"image/jpeg": {},
-		"image/jpg": {},
+		"image/jpg":  {},
 	}
 
 	if req.Image != nil {
@@ -229,7 +231,7 @@ func (h *BloodDonationHandler) Update(ctx echo.Context) error {
 		}
 	}
 
-	if _,err := h.bloodDonationService.Update(ctx.Request().Context(), req, bloodDonation); err != nil {
+	if _, err := h.bloodDonationService.Update(ctx.Request().Context(), req, bloodDonation); err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully updating blood donation", nil))
@@ -252,30 +254,39 @@ func (h *BloodDonationHandler) StatusBloodDonation(ctx echo.Context) error {
 		return ctx.JSON(http.StatusForbidden, response.ErrorResponse(http.StatusForbidden, "Donasi darah tidak bisa diubah"))
 	}
 
-	updatedBloodDonation, err := h.bloodDonationService.Update(ctx.Request().Context(), req, bloodDonation)
+	user, err := h.userService.GetById(ctx.Request().Context(), bloodDonation.UserId)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 
-	var certificateNumber string
 	notif.UserId = bloodDonation.UserId
 	notif.Title = "Status Donasi Darah"
-	if updatedBloodDonation.Status == "completed" {
-		certificate, err := h.certificateService.Create(ctx.Request().Context(), updatedBloodDonation)
+	if req.Status == "completed" {
+		donorAlamat := bloodDonation.Hospital.Address + ", " + bloodDonation.Hospital.City + ", " + bloodDonation.Hospital.Province
+		txHash, certificateNumber, err := h.blockchainService.CreateCertificate(user.WalletAddress, user.Name, donorAlamat)
 		if err != nil {
 			return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 		}
-		certificateNumber = certificate.CertificateNumber
-		notif.Message = "Status donasi darah anda telah " + req.Status + " dengan nomor sertifikat " + certificateNumber
+		_, err = h.certificateService.Create(ctx.Request().Context(), bloodDonation, certificateNumber, txHash)
+		if err != nil {
+			return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+		}
+		notif.Message = "Status donasi darah anda telah " + req.Status + " dengan nomor sertifikat " + certificateNumber + " dan digital signature (transaktion hash) " + txHash
+
 	} else {
 		notif.Message = "Status donasi darah anda telah " + req.Status
+	}
+
+	_, err = h.bloodDonationService.Update(ctx.Request().Context(), req, bloodDonation)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 
 	notif.NotificationType = "information"
 	if err := h.notificationService.Create(ctx.Request().Context(), notif); err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully updating status blood donation", nil))
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully updating status blood donation and Create Certificate", nil))
 }
 
 func (h *BloodDonationHandler) Delete(ctx echo.Context) error {
@@ -300,7 +311,7 @@ func (h *BloodDonationHandler) Delete(ctx echo.Context) error {
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-	if claimsData.Role == "User"{
+	if claimsData.Role == "User" {
 		if bloodDonation.UserId != claimsData.Id {
 			return ctx.JSON(http.StatusForbidden, response.ErrorResponse(http.StatusForbidden, "unauthorized"))
 		}

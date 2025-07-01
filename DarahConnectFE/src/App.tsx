@@ -45,6 +45,7 @@ const AdminCampaignsPage = lazy(() => import('./pages/AdminCampaignsPage'));
 const AdminDonorsPage = lazy(() => import('./pages/AdminDonorsPage'));
 const AdminRequestsPage = lazy(() => import('./pages/AdminRequestsPage'));
 const AdminCertificatesPage = lazy(() => import('./pages/AdminCertificatesPage'));
+const AdminHealthPassportPage = lazy(() => import('./pages/AdminHealthPassportPage'));
 const AdminReportsPage = lazy(() => import('./pages/AdminReportsPage'));
 const AdminSettingsPage = lazy(() => import('./pages/AdminSettingsPage'));
 const AdminProfilePage = lazy(() => import('./pages/AdminProfilePage'));
@@ -73,7 +74,7 @@ const HomePage: React.FC = () => {
 
   const handleDonorRegistration = async (notes: string) => {
     if (!selectedCampaign) return;
-    
+
     try {
       const success = await campaignService.registerAsDonor(Number(selectedCampaign.id), notes);
       if (success) {
@@ -154,21 +155,21 @@ const HomePage: React.FC = () => {
       <WalletConnectBanner />
       <Header />
       <HeroSection />
-      <CampaignsList 
+      <CampaignsList
         campaigns={campaigns}
         onViewDetails={handleViewDetails}
         onDonate={handleDonate}
         onCryptoDonate={handleCryptoDonate}
       />
       <Footer />
-      
+
       <DonorConfirmationModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         campaign={selectedCampaign}
         onConfirm={handleDonorRegistration}
       />
-      
+
       <CryptoDonationModal
         isOpen={isCryptoModalOpen}
         onClose={() => setIsCryptoModalOpen(false)}
@@ -201,7 +202,7 @@ const CampaignsPage: React.FC = () => {
 
   const handleDonorRegistration = async (notes: string) => {
     if (!selectedCampaign) return;
-    
+
     try {
       const success = await campaignService.registerAsDonor(Number(selectedCampaign.id), notes);
       if (success) {
@@ -271,7 +272,7 @@ const CampaignsPage: React.FC = () => {
             <p className="text-gray-600">Temukan campaign yang membutuhkan bantuan Anda</p>
           </div>
           <Suspense fallback={<CampaignListLoader />}>
-            <CampaignsList 
+            <CampaignsList
               campaigns={campaigns}
               onViewDetails={handleViewDetails}
               onDonate={handleDonate}
@@ -281,14 +282,14 @@ const CampaignsPage: React.FC = () => {
         </div>
       </div>
       <Footer />
-      
+
       <DonorConfirmationModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         campaign={selectedCampaign}
         onConfirm={handleDonorRegistration}
       />
-      
+
       <CryptoDonationModal
         isOpen={isCryptoModalOpen}
         onClose={() => setIsCryptoModalOpen(false)}
@@ -302,23 +303,23 @@ const CampaignsPage: React.FC = () => {
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-  
+
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />;
   }
-  
+
   return <>{children}</>;
 };
-
+const OAuthCallbackPage = lazy(() => import('./pages/OAuthCallbackPage'));
 // Admin Protected Route Component
 const AdminProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
   const isAdmin = localStorage.getItem('isAdmin') === 'true'; // In real app, check user role
-  
+
   if (!isLoggedIn || !isAdmin) {
     return <Navigate to="/login" replace />;
   }
-  
+
   return <>{children}</>;
 };
 
@@ -338,221 +339,222 @@ function App() {
     <NotificationProvider>
       <Router>
         <div className="App relative">
-        {/* ChatBot tersedia di semua halaman */}
-        {/* Gunakan ChatBotDemo untuk testing tanpa n8n */}
-        {/* <ChatBotDemo 
+          {/* ChatBot tersedia di semua halaman */}
+          {/* Gunakan ChatBotDemo untuk testing tanpa n8n */}
+          {/* <ChatBotDemo 
           position="bottom-right"
           primaryColor="#ef4444"
           botName="DarahConnect Assistant"
           welcomeMessage="Halo! Saya assistant DarahConnect. Ada yang bisa saya bantu hari ini? 🩸"
         /> */}
-        
-        {/* Uncomment untuk menggunakan ChatBot dengan n8n webhook */}
-   
-        <ChatBot 
-          webhookUrl="https://vertically-possible-amoeba.ngrok-free.app/webhook-test/0f8b8e46-3150-4d54-9ed4-5bf0d7952d17"
-          position="bottom-right"
-          primaryColor="#ef4444"
-          botName="DarahConnect Assistant"
-          welcomeMessage="Halo! Saya assistant DarahConnect. Ada yang bisa saya bantu hari ini? 🩸"
-        />
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<HomePage />} />
-            <Route path="/campaigns" element={<CampaignsPage />} />
-            <Route path="/campaigns/:id" element={
-              <Layout>
-                <Suspense fallback={<PageLoader />}>
-                  <CampaignDetailPage />
-                </Suspense>
-              </Layout>
-            } />
-            <Route path="/donors" element={
-              <Layout>
-                <Suspense fallback={<PageLoader />}>
-                  <DonorPage />
-                </Suspense>
-              </Layout>
-            } />
-            <Route path="/about" element={
-              <Layout>
-                <Suspense fallback={<PageLoader />}>
-                  <AboutPage />
-                </Suspense>
-              </Layout>
-            } />
-            <Route path="/blood-requests" element={
-              <Suspense fallback={<PageLoader />}>
-                <BloodRequestsPage />
-              </Suspense>
-            } />
-            <Route path="/login" element={
-              <Suspense fallback={<PageLoader />}>
-                <LoginPage />
-              </Suspense>
-            } />
-            <Route path="/register" element={
-              <Suspense fallback={<PageLoader />}>
-                <RegisterPage />
-              </Suspense>
-            } />
-            <Route path="/forgot-password" element={
-              <Suspense fallback={<PageLoader />}>
-                <ForgotPasswordPage />
-              </Suspense>
-            } />
-            <Route path="/reset-password" element={
-              <Suspense fallback={<PageLoader />}>
-                <ResetPasswordPage />
-              </Suspense>
-            } />
-            <Route path="/verify-email" element={
-              <Suspense fallback={<PageLoader />}>
-                <EmailVerificationPage />
-              </Suspense>
-            } />
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Suspense fallback={<DashboardLoader />}>
-                  <DashboardPage />
-                </Suspense>
-              </ProtectedRoute>
-            } />
-            <Route path="/certificates" element={
-              <ProtectedRoute>
-                <Suspense fallback={<PageLoader />}>
-                  <CertificatePage />
-                </Suspense>
-              </ProtectedRoute>
-            } />
-            <Route path="/donor-register" element={
-              <Suspense fallback={<PageLoader />}>
-                <EnhancedDonorRegisterPage />
-              </Suspense>
-            } />
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                <Suspense fallback={<PageLoader />}>
-                  <ProfilePage />
-                </Suspense>
-              </ProtectedRoute>
-            } />
-            <Route path="/settings" element={
-              <ProtectedRoute>
-                <Suspense fallback={<PageLoader />}>
-                  <SettingsPage />
-                </Suspense>
-              </ProtectedRoute>
-            } />
-            
-            {/* Protected Routes */}
-            <Route path="/create-campaign" element={
-              <ProtectedRoute>
-                <DashboardLayout>
-                  <Suspense fallback={<PageLoader />}>
-                    <CreateCampaignPage />
-                  </Suspense>
-                </DashboardLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/create-blood-request" element={
-              <ProtectedRoute>
-                <Suspense fallback={<PageLoader />}>
-                  <CreateBloodRequestPage />
-                </Suspense>
-              </ProtectedRoute>
-            } />
-            <Route path="/my-blood-requests" element={
-              <ProtectedRoute>
-                <Suspense fallback={<PageLoader />}>
-                  <MyBloodRequestsPage />
-                </Suspense>
-              </ProtectedRoute>
-            } />
-            <Route path="/health-passport" element={
-              <ProtectedRoute>
-                <Suspense fallback={<PageLoader />}>
-                  <HealthPassportPage />
-                </Suspense>
-              </ProtectedRoute>
-            } />
 
-            {/* Admin Routes */}
-            <Route path="/admin/dashboard" element={
-              <AdminProtectedRoute>
-                <Suspense fallback={<DashboardLoader />}>
-                  <AdminDashboard />
-                </Suspense>
-              </AdminProtectedRoute>
-            } />
-            <Route path="/admin/campaigns" element={
-              <AdminProtectedRoute>
+          {/* Uncomment untuk menggunakan ChatBot dengan n8n webhook */}
+
+          <ChatBot
+            webhookUrl="https://vertically-possible-amoeba.ngrok-free.app/webhook-test/0f8b8e46-3150-4d54-9ed4-5bf0d7952d17"
+            position="bottom-right"
+            primaryColor="#ef4444"
+            botName="DarahConnect Assistant"
+            welcomeMessage="Halo! Saya assistant DarahConnect. Ada yang bisa saya bantu hari ini? 🩸"
+          />
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<HomePage />} />
+              <Route path="/campaigns" element={<CampaignsPage />} />
+              <Route path="/campaigns/:id" element={
+                <Layout>
+                  <Suspense fallback={<PageLoader />}>
+                    <CampaignDetailPage />
+                  </Suspense>
+                </Layout>
+              } />
+              <Route path="/donors" element={
+                <Layout>
+                  <Suspense fallback={<PageLoader />}>
+                    <DonorPage />
+                  </Suspense>
+                </Layout>
+              } />
+              <Route path="/oauth/callback" element={<Suspense fallback={<PageLoader />}><OAuthCallbackPage /></Suspense>} />
+              <Route path="/about" element={
+                <Layout>
+                  <Suspense fallback={<PageLoader />}>
+                    <AboutPage />
+                  </Suspense>
+                </Layout>
+              } />
+              <Route path="/blood-requests" element={
                 <Suspense fallback={<PageLoader />}>
-                  <AdminCampaignsPage />
+                  <BloodRequestsPage />
                 </Suspense>
-              </AdminProtectedRoute>
-            } />
-            <Route path="/admin/donors" element={
-              <AdminProtectedRoute>
+              } />
+              <Route path="/login" element={
                 <Suspense fallback={<PageLoader />}>
-                  <AdminDonorsPage />
+                  <LoginPage />
                 </Suspense>
-              </AdminProtectedRoute>
-            } />
-            <Route path="/admin/requests" element={
-              <AdminProtectedRoute>
+              } />
+              <Route path="/register" element={
                 <Suspense fallback={<PageLoader />}>
-                  <AdminRequestsPage />
+                  <RegisterPage />
                 </Suspense>
-              </AdminProtectedRoute>
-            } />
-            <Route path="/admin/certificates" element={
-              <AdminProtectedRoute>
+              } />
+              <Route path="/forgot-password" element={
                 <Suspense fallback={<PageLoader />}>
-                  <AdminCertificatesPage />
+                  <ForgotPasswordPage />
                 </Suspense>
-              </AdminProtectedRoute>
-            } />
-            <Route path="/admin/reports" element={
-              <AdminProtectedRoute>
+              } />
+              <Route path="/reset-password" element={
                 <Suspense fallback={<PageLoader />}>
-                  <AdminReportsPage />
+                  <ResetPasswordPage />
                 </Suspense>
-              </AdminProtectedRoute>
-            } />
-            <Route path="/admin/settings" element={
-              <AdminProtectedRoute>
+              } />
+              <Route path="/verify-email" element={
                 <Suspense fallback={<PageLoader />}>
-                  <AdminSettingsPage />
+                  <EmailVerificationPage />
                 </Suspense>
-              </AdminProtectedRoute>
-            } />
-            <Route path="/admin/profile" element={
-              <AdminProtectedRoute>
+              } />
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <Suspense fallback={<DashboardLoader />}>
+                    <DashboardPage />
+                  </Suspense>
+                </ProtectedRoute>
+              } />
+              <Route path="/certificates" element={
+                <ProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <CertificatePage />
+                  </Suspense>
+                </ProtectedRoute>
+              } />
+              <Route path="/donor-register" element={
                 <Suspense fallback={<PageLoader />}>
-                  <AdminProfilePage />
+                  <EnhancedDonorRegisterPage />
                 </Suspense>
-              </AdminProtectedRoute>
-            } />
-            <Route path="/admin/notifications" element={
-              <AdminProtectedRoute>
+              } />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <ProfilePage />
+                  </Suspense>
+                </ProtectedRoute>
+              } />
+              <Route path="/settings" element={
+                <ProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <SettingsPage />
+                  </Suspense>
+                </ProtectedRoute>
+              } />
+
+              {/* Protected Routes */}
+              <Route path="/create-campaign" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <Suspense fallback={<PageLoader />}>
+                      <CreateCampaignPage />
+                    </Suspense>
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/create-blood-request" element={
+                <ProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <CreateBloodRequestPage />
+                  </Suspense>
+                </ProtectedRoute>
+              } />
+              <Route path="/my-blood-requests" element={
+                <ProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <MyBloodRequestsPage />
+                  </Suspense>
+                </ProtectedRoute>
+              } />
+              <Route path="/health-passport" element={
+                <ProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <HealthPassportPage />
+                  </Suspense>
+                </ProtectedRoute>
+              } />
+
+              {/* Admin Routes */}
+              <Route path="/admin/dashboard" element={
+                <AdminProtectedRoute>
+                  <Suspense fallback={<DashboardLoader />}>
+                    <AdminDashboard />
+                  </Suspense>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/campaigns" element={
+                <AdminProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <AdminCampaignsPage />
+                  </Suspense>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/donors" element={
+                <AdminProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <AdminDonorsPage />
+                  </Suspense>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/requests" element={
+                <AdminProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <AdminRequestsPage />
+                  </Suspense>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/certificates" element={
+                <AdminProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <AdminCertificatesPage />
+                  </Suspense>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/health-passports" element={
+                <AdminProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <AdminHealthPassportPage />
+                  </Suspense>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/settings" element={
+                <AdminProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <AdminSettingsPage />
+                  </Suspense>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/profile" element={
+                <AdminProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <AdminProfilePage />
+                  </Suspense>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/notifications" element={
+                <AdminProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <AdminNotificationsPage />
+                  </Suspense>
+                </AdminProtectedRoute>
+              } />
+
+              {/* Catch all route - 404 Page */}
+              <Route path="*" element={
                 <Suspense fallback={<PageLoader />}>
-                  <AdminNotificationsPage />
+                  <NotFoundPage />
                 </Suspense>
-              </AdminProtectedRoute>
-            } />
-            
-            {/* Catch all route - 404 Page */}
-            <Route path="*" element={
-              <Suspense fallback={<PageLoader />}>
-                <NotFoundPage />
-              </Suspense>
-            } />
-          </Routes>
-        </Suspense>
-      </div>
-    </Router>
+              } />
+            </Routes>
+          </Suspense>
+        </div>
+      </Router>
     </NotificationProvider>
   );
 }

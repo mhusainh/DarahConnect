@@ -14,6 +14,7 @@ export const campaigns: BloodCampaign[] = [
     deadline: '2024-12-25',
     contactPerson: 'Dr. Sarah Wijaya',
     contactPhone: '021-8899-7766',
+    url_file: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
     imageUrl: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
     createdAt: '2024-12-20',
     organizer: {
@@ -23,72 +24,6 @@ export const campaigns: BloodCampaign[] = [
       role: 'Rumah Sakit'
     }
   },
-  {
-    id: '2',
-    title: 'Campaign Donor Darah Rutin - PMI Jakarta',
-    description: 'Stok darah di PMI Jakarta sedang menipis. Mari bergabung dalam campaign donor darah rutin untuk membantu sesama yang membutuhkan.',
-    hospital: 'PMI Jakarta Pusat',
-    location: 'Jakarta Pusat, DKI Jakarta',
-    targetDonors: 100,
-    currentDonors: 45,
-    bloodType: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
-    urgencyLevel: 'medium',
-    deadline: '2024-12-30',
-    contactPerson: 'Ibu Siti Nurhaliza',
-    contactPhone: '021-3456-789',
-    imageUrl: 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-    createdAt: '2024-12-15',
-    organizer: {
-      name: 'PMI Jakarta Pusat',
-      avatar: 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80',
-      verified: true,
-      role: 'Organisasi Kemanusiaan'
-    }
-  },
-  {
-    id: '3',
-    title: 'Bantu Anak Thalasemia - Butuh Darah Rutin',
-    description: 'Adik Budi (8 tahun) mengidap thalasemia dan membutuhkan transfusi darah rutin setiap bulan. Mari bantu adik Budi untuk tetap semangat menjalani hari-harinya.',
-    hospital: 'RSCM Jakarta',
-    location: 'Jakarta Pusat, DKI Jakarta',
-    targetDonors: 10,
-    currentDonors: 3,
-    bloodType: ['B+'],
-    urgencyLevel: 'high',
-    deadline: '2024-12-27',
-    contactPerson: 'Ibu Ratna (Orang Tua)',
-    contactPhone: '0812-3456-7890',
-    imageUrl: 'https://images.unsplash.com/photo-1551601651-2a8555f1a136?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-    createdAt: '2024-12-18',
-    organizer: {
-      name: 'Keluarga Budi',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80',
-      verified: false,
-      role: 'Yayasan'
-    }
-  },
-  {
-    id: '4',
-    title: 'Donor Darah Massal - HUT Kemerdekaan',
-    description: 'Dalam rangka memperingati HUT RI ke-79, mari kita galang donor darah massal untuk membantu stok darah nasional.',
-    hospital: 'RS Persahabatan Jakarta',
-    location: 'Jakarta Timur, DKI Jakarta',
-    targetDonors: 200,
-    currentDonors: 156,
-    bloodType: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
-    urgencyLevel: 'low',
-    deadline: '2024-12-31',
-    contactPerson: 'Panitia HUT RI',
-    contactPhone: '021-4567-890',
-    imageUrl: 'https://images.unsplash.com/photo-1615461065929-4b4bdeb54d7a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-    createdAt: '2024-12-10',
-    organizer: {
-      name: 'Pemerintah DKI Jakarta',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80',
-      verified: true,
-      role: 'Organisasi Mahasiswa'
-    }
-  }
 ];
 
 export const donors: Donor[] = [

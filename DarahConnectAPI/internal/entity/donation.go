@@ -5,7 +5,7 @@ import (
 )
 
 type Donation struct {
-	ID        int64     `gorm:"primaryKey" json:"id"`
+	Id        int64     `gorm:"primaryKey" json:"id"`
 	UserId    int64     `gorm:"not null" json:"user_id"`
 	Amount    int64     `gorm:"not null" json:"amount"`
 	Status    string    `gorm:"not null" json:"status"`

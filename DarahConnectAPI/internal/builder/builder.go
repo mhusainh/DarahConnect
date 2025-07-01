@@ -19,7 +19,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, cloudinaryService *cloudinary.Service, mailer *mailer.Mailer) []route.Route {
+func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, cloudinaryService *cloudinary.Service, mailer *mailer.Mailer, blockchain service.BlockchainService) []route.Route {
 	cacheable := cache.NewCacheable(rdb)
 	tokenUseCase := token.NewTokenUseCase(cfg.JWT.SecretKey)
 
@@ -34,7 +34,7 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clou
 	//end
 
 	//service
-	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg, mailer,cloudinaryService)
+	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg, mailer, cloudinaryService)
 	bloodRequestService := service.NewBloodRequestService(bloodRequestRepository, *cloudinaryService)
 	notificationService := service.NewNotificationService(notificationRepository,userRepository)
 	bloodDonationService := service.NewBloodDonationService(bloodDonationRepository, *cloudinaryService)
@@ -50,9 +50,8 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clou
 
 	//handler
 	userHandler := handler.NewUserHandler(userService, cloudinaryService, googleAuthService)
-	bloodRequestHandler := handler.NewBloodRequestHandler(bloodRequestService,notificationService)
-	bloodDonationHandler := handler.NewBloodDonationHandler(bloodDonationService, notificationService, certificateService, donorRegistrationService, userService)
-
+	bloodRequestHandler := handler.NewBloodRequestHandler(bloodRequestService, notificationService)
+	bloodDonationHandler := handler.NewBloodDonationHandler(bloodDonationService, notificationService, certificateService, donorRegistrationService, userService, blockchain)
 
 	certificateHandler := handler.NewCertificateHandler(certificateService)
 	donationHandler := handler.NewDonationHandler(midtransService, notificationService)
@@ -88,31 +87,31 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clo
 	hospitalService := service.NewHospitalService(hospitalRepository)
 	bloodDonationService := service.NewBloodDonationService(bloodDonationRepository, *cloudinaryService)
 	certificateService := service.NewCertificateService(certificateRepository)
+
 	// Buat instance midtransService
 	midtransService := midtrans.NewMidtransService(&cfg.MidtransConfig)
 	// Set donationsRepository
 	midtransService.DonationsRepository = donationsRepository
 	googleAuthService := googleoauth.NewGoogleOAuthService(tokenUseCase, userService, &cfg.GoogleOauth)
 
-
-	dashboardService := service.NewDashboardService(bloodDonationRepository)
+	dashboardService := service.NewDashboardService(bloodDonationRepository, bloodRequestRepository)
 	//end
 
 	//handler
 	userHandler := handler.NewUserHandler(userService, cloudinaryService, googleAuthService)
 	notificationHandler := handler.NewNotificationHandler(notificationService)
 	healthPassportHandler := handler.NewHealthPassportHandler(healthPassportService)
-	bloodRequestHandler := handler.NewBloodRequestHandler(bloodRequestService,notificationService)
-	donorRegistrationHandler := handler.NewDonorRegistrationHandler(donorRegistrationService,healthPassportService,notificationService, bloodRequestService)
+	bloodRequestHandler := handler.NewBloodRequestHandler(bloodRequestService, notificationService)
+	donorRegistrationHandler := handler.NewDonorRegistrationHandler(donorRegistrationService, healthPassportService, notificationService, bloodRequestService)
 
 	donorScheduleHandler := handler.NewDonorScheduleHandler(donorScheduleService)
 	hospitalHandler := handler.NewHospitalHandler(hospitalService)
-	bloodDonationHandler := handler.NewBloodDonationHandler(bloodDonationService, notificationService, certificateService, donorRegistrationService, userService)
+	bloodDonationHandler := handler.NewBloodDonationHandler(bloodDonationService, notificationService, certificateService, donorRegistrationService, userService, blockchain)
 
 	certificateHandler := handler.NewCertificateHandler(certificateService)
 	donationHandler := handler.NewDonationHandler(midtransService, notificationService)
 	dashboardHandler := handler.NewDashboardHandler(dashboardService)
 	//end
 
-	return router.PrivateRoutes(userHandler, notificationHandler, healthPassportHandler, bloodRequestHandler, donorRegistrationHandler, donorScheduleHandler, hospitalHandler, bloodDonationHandler, certificateHandler, donationHandler,dashboardHandler)
+	return router.PrivateRoutes(userHandler, notificationHandler, healthPassportHandler, bloodRequestHandler, donorRegistrationHandler, donorScheduleHandler, hospitalHandler, bloodDonationHandler, certificateHandler, donationHandler, dashboardHandler)
 }

@@ -18,6 +18,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
+import AdminProfileCard from '../components/AdminProfileCard';
 
 const AdminProfilePage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -369,77 +370,18 @@ const AdminProfilePage: React.FC = () => {
     </div>
   );
 
-  const renderActivity = () => (
-    <div className="space-y-6">
-      <div className="bg-white rounded-xl shadow-sm border">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Log Aktivitas</h3>
-          <p className="text-sm text-gray-600">Riwayat aktivitas admin dalam sistem</p>
-        </div>
-
-        <div className="p-6">
-          <div className="space-y-4">
-            {activityLogs.map((log) => (
-              <div key={log.id} className={`flex items-start space-x-4 p-4 rounded-lg border ${getActivityColor(log.type)}`}>
-                <div className="flex-shrink-0 mt-1">
-                  {getActivityIcon(log.type)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-medium text-gray-900">{log.action}</h4>
-                  <p className="text-sm text-gray-600 mt-1">{log.details}</p>
-                  <div className="flex items-center mt-2 text-xs text-gray-500">
-                    <Clock className="w-3 h-3 mr-1" />
-                    <span>{new Date(log.timestamp).toLocaleString('id-ID')}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 text-center">
-            <button className="text-red-600 hover:text-red-700 text-sm font-medium">
-              Lihat Semua Aktivitas →
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const tabs = [
-    { id: 'profile', label: 'Profil', icon: User },
-    { id: 'activity', label: 'Aktivitas', icon: Activity }
-  ];
-
   return (
     <AdminLayout title="Profil Admin" subtitle="Kelola informasi profil dan aktivitas">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Tab Navigation */}
-        <div className="bg-white rounded-xl shadow-sm border p-1 mb-8">
-          <div className="flex space-x-1">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-medium transition-colors ${
-                    activeTab === tab.id
-                      ? 'bg-red-600 text-white shadow-md'
-                      : 'text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
+      <div className="max-w-4xl mx-auto py-8">
+        <div className="flex mb-6">
+          <button
+            className={`px-6 py-2 rounded-t-lg font-semibold text-sm focus:outline-none bg-red-600 text-white`}
+            disabled
+          >
+            Profil
+          </button>
         </div>
-
-        {/* Tab Content */}
-        {activeTab === 'profile' && renderProfile()}
-        {activeTab === 'activity' && renderActivity()}
+        <AdminProfileCard />
       </div>
     </AdminLayout>
   );

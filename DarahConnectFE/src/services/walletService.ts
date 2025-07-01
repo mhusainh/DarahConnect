@@ -1,3 +1,5 @@
+import { postApi, ApiResponse } from './fetchApi';
+
 interface WalletConnectionPayload {
   address: string;
   network: string;
@@ -10,6 +12,17 @@ interface WalletConnectionResponse {
   message: string;
   userId?: string;
   walletId?: string;
+}
+
+// Interface untuk request wallet address
+export interface WalletAddressRequest {
+  wallet_address: string;
+}
+
+// Interface untuk response wallet address
+export interface WalletAddressResponse {
+  message: string;
+  wallet_address: string;
 }
 
 export const walletService = {
@@ -108,6 +121,34 @@ export const walletService = {
       };
     }
   },
+
+  // Fungsi untuk menghubungkan wallet address ke backend
+  connectWalletAddress: async (walletAddress: string): Promise<ApiResponse<WalletAddressResponse>> => {
+    try {
+      const response = await postApi<WalletAddressResponse>('/user/wallet-address', {
+        wallet_address: walletAddress
+      });
+      
+      return response;
+    } catch (error) {
+      console.error('Error connecting wallet address:', error);
+      throw error;
+    }
+  },
+};
+
+// Fungsi terpisah untuk menghubungkan wallet address (untuk dipanggil dari halaman profile)
+export const connectWalletAddress = async (walletAddress: string): Promise<ApiResponse<WalletAddressResponse>> => {
+  try {
+    const response = await postApi<WalletAddressResponse>('/user/wallet-address', {
+      wallet_address: walletAddress
+    });
+    
+    return response;
+  } catch (error) {
+    console.error('Error connecting wallet address:', error);
+    throw error;
+  }
 };
 
 export type { WalletConnectionPayload, WalletConnectionResponse }; 

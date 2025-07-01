@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
   Search, 
@@ -18,24 +18,61 @@ import {
   Building,
   MessageSquare
 } from 'lucide-react';
-import { donationRequests, campaigns, donors } from '../data/dummy';
-import { DonationRequest, BloodCampaign, Donor } from '../types';
+import { BloodRequest, AdminBloodRequestResponse } from '../types/index';
+import { adminBloodRequestsApi } from '../services/fetchApi';
 import AdminLayout from '../components/AdminLayout';
 
 const AdminRequestsPage: React.FC = () => {
-  const [requestsList, setRequestsList] = useState<DonationRequest[]>(donationRequests);
+  const [requestsList, setRequestsList] = useState<BloodRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterDate, setFilterDate] = useState('all');
-  const [selectedRequest, setSelectedRequest] = useState<DonationRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<BloodRequest | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [notes, setNotes] = useState('');
 
+  // Fetch blood requests from API
+  useEffect(() => {
+    const fetchBloodRequests = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await adminBloodRequestsApi.getBloodRequests();
+        
+        if (response.success && response.data) {
+          // Handle both direct array and nested response structure
+          let requestsData: BloodRequest[] = [];
+          
+          if (Array.isArray(response.data)) {
+            requestsData = response.data as BloodRequest[];
+          } else if (response.data.data && Array.isArray(response.data.data)) {
+            requestsData = response.data.data as BloodRequest[];
+          }
+          
+          setRequestsList(requestsData);
+        } else {
+          setError(response.error || 'Failed to fetch blood requests');
+          setRequestsList([]);
+        }
+      } catch (err) {
+        setError('Failed to fetch blood requests');
+        setRequestsList([]);
+        console.error('Error fetching blood requests:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBloodRequests();
+  }, []);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'text-green-600 bg-green-100 border-green-200';
-      case 'approved': return 'text-blue-600 bg-blue-100 border-blue-200';
+      case 'verified': return 'text-blue-600 bg-blue-100 border-blue-200';
       case 'pending': return 'text-yellow-600 bg-yellow-100 border-yellow-200';
       case 'rejected': return 'text-red-600 bg-red-100 border-red-200';
       default: return 'text-gray-600 bg-gray-100 border-gray-200';
@@ -45,32 +82,36 @@ const AdminRequestsPage: React.FC = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed': return CheckCircle;
-      case 'approved': return Check;
+      case 'verified': return Check;
       case 'pending': return Clock;
       case 'rejected': return X;
       default: return Clock;
     }
   };
 
-  const getDonorByRequest = (request: DonationRequest): Donor | undefined => {
-    return donors.find(donor => donor.id === request.donorId);
+  const getUrgencyColor = (urgency: string) => {
+    switch (urgency) {
+      case 'critical': return 'text-red-600 bg-red-100 border-red-200';
+      case 'high': return 'text-orange-600 bg-orange-100 border-orange-200';
+      case 'medium': return 'text-yellow-600 bg-yellow-100 border-yellow-200';
+      case 'low': return 'text-green-600 bg-green-100 border-green-200';
+      default: return 'text-gray-600 bg-gray-100 border-gray-200';
+    }
   };
 
-  const getCampaignByRequest = (request: DonationRequest): BloodCampaign | undefined => {
-    return campaigns.find(campaign => campaign.id === request.campaignId);
-  };
-
-  const filteredRequests = requestsList.filter(request => {
-    const donor = getDonorByRequest(request);
-    const campaign = getCampaignByRequest(request);
+  const filteredRequests = (requestsList || []).filter(request => {
+    // Safety check - ensure request has all required properties
+    if (!request || !request.user || !request.hospital || !request.patient_name) {
+      return false;
+    }
     
-    const matchesSearch = donor?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         campaign?.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         campaign?.hospital.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = request.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         request.hospital.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         request.patient_name.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = filterStatus === 'all' || request.status === filterStatus;
     
-    const requestDate = new Date(request.requestedDate);
+    const requestDate = new Date(request.created_at);
     const today = new Date();
     const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
     const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -83,59 +124,116 @@ const AdminRequestsPage: React.FC = () => {
     return matchesSearch && matchesStatus && matchesDate;
   });
 
-  const handleApproveRequest = (id: string) => {
-    setRequestsList(prev => prev.map(request => 
-      request.id === id ? { ...request, status: 'approved' } : request
-    ));
+  const handleApproveRequest = async (id: number) => {
+    try {
+      const response = await adminBloodRequestsApi.updateStatus(id, 'verified');
+      if (response.success) {
+        setRequestsList(prev => prev.map(request => 
+          request.id === id ? { ...request, status: 'verified' as const } : request
+        ));
+      } else {
+        setError(response.error || 'Failed to approve request');
+      }
+    } catch (err) {
+      setError('Failed to approve request');
+      console.error('Error approving request:', err);
+    }
   };
 
-  const handleRejectRequest = (id: string) => {
-    setRequestsList(prev => prev.map(request => 
-      request.id === id ? { ...request, status: 'rejected' } : request
-    ));
+  const handleRejectRequest = async (id: number) => {
+    try {
+      const response = await adminBloodRequestsApi.updateStatus(id, 'rejected');
+      if (response.success) {
+        setRequestsList(prev => prev.map(request => 
+          request.id === id ? { ...request, status: 'rejected' as const } : request
+        ));
+      } else {
+        setError(response.error || 'Failed to reject request');
+      }
+    } catch (err) {
+      setError('Failed to reject request');
+      console.error('Error rejecting request:', err);
+    }
   };
 
-  const handleCompleteRequest = (id: string) => {
-    setRequestsList(prev => prev.map(request => 
-      request.id === id ? { 
-        ...request, 
-        status: 'completed',
-        completedDate: new Date().toISOString().split('T')[0]
-      } : request
-    ));
+  const handleCompleteRequest = async (id: number) => {
+    try {
+      const response = await adminBloodRequestsApi.updateStatus(id, 'completed');
+      if (response.success) {
+        setRequestsList(prev => prev.map(request => 
+          request.id === id ? { ...request, status: 'completed' as const } : request
+        ));
+      } else {
+        setError(response.error || 'Failed to complete request');
+      }
+    } catch (err) {
+      setError('Failed to complete request');
+      console.error('Error completing request:', err);
+    }
   };
 
-  const handleAddNotes = (id: string, newNotes: string) => {
+  const handleAddNotes = (id: number, newNotes: string) => {
+    // For now, this would just update local state
+    // In a real app, you'd probably want an API endpoint for notes
     setRequestsList(prev => prev.map(request => 
-      request.id === id ? { ...request, notes: newNotes } : request
+      request.id === id ? { ...request, diagnosis: newNotes } : request
     ));
     setShowNotesModal(false);
     setNotes('');
     setSelectedRequest(null);
   };
 
-  const handleViewDetails = (request: DonationRequest) => {
+  const handleViewDetails = (request: BloodRequest) => {
     setSelectedRequest(request);
     setShowDetailModal(true);
   };
 
-  const handleOpenNotesModal = (request: DonationRequest) => {
+  const handleOpenNotesModal = (request: BloodRequest) => {
     setSelectedRequest(request);
-    setNotes(request.notes || '');
+    setNotes(request.diagnosis || '');
     setShowNotesModal(true);
   };
 
   const getStatusStats = () => {
+    const list = requestsList || [];
     return {
-      total: requestsList.length,
-      pending: requestsList.filter(r => r.status === 'pending').length,
-      approved: requestsList.filter(r => r.status === 'approved').length,
-      completed: requestsList.filter(r => r.status === 'completed').length,
-      rejected: requestsList.filter(r => r.status === 'rejected').length,
+      total: list.length,
+      pending: list.filter(r => r.status === 'pending').length,
+      approved: list.filter(r => r.status === 'verified').length,
+      completed: list.filter(r => r.status === 'completed').length,
+      rejected: list.filter(r => r.status === 'rejected').length,
     };
   };
 
   const stats = getStatusStats();
+
+  if (loading) {
+    return (
+      <AdminLayout title="Kelola Permintaan Donasi" subtitle="Review dan proses permintaan donasi darah">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+            <span className="ml-2 text-gray-600">Loading blood requests...</span>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AdminLayout title="Kelola Permintaan Donasi" subtitle="Review dan proses permintaan donasi darah">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />
+              <p className="text-red-800">{error}</p>
+            </div>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout title="Kelola Permintaan Donasi" subtitle="Review dan proses permintaan donasi darah">
@@ -197,7 +295,7 @@ const AdminRequestsPage: React.FC = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <input
                   type="text"
-                  placeholder="Cari donor atau campaign..."
+                  placeholder="Cari user, pasien, atau rumah sakit..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent w-full sm:w-64"
@@ -210,7 +308,7 @@ const AdminRequestsPage: React.FC = () => {
               >
                 <option value="all">Semua Status</option>
                 <option value="pending">Pending</option>
-                <option value="approved">Disetujui</option>
+                <option value="verified">Disetujui</option>
                 <option value="completed">Selesai</option>
                 <option value="rejected">Ditolak</option>
               </select>
@@ -226,7 +324,7 @@ const AdminRequestsPage: React.FC = () => {
               </select>
             </div>
             <div className="text-sm text-gray-600">
-              Menampilkan {filteredRequests.length} dari {requestsList.length} permintaan
+              Menampilkan {filteredRequests.length} dari {requestsList?.length || 0} permintaan
             </div>
           </div>
         </div>
@@ -256,8 +354,6 @@ const AdminRequestsPage: React.FC = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredRequests.map((request) => {
-                  const donor = getDonorByRequest(request);
-                  const campaign = getCampaignByRequest(request);
                   const StatusIcon = getStatusIcon(request.status);
                   
                   return (
@@ -265,23 +361,26 @@ const AdminRequestsPage: React.FC = () => {
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-4">
                           <img 
-                            src={donor?.avatar || '/api/placeholder/40/40'} 
-                            alt={donor?.name}
-                            className="w-10 h-10 rounded-full object-cover"
+                            src={request.user.url_file || '/api/placeholder/40/40'} 
+                            alt={request.user.name}
+                            className="w-10 h-10 rounded-full object-cover border"
                           />
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium text-gray-900 truncate">
-                              {donor?.name}
+                              {request.user.name}
                             </p>
                             <p className="text-sm text-gray-500 truncate">
-                              {campaign?.title}
+                              {request.patient_name}
                             </p>
                             <div className="flex items-center space-x-2 mt-1">
                               <span className="bg-red-100 text-red-600 px-2 py-1 text-xs font-medium rounded border border-red-200">
-                                {donor?.bloodType}
+                                {request.blood_type}
+                              </span>
+                              <span className={`px-2 py-1 text-xs font-medium rounded border ${getUrgencyColor(request.urgency_level)}`}>
+                                {request.urgency_level}
                               </span>
                               <span className="text-xs text-gray-500">
-                                {campaign?.hospital}
+                                {request.hospital.name}
                               </span>
                             </div>
                           </div>
@@ -289,13 +388,11 @@ const AdminRequestsPage: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {new Date(request.requestedDate).toLocaleDateString('id-ID')}
+                          {new Date(request.created_at).toLocaleDateString('id-ID')}
                         </div>
-                        {request.completedDate && (
-                          <div className="text-xs text-gray-500">
-                            Selesai: {new Date(request.completedDate).toLocaleDateString('id-ID')}
-                          </div>
-                        )}
+                        <div className="text-xs text-gray-500">
+                          Event: {new Date(request.event_date).toLocaleDateString('id-ID')}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(request.status)}`}>
@@ -305,8 +402,8 @@ const AdminRequestsPage: React.FC = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900">
-                          {request.notes ? (
-                            <span className="truncate max-w-xs block">{request.notes}</span>
+                          {request.diagnosis ? (
+                            <span className="truncate max-w-xs block">{request.diagnosis}</span>
                           ) : (
                             <span className="text-gray-400 italic">Tidak ada catatan</span>
                           )}
@@ -341,7 +438,7 @@ const AdminRequestsPage: React.FC = () => {
                             </>
                           )}
                           
-                          {request.status === 'approved' && (
+                          {request.status === 'verified' && (
                             <button
                               onClick={() => handleCompleteRequest(request.id)}
                               className="bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 transition-colors flex items-center space-x-1"
@@ -394,137 +491,121 @@ const AdminRequestsPage: React.FC = () => {
             </div>
             
             <div className="p-6">
-              {(() => {
-                const donor = getDonorByRequest(selectedRequest);
-                const campaign = getCampaignByRequest(selectedRequest);
-                const StatusIcon = getStatusIcon(selectedRequest.status);
-                
-                return (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Informasi Donor</h3>
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <div className="flex items-center space-x-4 mb-4">
-                          <img 
-                            src={donor?.avatar || '/api/placeholder/60/60'} 
-                            alt={donor?.name}
-                            className="w-16 h-16 rounded-full object-cover"
-                          />
-                          <div>
-                            <h4 className="text-lg font-medium text-gray-900">{donor?.name}</h4>
-                            <div className="flex items-center space-x-2 mt-1">
-                              <span className="bg-red-100 text-red-600 px-2 py-1 text-xs font-medium rounded border border-red-200">
-                                {donor?.bloodType}
-                              </span>
-                              {donor?.verified && (
-                                <span className="bg-green-100 text-green-600 px-2 py-1 text-xs font-medium rounded border border-green-200">
-                                  Verified
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex items-center">
-                            <Mail className="h-4 w-4 mr-2 text-gray-400" />
-                            <span>{donor?.email}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Phone className="h-4 w-4 mr-2 text-gray-400" />
-                            <span>{donor?.phone}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-                            <span>{donor?.location}</span>
-                          </div>
-                          <div className="flex justify-between mt-3 pt-3 border-t border-gray-200">
-                            <div>
-                              <p className="text-xs text-gray-500">Total Donasi</p>
-                              <p className="font-semibold">{donor?.totalDonations}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500">Donasi Terakhir</p>
-                              <p className="font-semibold">{donor ? new Date(donor.lastDonation).toLocaleDateString('id-ID') : '-'}</p>
-                            </div>
-                          </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Informasi User</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="flex items-center space-x-4 mb-4">
+                      <img 
+                        src={selectedRequest.user.url_file || '/api/placeholder/60/60'} 
+                        alt={selectedRequest.user.name}
+                        className="w-16 h-16 rounded-full object-cover border"
+                      />
+                      <div>
+                        <h4 className="text-lg font-medium text-gray-900">{selectedRequest.user.name}</h4>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <span className="bg-red-100 text-red-600 px-2 py-1 text-xs font-medium rounded border border-red-200">
+                            {selectedRequest.user.blood_type}
+                          </span>
+                          {selectedRequest.user.is_verified && (
+                            <span className="bg-green-100 text-green-600 px-2 py-1 text-xs font-medium rounded border border-green-200">
+                              Verified
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
-                    
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Informasi Campaign</h3>
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <img 
-                          src={campaign?.imageUrl || '/api/placeholder/300/150'} 
-                          alt={campaign?.title}
-                          className="w-full h-32 object-cover rounded-lg mb-4"
-                        />
-                        <h4 className="text-lg font-medium text-gray-900 mb-2">{campaign?.title}</h4>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex items-center">
-                            <Building className="h-4 w-4 mr-2 text-gray-400" />
-                            <span>{campaign?.hospital}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-                            <span>{campaign?.location}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Phone className="h-4 w-4 mr-2 text-gray-400" />
-                            <span>{campaign?.contactPhone}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <User className="h-4 w-4 mr-2 text-gray-400" />
-                            <span>{campaign?.contactPerson}</span>
-                          </div>
-                          <div className="flex justify-between mt-3 pt-3 border-t border-gray-200">
-                            <div>
-                              <p className="text-xs text-gray-500">Progress</p>
-                              <p className="font-semibold">{campaign?.currentDonors}/{campaign?.targetDonors}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500">Deadline</p>
-                              <p className="font-semibold">{campaign ? new Date(campaign.deadline).toLocaleDateString('id-ID') : '-'}</p>
-                            </div>
-                          </div>
-                        </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center">
+                        <Mail className="h-4 w-4 mr-2 text-gray-400" />
+                        <span>{selectedRequest.user.email}</span>
                       </div>
-                    </div>
-                    
-                    <div className="lg:col-span-2">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Status Permintaan</h3>
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center space-x-3">
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(selectedRequest.status)}`}>
-                              <StatusIcon className="h-4 w-4 mr-2" />
-                              {selectedRequest.status}
-                            </span>
-                            <span className="text-sm text-gray-600">
-                              Tanggal Permintaan: {new Date(selectedRequest.requestedDate).toLocaleDateString('id-ID')}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        {selectedRequest.completedDate && (
-                          <p className="text-sm text-gray-600 mb-2">
-                            Tanggal Selesai: {new Date(selectedRequest.completedDate).toLocaleDateString('id-ID')}
-                          </p>
-                        )}
-                        
-                        {selectedRequest.notes && (
-                          <div>
-                            <h4 className="text-sm font-medium text-gray-900 mb-2">Catatan:</h4>
-                            <p className="text-sm text-gray-600 bg-white p-3 rounded border">
-                              {selectedRequest.notes}
-                            </p>
-                          </div>
-                        )}
+                      <div className="flex items-center">
+                        <Phone className="h-4 w-4 mr-2 text-gray-400" />
+                        <span>{selectedRequest.user.phone}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <MapPin className="h-4 w-4 mr-2 text-gray-400" />
+                        <span>{selectedRequest.user.address}</span>
                       </div>
                     </div>
                   </div>
-                );
-              })()}
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Informasi Permintaan</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    {selectedRequest.url_file && (
+                      <img 
+                        src={selectedRequest.url_file} 
+                        alt="Blood request"
+                        className="w-full h-32 object-cover rounded-lg mb-4"
+                      />
+                    )}
+                    <h4 className="text-lg font-medium text-gray-900 mb-2">{selectedRequest.patient_name}</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Golongan Darah:</span>
+                        <span className="font-medium">{selectedRequest.blood_type}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Quantity:</span>
+                        <span className="font-medium">{selectedRequest.quantity} unit</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Urgensi:</span>
+                        <span className={`px-2 py-1 text-xs font-medium rounded border ${getUrgencyColor(selectedRequest.urgency_level)}`}>
+                          {selectedRequest.urgency_level}
+                        </span>
+                      </div>
+                      <div className="flex items-center">
+                        <Building className="h-4 w-4 mr-2 text-gray-400" />
+                        <span>{selectedRequest.hospital.name}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <MapPin className="h-4 w-4 mr-2 text-gray-400" />
+                        <span>{selectedRequest.hospital.address}</span>
+                      </div>
+                      <div className="flex justify-between mt-3 pt-3 border-t border-gray-200">
+                        <div>
+                          <p className="text-xs text-gray-500">Tanggal Event</p>
+                          <p className="font-semibold">{new Date(selectedRequest.event_date).toLocaleDateString('id-ID')}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Slot Tersedia</p>
+                          <p className="font-semibold">{selectedRequest.slots_available}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="lg:col-span-2">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Status Permintaan</h3>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-3">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(selectedRequest.status)}`}>
+                          <span className="h-4 w-4 mr-2" />
+                          {selectedRequest.status}
+                        </span>
+                        <span className="text-sm text-gray-600">
+                          Tanggal Permintaan: {new Date(selectedRequest.created_at).toLocaleDateString('id-ID')}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {selectedRequest.diagnosis && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-900 mb-2">Diagnosis/Catatan:</h4>
+                        <p className="text-sm text-gray-600 bg-white p-3 rounded border">
+                          {selectedRequest.diagnosis}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
