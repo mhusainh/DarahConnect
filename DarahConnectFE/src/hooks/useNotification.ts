@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { NotificationProps, NotificationType, NotificationAction } from '../components/Notification';
 
 interface NotificationData {
@@ -255,4 +255,4 @@ export const useNotification = (settings: NotificationSettings = {}) => {
   };
 };
 
-export default useNotification; 
+export default useNotification;

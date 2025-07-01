@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageCircle, X, Send, Bot, User, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_CONFIG } from '../config/api';
+import { generateSessionId } from '../utils/envSetup';
 
 interface ChatMessage {
   id: string;
@@ -19,12 +21,18 @@ interface ChatBotProps {
 }
 
 const ChatBot: React.FC<ChatBotProps> = ({
-  webhookUrl = 'https://vertically-possible-amoeba.ngrok-free.app/webhook-test/0f8b8e46-3150-4d54-9ed4-5bf0d7952d17',
+  webhookUrl,
   position = 'bottom-right',
   primaryColor = '#ef4444',
   botName = 'DarahConnect Assistant',
   welcomeMessage = 'Halo! Saya assistant DarahConnect. Ada yang bisa saya bantu hari ini?'
 }) => {
+  // Use environment variable if webhookUrl is not provided
+  const finalWebhookUrl = webhookUrl || API_CONFIG.CHATBOT_WEBHOOK_URL;
+  
+  // Generate session ID on component mount (page reload)
+  const [sessionId] = useState(() => generateSessionId());
+  
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -78,7 +86,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
 
     try {
       // Send to n8n webhook
-      const response = await fetch(webhookUrl, {
+      const response = await fetch(finalWebhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -87,7 +95,7 @@ const ChatBot: React.FC<ChatBotProps> = ({
         body: JSON.stringify({
           message: inputText,
           timestamp: new Date().toISOString(),
-          sessionId: `session_${Date.now()}`, // Simple session ID
+          sessionId: sessionId, // Use generated session ID
           userId : '1234567890',
           userAgent: navigator.userAgent,
         }),

@@ -5,6 +5,15 @@ import { MagneticButton, ParticleBackground, MorphingShape, GradientBackground }
 import { motion } from 'framer-motion';
 import { useApi } from '../hooks/useApi';
 
+
+const handleDonateNow = () => {
+  window.location.href = '/campaigns';
+};
+
+const handleJoinNow = () => {
+  window.location.href = '/register';
+};
+
 const HeroSection: React.FC = () => {
   const [currentHeroMessage, setCurrentHeroMessage] = useState(0);
   const { get } = useApi<any>();
@@ -155,6 +164,7 @@ const HeroSection: React.FC = () => {
             <MagneticButton 
               className="bg-white text-red-700 px-8 py-4 rounded-full text-lg font-semibold hover:bg-red-50 transition-all duration-300 shadow-2xl transform hover:scale-105"
               strength={0.4}
+              onClick={handleDonateNow}
             >
               <div className="flex items-center space-x-3">
                 <HeartIcon className="w-6 h-6 fill-current" />
@@ -165,6 +175,7 @@ const HeroSection: React.FC = () => {
             <MagneticButton 
               className="border-2 border-white text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-white hover:text-red-700 transition-all duration-300 backdrop-blur-sm"
               strength={0.3}
+              onClick={handleJoinNow}
             >
               <div className="flex items-center space-x-3">
                 <UsersIcon className="w-6 h-6" />

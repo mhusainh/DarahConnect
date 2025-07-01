@@ -143,16 +143,16 @@ export const useCampaignService = () => {
   const donorNowWithSchedule = async (requestId: number, hospitalId: number, description: string, notes: string): Promise<boolean> => {
     try {
       // First create schedule
-      const scheduleResponse = await api.post('/user/schedule/', {
-        request_id: requestId,
-        hospital_id: hospitalId,
-        description: description
-      });
+      // const scheduleResponse = await api.post('/user/schedule/', {
+      //   request_id: requestId,
+      //   hospital_id: hospitalId,
+      //   description: description
+      // });
       
-      if (!scheduleResponse.success) {
-        debugConsole.error('Schedule creation failed in donor now process', scheduleResponse.error);
-        return false;
-      }
+      // if (!scheduleResponse.success) {
+      //   debugConsole.error('Schedule creation failed in donor now process', scheduleResponse.error);
+      //   return false;
+      // }
       
       // Then register as donor
       const donorResponse = await api.post('/user/donor-registration', {

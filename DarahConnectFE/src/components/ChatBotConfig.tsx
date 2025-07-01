@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Settings, Save, TestTube, CheckCircle, XCircle } from 'lucide-react';
+import { API_CONFIG } from '../config/api';
 
 interface ChatBotConfigProps {
   onSave?: (config: ChatBotSettings) => void;
@@ -18,7 +19,7 @@ interface ChatBotSettings {
 
 const ChatBotConfig: React.FC<ChatBotConfigProps> = ({ onSave }) => {
   const [config, setConfig] = useState<ChatBotSettings>({
-    webhookUrl: 'https://vertically-possible-amoeba.ngrok-free.app/webhook-test/0f8b8e46-3150-4d54-9ed4-5bf0d7952d17',
+    webhookUrl: API_CONFIG.CHATBOT_WEBHOOK_URL,
     botName: 'DarahConnect Assistant',
     welcomeMessage: 'Halo! Saya assistant DarahConnect. Ada yang bisa saya bantu hari ini? 🩸',
     primaryColor: '#ef4444',

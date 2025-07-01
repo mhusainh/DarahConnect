@@ -66,12 +66,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) => {
       path: '/admin/health-passports',
       description: 'Kelola Health Passport'
     },
-    {
-      title: 'Pengaturan',
-      icon: Settings,
-      path: '/admin/settings',
-      description: 'Pengaturan Sistem'
-    }
+    
   ];
 
   const isActiveRoute = (path: string) => {

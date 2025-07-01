@@ -200,6 +200,9 @@ export const formatApiErrorMessage = (error: any): string => {
   }
   
   if (error?.message) {
+    if (error.message == "Anda sudah pernah membuat jadwal donor") {
+      return "Anda sudah pernah membuat jadwal donor";
+    }
     return error.message;
   }
   

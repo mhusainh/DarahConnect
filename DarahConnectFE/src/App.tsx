@@ -355,7 +355,6 @@ function App() {
           {/* Uncomment untuk menggunakan ChatBot dengan n8n webhook */}
 
           <ChatBot
-            webhookUrl="https://vertically-possible-amoeba.ngrok-free.app/webhook-test/0f8b8e46-3150-4d54-9ed4-5bf0d7952d17"
             position="bottom-right"
             primaryColor="#ef4444"
             botName="DarahConnect Assistant"

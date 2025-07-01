@@ -800,7 +800,18 @@ export const DigitalCertificateWithBlockchain: React.FC<{
             <div className="space-y-3">
               <div>
                 <span className="text-sm text-gray-600">Blockchain ID</span>
-                <p className="font-mono text-sm font-medium break-all">{blockchain.blockchainId}</p>
+                {blockchain.blockchainId && blockchain.blockchainId !== '-' ? (
+                  <a
+                    href={`https://sepolia.etherscan.io/tx/${blockchain.blockchainId}`}
+                    target="_blank"
+                    rel="nofollow noopener noreferrer"
+                    className="text-xs font-mono text-blue-600 underline break-all hover:text-blue-800"
+                  >
+                    {blockchain.blockchainId}
+                  </a>
+                ) : (
+                  <p className="text-xs font-mono text-blue-600 break-all">{blockchain.blockchainId}</p>
+                )}
               </div>
               <div>
                 <span className="text-sm text-gray-600">Transaction Hash</span>
@@ -962,7 +973,18 @@ export const SimpleDonorCertificate: React.FC<SimpleDonorCertificateProps> = ({
               
               <div>
                 <span className="text-sm text-gray-600">Blockchain ID: </span>
-                <span className="font-mono font-medium text-blue-600">{blockchainId}</span>
+                {blockchainId && blockchainId !== '-' ? (
+                  <a
+                    href={`https://sepolia.etherscan.io/tx/${blockchainId}`}
+                    target="_blank"
+                    rel="nofollow noopener noreferrer"
+                    className="text-xs font-mono text-blue-600 underline break-all hover:text-blue-800"
+                  >
+                    {blockchainId}
+                  </a>
+                ) : (
+                  <span className="font-mono font-medium text-blue-600">{blockchainId}</span>
+                )}
               </div>
               
               <div>
@@ -1029,6 +1051,7 @@ interface CertificateCardProps {
   donationCount: number;
   certificateId: string;
   blockchainId: string;
+  certificateNumber?: string;
   type?: 'main' | 'achievement';
   title?: string;
   onClick?: () => void;
@@ -1045,6 +1068,7 @@ export const CertificateCard: React.FC<CertificateCardProps> = ({
   donationCount,
   certificateId,
   blockchainId,
+  certificateNumber,
   type = 'main',
   title,
   onClick,
@@ -1082,6 +1106,14 @@ export const CertificateCard: React.FC<CertificateCardProps> = ({
           "bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden cursor-pointer hover:shadow-2xl transition-all duration-300",
           className
         )}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onClick?.();
+          }
+        }}
       >
         {/* Header */}
         <div className={`bg-gradient-to-r ${headerColor} p-6 text-white relative`}>
@@ -1128,9 +1160,18 @@ export const CertificateCard: React.FC<CertificateCardProps> = ({
               <Database className="w-3 h-3" />
               <span>Blockchain ID:</span>
             </div>
-            <p className="text-xs font-mono text-blue-600 break-all">
-              {blockchainId}
-            </p>
+            {blockchainId && blockchainId !== '-' ? (
+              <a
+                href={`https://sepolia.etherscan.io/tx/${blockchainId}`}
+                target="_blank"
+                rel="nofollow noopener noreferrer"
+                className="text-xs font-mono text-blue-600 underline break-all hover:text-blue-800"
+              >
+                {blockchainId}
+              </a>
+            ) : (
+              <p className="text-xs font-mono text-blue-600 break-all">{blockchainId}</p>
+            )}
           </div>
 
           {/* Approval Info */}
@@ -1146,10 +1187,17 @@ export const CertificateCard: React.FC<CertificateCardProps> = ({
 
         {/* Footer */}
         <div className="px-6 pb-6">
-          <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClick?.();
+            }}
+            className="w-full flex items-center justify-center space-x-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 py-2 rounded-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50"
+            disabled={!onClick}
+          >
             <AwardIcon className="w-4 h-4" />
-            <span>Klik untuk melihat detail</span>
-          </div>
+            <span>{onClick ? 'Klik untuk melihat detail' : 'Detail tidak tersedia'}</span>
+          </button>
         </div>
       </div>
     </HoverScale>
@@ -1249,7 +1297,18 @@ export const AdminCertificateCard: React.FC<AdminCertificateCardProps> = ({
 
         <div className="mb-4">
           <p className="text-sm text-gray-600">Blockchain ID</p>
-          <p className="text-xs font-mono text-blue-600 break-all">{blockchainId}</p>
+          {blockchainId && blockchainId !== '-' ? (
+            <a
+              href={`https://sepolia.etherscan.io/tx/${blockchainId}`}
+              target="_blank"
+              rel="nofollow noopener noreferrer"
+              className="text-xs font-mono text-blue-600 underline break-all hover:text-blue-800"
+            >
+              {blockchainId}
+            </a>
+          ) : (
+            <p className="text-xs font-mono text-blue-600 break-all">{blockchainId}</p>
+          )}
         </div>
 
         <div className="mb-4">

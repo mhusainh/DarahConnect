@@ -21,7 +21,7 @@ export const Layout: React.FC<LayoutProps> = ({
       <Header />
       {children}
       {showFooter && <Footer />}
-      <WalletDebugPanel />
+      {/* <WalletDebugPanel /> */}
     </>
   );
 };

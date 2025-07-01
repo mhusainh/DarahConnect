@@ -29,6 +29,12 @@ interface CreateCampaignForm {
   contactPhone: string;
   deadline: string;
   imageUrl: string;
+  event_name: string;
+  event_date: string;
+  start_time: string;
+  end_time: string;
+  slots_available: number;
+  slots_booked: number;
 }
 
 interface FormErrors {
@@ -42,6 +48,12 @@ interface FormErrors {
   contactPhone?: string;
   deadline?: string;
   image?: string;
+  event_name?: string;
+  event_date?: string;
+  start_time?: string;
+  end_time?: string;
+  slots_available?: string;
+  slots_booked?: string;
 }
 
 const CreateCampaignPage: React.FC = () => {
@@ -58,7 +70,13 @@ const CreateCampaignPage: React.FC = () => {
     contactPerson: '',
     contactPhone: '',
     deadline: '',
-    imageUrl: 'https://images.unsplash.com/photo-1615461066159-fea0960485d5?w=800'
+    imageUrl: 'https://images.unsplash.com/photo-1615461066159-fea0960485d5?w=800',
+    event_name: '',
+    event_date: '',
+    start_time: '',
+    end_time: '',
+    slots_available: 100,
+    slots_booked: 50
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
@@ -67,6 +85,7 @@ const CreateCampaignPage: React.FC = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   
   const hospitalsApi = useApi<Hospital[]>();
+  const campaignApi = useApi();
   const notifications = useQuickNotifications();
 
   const bloodTypes: BloodType[] = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -179,7 +198,7 @@ const CreateCampaignPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    // if (!validateForm()) return;
     
     setIsLoading(true);
     
@@ -188,9 +207,14 @@ const CreateCampaignPage: React.FC = () => {
       const formDataPayload = new FormData();
       
       // Add form fields
+      formDataPayload.append('hospital_id', String(formData.hospital_id));
+      formDataPayload.append('event_name', formData.event_name || formData.title);
+      formDataPayload.append('slots_available', String(formData.slots_available));
+      formDataPayload.append('slots_booked', String(formData.slots_booked));
+      
+      // Additional fields for backward compatibility
       formDataPayload.append('title', formData.title);
       formDataPayload.append('description', formData.description);
-      formDataPayload.append('hospital_id', String(formData.hospital_id));
       formDataPayload.append('location', formData.location);
       formDataPayload.append('blood_type', JSON.stringify(formData.bloodType));
       formDataPayload.append('target_donors', String(formData.targetDonors));
@@ -204,29 +228,34 @@ const CreateCampaignPage: React.FC = () => {
         formDataPayload.append('image', selectedImage);
       }
       
+      // Pada handleSubmit, sebelum append ke formDataPayload:
+      const eventDate = formData.event_date; // YYYY-MM-DD
+      const startTime = formData.start_time; // HH:mm
+      const endTime = formData.end_time; // HH:mm
+
+      // Gabungkan ke ISO string (asumsikan waktu lokal, bisa diubah ke UTC jika perlu)
+      const startDateTime = eventDate && startTime ? new Date(`${eventDate}T${startTime}`).toISOString() : '';
+      const endDateTime = eventDate && endTime ? new Date(`${eventDate}T${endTime}`).toISOString() : '';
+
+      formDataPayload.append('event_date', startDateTime); // atau event_date
+      formDataPayload.append('start_time', startDateTime);
+      formDataPayload.append('end_time', endDateTime);
+      
       console.log('🔧 Sending campaign as FormData:', Array.from(formDataPayload.entries()));
       
-      // For now, simulate API call - replace with actual API call later
-      setTimeout(() => {
-        const newCampaign = {
-          ...formData,
-          id: Date.now().toString(),
-          currentDonors: 0,
-          createdAt: new Date().toISOString().split('T')[0],
-          organizer: {
-            name: localStorage.getItem('userName') || 'User',
-            avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
-            verified: false,
-            role: 'Individual'
-          },
-          imageFile: selectedImage ? selectedImage.name : null
-        };
-        
-        console.log('New campaign created:', newCampaign);
+      // Use useApi hook for better error handling and consistency
+      const response = await campaignApi.post('/admin-campaign', formDataPayload);
+      
+      
+      if (response.success) {
+        console.log('✅ Campaign created successfully:', response.data);
         setIsLoading(false);
         notifications.success('Berhasil!', 'Campaign donor darah berhasil dibuat');
-        navigate('/dashboard');
-      }, 2000);
+        navigate('/admin/campaigns');
+      }
+      //  else {
+      //   throw new Error(response.error || 'Failed to create campaign');
+      // }
       
     } catch (error: any) {
       console.error('❌ Create campaign error:', error);
@@ -261,295 +290,144 @@ const CreateCampaignPage: React.FC = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            {/* Title */}
+            {/* Hospital */}
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                Judul Campaign *
+              <label htmlFor="hospital_id" className="block text-sm font-medium text-gray-700 mb-2">
+                Rumah Sakit / Institusi *
               </label>
-              <input
-                id="title"
-                type="text"
-                value={formData.title}
-                onChange={(e) => handleInputChange('title', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                  errors.title ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Contoh: Bantuan Darah Darurat untuk Pasien Leukemia"
-              />
-              {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
+              <select
+                id="hospital_id"
+                value={formData.hospital_id}
+                onChange={(e) => handleInputChange('hospital_id', parseInt(e.target.value))}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.hospital_id ? 'border-red-500' : 'border-gray-300'}`}
+                required
+              >
+                <option value="">Pilih Rumah Sakit</option>
+                {hospitals.map((hospital) => (
+                  <option key={hospital.id} value={hospital.id}>
+                    {hospital.name} - {hospital.city}, {hospital.province}
+                  </option>
+                ))}
+              </select>
+              {errors.hospital_id && <p className="mt-1 text-sm text-red-600">{errors.hospital_id}</p>}
             </div>
 
-            {/* Description */}
+            {/* Event Name */}
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                Deskripsi Campaign *
+              <label htmlFor="event_name" className="block text-sm font-medium text-gray-700 mb-2">
+                Nama Event *
               </label>
-              <textarea
-                id="description"
-                rows={5}
-                value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                  errors.description ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Jelaskan secara detail tentang kebutuhan donor darah, kondisi pasien, dan urgensi campaign ini..."
+              <input
+                id="event_name"
+                type="text"
+                value={formData.event_name}
+                onChange={(e) => handleInputChange('event_name', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.event_name ? 'border-red-500' : 'border-gray-300'}`}
+                required
               />
-              <p className="mt-1 text-sm text-gray-500">
-                {formData.description.length}/500 karakter (minimal 50 karakter)
-              </p>
-              {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
+              {errors.event_name && <p className="mt-1 text-sm text-red-600">{errors.event_name}</p>}
+            </div>
+
+            {/* Event Date */}
+            <div>
+              <label htmlFor="event_date" className="block text-sm font-medium text-gray-700 mb-2">
+                Tanggal Event *
+              </label>
+              <input
+                id="event_date"
+                type="date"
+                value={formData.event_date}
+                onChange={(e) => handleInputChange('event_date', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.event_date ? 'border-red-500' : 'border-gray-300'}`}
+                required
+              />
+              {errors.event_date && <p className="mt-1 text-sm text-red-600">{errors.event_date}</p>}
+            </div>
+
+            {/* Start Time */}
+            <div>
+              <label htmlFor="start_time" className="block text-sm font-medium text-gray-700 mb-2">
+                Waktu Mulai *
+              </label>
+              <input
+                id="start_time"
+                type="time"
+                value={formData.start_time}
+                onChange={(e) => handleInputChange('start_time', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.start_time ? 'border-red-500' : 'border-gray-300'}`}
+                required
+              />
+              {errors.start_time && <p className="mt-1 text-sm text-red-600">{errors.start_time}</p>}
+            </div>
+
+            {/* End Time */}
+            <div>
+              <label htmlFor="end_time" className="block text-sm font-medium text-gray-700 mb-2">
+                Waktu Selesai *
+              </label>
+              <input
+                id="end_time"
+                type="time"
+                value={formData.end_time}
+                onChange={(e) => handleInputChange('end_time', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.end_time ? 'border-red-500' : 'border-gray-300'}`}
+                required
+              />
+              {errors.end_time && <p className="mt-1 text-sm text-red-600">{errors.end_time}</p>}
+            </div>
+
+            {/* Slots Available */}
+            <div>
+              <label htmlFor="slots_available" className="block text-sm font-medium text-gray-700 mb-2">
+                Slot Tersedia *
+              </label>
+              <input
+                id="slots_available"
+                type="number"
+                min="1"
+                value={formData.slots_available}
+                onChange={(e) => handleInputChange('slots_available', parseInt(e.target.value) || 0)}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.slots_available ? 'border-red-500' : 'border-gray-300'}`}
+                required
+              />
+              {errors.slots_available && <p className="mt-1 text-sm text-red-600">{errors.slots_available}</p>}
+            </div>
+
+            {/* Slots Booked */}
+            <div>
+              <label htmlFor="slots_booked" className="block text-sm font-medium text-gray-700 mb-2">
+                Slot Terisi *
+              </label>
+              <input
+                id="slots_booked"
+                type="number"
+                min="0"
+                value={formData.slots_booked}
+                onChange={(e) => handleInputChange('slots_booked', parseInt(e.target.value) || 0)}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.slots_booked ? 'border-red-500' : 'border-gray-300'}`}
+                required
+              />
+              {errors.slots_booked && <p className="mt-1 text-sm text-red-600">{errors.slots_booked}</p>}
             </div>
 
             {/* Image Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Gambar Campaign (Opsional)
+                Gambar Event (Opsional)
               </label>
-              
-              {!imagePreview ? (
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-red-400 transition-colors">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    id="image-upload"
-                  />
-                  <label htmlFor="image-upload" className="cursor-pointer">
-                    <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                    <p className="text-sm text-gray-600 mb-2">
-                      Klik untuk upload gambar atau drag & drop
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      PNG, JPG, GIF hingga 5MB
-                    </p>
-                  </label>
-                </div>
-              ) : (
-                <div className="relative">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-full h-48 object-cover rounded-lg border"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleRemoveImage}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="w-full"
+              />
+              {imagePreview && (
+                <div className="mt-2">
+                  <img src={imagePreview} alt="Preview" className="w-full h-48 object-cover rounded-lg border" />
+                  <button type="button" onClick={handleRemoveImage} className="mt-2 text-red-600 hover:underline">Hapus Gambar</button>
                 </div>
               )}
-              
-              {errors.image && (
-                <p className="text-red-500 text-sm mt-1">{errors.image}</p>
-              )}
-            </div>
-
-            {/* Hospital & Location */}
-            <div className="space-y-6">
-              <div>
-                <label htmlFor="hospital_id" className="block text-sm font-medium text-gray-700 mb-2">
-                  Rumah Sakit / Institusi *
-                </label>
-                <div className="relative">
-                  <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                  <select
-                    id="hospital_id"
-                    value={formData.hospital_id}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value === 'add-new') {
-                        setIsAddHospitalModalOpen(true);
-                      } else {
-                        handleInputChange('hospital_id', parseInt(value));
-                      }
-                    }}
-                    className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                      errors.hospital_id ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  >
-                    <option value="">Pilih Rumah Sakit</option>
-                    {hospitals.map((hospital) => (
-                      <option key={hospital.id} value={hospital.id}>
-                        {hospital.name} - {hospital.city}, {hospital.province}
-                      </option>
-                    ))}
-                    <option value="add-new" className="font-medium text-blue-600">
-                      + Tambah Rumah Sakit Baru
-                    </option>
-                  </select>
-                </div>
-                {errors.hospital_id && <p className="mt-1 text-sm text-red-600">{errors.hospital_id}</p>}
-              </div>
-
-              <div>
-                <LocationPicker
-                  value={formData.location}
-                  onChange={(location) => handleInputChange('location', location)}
-                  error={errors.location}
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Blood Types */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Golongan Darah yang Dibutuhkan *
-              </label>
-              <div className="grid grid-cols-4 gap-3">
-                {bloodTypes.map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => handleBloodTypeToggle(type)}
-                    className={`px-4 py-2 rounded-lg border-2 transition-colors ${
-                      formData.bloodType.includes(type)
-                        ? 'border-primary-500 bg-primary-50 text-primary-700'
-                        : 'border-gray-300 bg-white text-gray-700 hover:border-primary-300'
-                    }`}
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
-              {errors.bloodType && <p className="mt-1 text-sm text-red-600">{errors.bloodType}</p>}
-            </div>
-
-            {/* Target & Urgency */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="targetDonors" className="block text-sm font-medium text-gray-700 mb-2">
-                  Target Jumlah Donor *
-                </label>
-                <input
-                  id="targetDonors"
-                  type="number"
-                  min="10"
-                  max="1000"
-                  value={formData.targetDonors}
-                  onChange={(e) => handleInputChange('targetDonors', e.target.value === '' ? 10 : parseInt(e.target.value) || 10)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.targetDonors ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                {errors.targetDonors && <p className="mt-1 text-sm text-red-600">{errors.targetDonors}</p>}
-              </div>
-
-              <div>
-                <label htmlFor="urgencyLevel" className="block text-sm font-medium text-gray-700 mb-2">
-                  Tingkat Urgensi *
-                </label>
-                <select
-                  id="urgencyLevel"
-                  value={formData.urgencyLevel}
-                  onChange={(e) => handleInputChange('urgencyLevel', e.target.value as UrgencyLevel)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
-                  {urgencyLevels.map((level) => (
-                    <option key={level.value} value={level.value}>
-                      {level.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Contact Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="contactPerson" className="block text-sm font-medium text-gray-700 mb-2">
-                  Nama Kontak Person *
-                </label>
-                <input
-                  id="contactPerson"
-                  type="text"
-                  value={formData.contactPerson}
-                  onChange={(e) => handleInputChange('contactPerson', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.contactPerson ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Dr. Sarah Wijaya"
-                />
-                {errors.contactPerson && <p className="mt-1 text-sm text-red-600">{errors.contactPerson}</p>}
-              </div>
-
-              <div>
-                <label htmlFor="contactPhone" className="block text-sm font-medium text-gray-700 mb-2">
-                  Nomor Telepon *
-                </label>
-                <div className="relative">
-                  <PhoneIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                  <input
-                    id="contactPhone"
-                    type="tel"
-                    value={formData.contactPhone}
-                    onChange={(e) => handleInputChange('contactPhone', e.target.value)}
-                    className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.contactPhone ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="+62 21 1234567"
-                  />
-                </div>
-                {errors.contactPhone && <p className="mt-1 text-sm text-red-600">{errors.contactPhone}</p>}
-              </div>
-            </div>
-
-            {/* Deadline */}
-            <div>
-              <label htmlFor="deadline" className="block text-sm font-medium text-gray-700 mb-2">
-                Deadline Campaign *
-              </label>
-              <div className="relative max-w-md">
-                <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                <input
-                  id="deadline"
-                  type="date"
-                  min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
-                  value={formData.deadline}
-                  onChange={(e) => handleInputChange('deadline', e.target.value)}
-                  className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                    errors.deadline ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-              </div>
-              {errors.deadline && <p className="mt-1 text-sm text-red-600">{errors.deadline}</p>}
-            </div>
-
-            {/* Preview Card */}
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="font-medium text-gray-900 mb-3">Preview Campaign</h3>
-              <div className="bg-white rounded-lg p-4 border">
-                <div className="flex items-start justify-between mb-3">
-                  <h4 className="font-semibold text-gray-900">{formData.title || 'Judul Campaign'}</h4>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center ${
-                    formData.urgencyLevel === 'critical' ? 'bg-red-100 text-red-800' :
-                    formData.urgencyLevel === 'high' ? 'bg-orange-100 text-orange-800' :
-                    formData.urgencyLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-green-100 text-green-800'
-                  }`}>
-                    <AlertTriangleIcon className="w-3 h-3 mr-1" />
-                    {urgencyLevels.find(l => l.value === formData.urgencyLevel)?.label}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-600 mb-3">
-                  {formData.description.substring(0, 100)}{formData.description.length > 100 ? '...' : ''}
-                </p>
-                <div className="flex flex-wrap gap-1 mb-3">
-                  {formData.bloodType.map((type, index) => (
-                    <span key={index} className="bg-primary-100 text-primary-800 px-2 py-1 rounded text-xs">
-                      {type}
-                    </span>
-                  ))}
-                </div>
-                <div className="text-sm text-gray-600">
-                  <p>📍 {hospitals.find(h => h.id === formData.hospital_id)?.name || 'Pilih rumah sakit'}, {formData.location}</p>
-                  <p>🎯 Target: {formData.targetDonors} donor</p>
-                  <p>📞 {formData.contactPerson} - {formData.contactPhone}</p>
-                </div>
-              </div>
+              {errors.image && <p className="mt-1 text-sm text-red-600">{errors.image}</p>}
             </div>
 
             {/* Submit Button */}

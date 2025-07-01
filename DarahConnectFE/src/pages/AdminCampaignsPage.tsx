@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Heart, 
   Search, 
@@ -25,6 +26,7 @@ import { adminBloodRequestsApi } from '../services/fetchApi';
 import AdminLayout from '../components/AdminLayout';
 
 const AdminCampaignsPage: React.FC = () => {
+  const navigate = useNavigate();
   const [campaignsList, setCampaignsList] = useState<BloodCampaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +36,7 @@ const AdminCampaignsPage: React.FC = () => {
   const [selectedCampaign, setSelectedCampaign] = useState<BloodCampaign | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Fetch campaigns from API
   useEffect(() => {
@@ -174,6 +177,10 @@ const AdminCampaignsPage: React.FC = () => {
     setShowDetailModal(true);
   };
 
+  const handleCreateCampaign = () => {
+    setShowCreateModal(true);
+  };
+
   if (loading) {
     return (
       <AdminLayout title="Kelola Campaign" subtitle="Verifikasi dan kelola campaign donor darah">
@@ -208,7 +215,10 @@ const AdminCampaignsPage: React.FC = () => {
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-end items-center py-4">
-            <button className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2">
+            <button 
+              onClick={handleCreateCampaign}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
+            >
               <Plus className="h-4 w-4" />
               <span>Tambah Campaign</span>
             </button>
@@ -266,11 +276,18 @@ const AdminCampaignsPage: React.FC = () => {
           {filteredCampaigns.map((campaign) => (
             <div key={campaign.id} className="bg-white rounded-xl shadow-sm border overflow-hidden">
               <div className="relative">
-                <img 
-                  src={campaign.url_file || '/api/placeholder/400/200'} 
-                  alt={campaign.event_name}
-                  className="w-full h-48 object-cover"
-                />
+                {campaign.url_file ? (
+                  <img 
+                    src={campaign.url_file} 
+                    alt={campaign.event_name}
+                    className="w-full h-48 object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-48 flex flex-col items-center justify-center bg-gray-100">
+                    <Heart className="h-12 w-12 text-red-400 mb-2" />
+                    <span className="text-gray-500 font-semibold">Campaign Donor Darah</span>
+                  </div>
+                )}
                 <div className="absolute top-4 left-4">
                   <span className={`px-3 py-1 text-xs font-medium rounded-full border ${getUrgencyColor(campaign.urgency_level)}`}>
                     {campaign.urgency_level}
@@ -555,8 +572,50 @@ const AdminCampaignsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Create Campaign Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-md w-full">
+            <div className="p-6 border-b">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold text-gray-900">Tambah Campaign Baru</h2>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <p className="text-gray-600 mb-4">
+                Untuk membuat campaign baru, silakan gunakan halaman Create Campaign yang sudah tersedia.
+              </p>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                   onClick={() => {
+                     setShowCreateModal(false);
+                     navigate('/create-campaign');
+                   }}
+                   className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                 >
+                   Buat Campaign
+                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 };
 
-export default AdminCampaignsPage; 
+export default AdminCampaignsPage;

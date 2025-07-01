@@ -213,14 +213,14 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ onMenuToggle }) => {
                         <User className="h-4 w-4 text-gray-500" />
                         <span>Profil Admin</span>
                       </Link>
-                      <Link
+                      {/* <Link
                         to="/admin/settings"
                         className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                         onClick={() => setShowProfile(false)}
                       >
                         <Settings className="h-4 w-4 text-gray-500" />
                         <span>Pengaturan</span>
-                      </Link>
+                      </Link> */}
                       <div className="border-t border-gray-100 mt-1 pt-1">
                         <button
                           onClick={handleLogout}

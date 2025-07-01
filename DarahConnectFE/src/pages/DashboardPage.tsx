@@ -68,6 +68,7 @@ import WalletConnectBanner from "../components/WalletConnectBanner";
 import { campaigns, donationRequests } from "../data/dummy";
 import { BloodCampaign, DonationRequest } from "../types";
 import { debugConsole } from "../config/api";
+import { fetchApi } from '../services/fetchApi';
 
 interface BloodRequestsResponse {
   meta: {
@@ -148,8 +149,7 @@ const DashboardPage: React.FC = () => {
     | "schedule"
     | "certificate"
     | "requests"
-    | "achievements"
-    | "analytics"
+    | "health-passport"
   >("overview");
   const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(
     null
@@ -166,14 +166,19 @@ const DashboardPage: React.FC = () => {
     percentage: 50,
   });
 
-  // Check if user is logged in
+  const [certificates, setCertificates] = useState<any[]>([]);
+  const [certLoading, setCertLoading] = useState(true);
+  const [certError, setCertError] = useState<string | null>(null);
+
+  const [schedules, setSchedules] = useState<any[]>([]);
+
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   
-  // Redirect to login if not authenticated
+  // Handle login redirect in useEffect to avoid conditional hook calls
   useEffect(() => {
     if (!isLoggedIn) {
       navigate("/login", {
-        state: { 
+        state: {
           from: "/dashboard",
           message: "Silakan login terlebih dahulu untuk mengakses dashboard.",
         },
@@ -301,7 +306,6 @@ const DashboardPage: React.FC = () => {
     error: schedulesError,
     get: getSchedules,
   } = useApi<any[]>();
-  const [schedules, setSchedules] = useState<any[]>([]);
 
   useEffect(() => {
     getSchedules("/user/schedules").then((res) => {
@@ -365,24 +369,7 @@ const DashboardPage: React.FC = () => {
     donors: req.donors || [],
   }));
 
-  // Don't render dashboard if not logged in
-  if (!isLoggedIn) {
-    return (
-      <>
-        <WalletConnectBanner />
-        <Header />
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <HeartBeatLoader size={60} />
-            <p className="mt-4 text-gray-600 text-lg">
-              Mengalihkan ke halaman login...
-            </p>
-          </div>
-        </div>
-        <Footer />
-      </>
-    );
-  }
+
 
   const quickStats = {
     totalDonor: dashboardData?.total_donor || 0,
@@ -412,8 +399,8 @@ const DashboardPage: React.FC = () => {
     setActiveTab("certificate");
   };
 
-  const handleViewAchievements = () => {
-    setActiveTab("achievements");
+  const handleViewHealthPassport = () => {
+    setActiveTab("health-passport");
   };
 
   const handleCreateBloodRequest = () => {
@@ -503,6 +490,39 @@ const DashboardPage: React.FC = () => {
     navigate("/blood-requests");
   };
 
+  useEffect(() => {
+    if (activeTab === 'certificate') {
+      setCertLoading(true);
+      setCertError(null);
+      fetchApi('/user/certificates').then((res) => {
+        if (res.success && Array.isArray(res.data)) {
+          setCertificates(res.data.map((item: any, idx: number) => ({
+            id: item.id,
+            type: 'Sertifikat Donor',
+            status: 'Disetujui',
+            name: item.user?.name || '-',
+            role: item.user?.role || '-',
+            bloodType: item.user?.blood_type || '-',
+            totalDonations: item.donation?.amount || 1,
+            blockchainId: item.digital_signature || '-',
+            digitalSignature: item.digital_signature || '-',
+            color: idx % 2 === 0 ? 'red' : 'blue',
+            bgGradient: idx % 2 === 0 ? 'from-red-500 to-red-600' : 'from-blue-500 to-blue-600',
+            createdAt: item.created_at,
+            rawData: item
+          })));
+        } else {
+          setCertificates([]);
+          setCertError(res.message || 'Gagal mengambil data sertifikat');
+        }
+        setCertLoading(false);
+      }).catch((err) => {
+        setCertError(err.message || 'Gagal mengambil data sertifikat');
+        setCertLoading(false);
+      });
+    }
+  }, [activeTab]);
+
   if (!isPageLoaded) {
     return (
       <>
@@ -512,6 +532,25 @@ const DashboardPage: React.FC = () => {
           <div className="text-center">
             <HeartBeatLoader size={60} />
             <p className="mt-4 text-gray-600 text-lg">Memuat Dashboard...</p>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
+
+  // Show loading state while redirecting to login
+  if (!isLoggedIn) {
+    return (
+      <>
+        <WalletConnectBanner />
+        <Header />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <HeartBeatLoader size={60} />
+            <p className="mt-4 text-gray-600 text-lg">
+              Mengalihkan ke halaman login...
+            </p>
           </div>
         </div>
         <Footer />
@@ -650,29 +689,36 @@ const DashboardPage: React.FC = () => {
                       label: "Request Darah",
                       icon: <AlertTriangle className="w-5 h-5" />,
                     },
-                    // {
-                    //   key: "achievements",
-                    //   label: "Pencapaian",
-                    //   icon: <AwardIcon className="w-5 h-5" />,
-                    // },
-                    // {
-                    //   key: "analytics",
-                    //   label: "Analytics",
-                    //   icon: <TrendingUpIcon className="w-5 h-5" />,
-                    // },
+                    {
+                      key: "health-passport",
+                      label: "Health Passport",
+                      icon: <AwardIcon className="w-5 h-5" />,
+                      onClick: () => navigate("/health-passport"),
+                    },
                   ].map((tab) => (
-                    <button
-                      key={tab.key}
-                      onClick={() => setActiveTab(tab.key as any)}
-                      className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-medium transition-all duration-200 hover:scale-105 ${
-                        activeTab === tab.key
-                          ? "bg-primary-600 text-white shadow-md"
-                          : "text-gray-600 hover:bg-gray-50"
-                      }`}
-                    >
-                      {tab.icon}
-                      <span className="hidden sm:inline">{tab.label}</span>
-                    </button>
+                    tab.key === "health-passport" ? (
+                      <button
+                        key={tab.key}
+                        onClick={tab.onClick}
+                        className="flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-medium transition-all duration-200 hover:scale-105 text-gray-600 hover:bg-gray-50"
+                      >
+                        {tab.icon}
+                        <span className="hidden sm:inline">{tab.label}</span>
+                      </button>
+                    ) : (
+                      <button
+                        key={tab.key}
+                        onClick={() => setActiveTab(tab.key as any)}
+                        className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-medium transition-all duration-200 hover:scale-105 ${
+                          activeTab === tab.key
+                            ? "bg-primary-600 text-white shadow-md"
+                            : "text-gray-600 hover:bg-gray-50"
+                        }`}
+                      >
+                        {tab.icon}
+                        <span className="hidden sm:inline">{tab.label}</span>
+                      </button>
+                    )
                   ))}
                 </div>
               </div>
@@ -773,52 +819,6 @@ const DashboardPage: React.FC = () => {
                         </div>
                       </FadeIn>
                     )}
-
-                    {/* Monthly Goal */}
-                    {/* <FadeIn direction="up" delay={0.2}>
-                      <div className="bg-white rounded-xl shadow-lg p-6">
-                        <div className="flex items-center justify-between mb-6">
-                          <h3 className="text-xl font-bold text-gray-900">
-                            Target Bulanan
-                          </h3>
-                          <TargetIcon className="w-6 h-6 text-gray-600" />
-                        </div>
-                        
-                        <div className="flex items-center space-x-6">
-                          <div className="flex-1">
-                            <div className="flex justify-between mb-2">
-                              <span className="text-sm text-gray-600">
-                                Progress
-                              </span>
-                              <span className="text-sm font-medium text-gray-900">
-                                {monthlyGoal.current}/{monthlyGoal.target}{" "}
-                                donasi
-                              </span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-                              <div 
-                                className="bg-gradient-to-r from-primary-500 to-primary-600 h-4 rounded-full transition-all duration-1000 ease-out"
-                                style={{ width: `${monthlyGoal.percentage}%` }}
-                              />
-                            </div>
-                            <p className="text-xs text-gray-500 mt-2">
-                              {monthlyGoal.percentage}% dari target bulanan
-                            </p>
-                          </div>
-                          
-                          <div className="text-center">
-                            <div className="text-3xl font-bold text-primary-600 mb-1">
-                              <CountUp
-                                end={monthlyGoal.percentage}
-                                suffix="%"
-                                duration={2}
-                              />
-                            </div>
-                            <p className="text-sm text-gray-600">Tercapai</p>
-                          </div>
-                        </div>
-                      </div>
-                    </FadeIn> */}
 
                     {/* Quick Emergency Preview */}
                     <FadeIn direction="up" delay={0.4}>
@@ -973,64 +973,31 @@ const DashboardPage: React.FC = () => {
                         terverifikasi blockchain
                       </p>
                     </div>
-                    
+                    {certLoading ? (
+                      <div className="text-center py-12 text-gray-500">Memuat data sertifikat...</div>
+                    ) : certError ? (
+                      <div className="text-center py-12 text-red-500">{certError}</div>
+                    ) : certificates.length === 0 ? (
+                      <div className="text-center py-12 text-gray-400">Belum ada sertifikat donor darah.</div>
+                    ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {/* Certificate Card 1 */}
-                      <FadeIn direction="up" delay={0.2}>
-                        <CertificateCard
-                          donorName={userName}
-                          bloodType="O+"
-                          donationDate="2024-01-15"
-                          donationCount={12}
-                          certificateId="CERT-2024-001"
-                          blockchainId="BC-CERT-0x9F8E7D6C5B4A"
-                          type="main"
-                          title="Sertifikat Donor"
-                          onClick={() => navigate("/certificates")}
-                        />
-                      </FadeIn>
-
-                      {/* Certificate Card 2 */}
-                      <FadeIn direction="up" delay={0.3}>
-                        <CertificateCard
-                          donorName={userName}
-                          bloodType="O+"
-                          donationDate="2024-01-15"
-                          donationCount={10}
-                          certificateId="CERT-2024-002"
-                          blockchainId="BC-BADGE-0x8E7D6C5B4A"
-                          type="achievement"
-                          title="Hero Donor"
-                          onClick={() => navigate("/certificates")}
-                        />
-                      </FadeIn>
-
-                      {/* Add More Certificate Card */}
-                      <FadeIn direction="up" delay={0.4}>
-                        <HoverScale scale={1.02}>
-                          <div 
-                            onClick={() => navigate("/donor-register")}
-                            className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-2xl p-6 cursor-pointer hover:border-gray-400 hover:bg-gray-100 transition-all duration-300 flex flex-col items-center justify-center min-h-[300px]"
-                          >
-                            <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4">
-                              <PlusCircleIcon className="w-8 h-8 text-gray-400" />
-                            </div>
-                            <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                              Dapatkan Sertifikat Baru
-                            </h3>
-                            <p className="text-gray-500 text-center text-sm mb-4">
-                              Daftar donor darah untuk mendapatkan sertifikat
-                              digital baru
-                            </p>
-                            <div className="flex items-center space-x-2 text-red-600 font-medium">
-                              <HeartIcon className="w-4 h-4" />
-                              <span>Donor Sekarang</span>
-                            </div>
-                          </div>
-                        </HoverScale>
-                      </FadeIn>
+                      {certificates.slice(0,2).map((cert) => (
+                        <FadeIn key={cert.id} direction="up">
+                          <CertificateCard
+                            donorName={cert.name}
+                            bloodType={cert.bloodType}
+                            donationDate={cert.createdAt}
+                            donationCount={cert.totalDonations}
+                            certificateId={cert.id}
+                            blockchainId={cert.blockchainId}
+                            type="main"
+                            title={cert.type}
+                            onClick={() => navigate("/certificates")}
+                          />
+                        </FadeIn>
+                      ))}
                     </div>
-
+                    )}
                     {/* View All Certificates Button */}
                     <div className="text-center">
                       <HoverScale scale={1.05}>
@@ -1060,93 +1027,20 @@ const DashboardPage: React.FC = () => {
                 </FadeIn>
               )}
 
-              {activeTab === "achievements" && (
+              {activeTab === "health-passport" && (
                 <FadeIn direction="up" delay={0.1}>
                   <div className="space-y-8">
                     <div className="text-center">
                       <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                        Pencapaian & Badge
+                        Health Passport
                       </h2>
                       <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                        Kumpulan pencapaian dan badge yang telah Anda raih dalam
-                        perjalanan donor darah.
+                        Lihat dan kelola Health Passport Anda
                       </p>
                     </div>
                     
-                    {/* Achievement Stats Grid - Similar to BloodRequestStats */}
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg p-4 border border-yellow-200">
-                        <div className="flex items-center">
-                          <div className="w-10 h-10 bg-yellow-400 rounded-lg flex items-center justify-center">
-                            <TrophyIcon className="w-5 h-5 text-white" />
-                          </div>
-                          <div className="ml-3">
-                            <p className="text-sm text-yellow-700">
-                              Badge Diraih
-                            </p>
-                            <p className="text-xl font-bold text-yellow-800">
-                              {0}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
-                        <div className="flex items-center">
-                          <div className="w-10 h-10 bg-green-400 rounded-lg flex items-center justify-center">
-                            <TargetIcon className="w-5 h-5 text-white" />
-                          </div>
-                          <div className="ml-3">
-                            <p className="text-sm text-green-700">
-                              Dalam Progress
-                            </p>
-                            <p className="text-xl font-bold text-green-800">
-                              {0}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Latest Achievement Preview */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">
-                        Pencapaian Terbaru
-                      </h4>
-                      {[]
-                        .slice(-1)
-                        .map((achievement, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center space-x-3"
-                          >
-                          <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-white">
-                            {/* Achievement icon placeholder */}
-                          </div>
-                          <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-900">
-                                {/* Achievement title placeholder */}
-                              </p>
-                              <p className="text-xs text-gray-600">
-                                {/* Achievement description placeholder */}
-                              </p>
-                          </div>
-                          <div className="text-green-500">
-                              <svg
-                                className="w-4 h-4"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
+                    {/* Health Passport Content */}
+                    {/* Add your Health Passport content here */}
                   </div>
                 </FadeIn>
               )}
@@ -1457,34 +1351,7 @@ const DashboardPage: React.FC = () => {
                 </FadeIn>
               )}
 
-              {activeTab === "analytics" && (
-                <FadeIn direction="up" delay={0.1}>
-                  <div className="space-y-8">
-                    <div className="text-center">
-                      <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                        Analytics & Statistik
-                      </h2>
-                      <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                        Analisis mendalam tentang aktivitas donasi darah dan
-                        tren komunitas.
-                      </p>
-                    </div>
-                    
-                    {/* Charts Grid */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                      <MonthlyDonationChart data={[]} />
-                      <BloodTypeChart data={[]} />
-                      <WeeklyGoalsChart data={[]} />
-                      <DonationTrendChart data={[]} />
-                    </div>
-                    
-                    {/* Full Width Chart */}
-                    <div className="mt-8">
-                      <HospitalPartnershipChart data={[]} />
-                    </div>
-                  </div>
-                </FadeIn>
-              )}
+             
             </div>
           </div>
         </div>

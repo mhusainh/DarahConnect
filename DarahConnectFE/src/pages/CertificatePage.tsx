@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import html2canvas from "html2canvas";
 import WalletConnectBanner from "../components/WalletConnectBanner";
 import {
   HeartIcon,
@@ -13,6 +14,7 @@ import {
   ExternalLinkIcon,
   CheckCircleIcon,
   ShieldCheckIcon,
+  DownloadIcon,
 } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -26,6 +28,10 @@ const CertificatePage: React.FC = () => {
   const [certificates, setCertificates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCertificate, setSelectedCertificate] = useState<any>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const certificateRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchCertificates = async () => {
@@ -43,11 +49,13 @@ const CertificatePage: React.FC = () => {
             role: item.user?.role || '-',
             bloodType: item.user?.blood_type || '-',
             totalDonations: item.donation?.amount || 1, // fallback 1 jika tidak ada
-            blockchainId: item.certificate_number || '-',
+            blockchainId: item.digital_signature || '-',
+            certificateNumber: item.certificate_number || '-',
             digitalSignature: item.digital_signature || '-',
             color: idx % 2 === 0 ? 'red' : 'blue',
             bgGradient: idx % 2 === 0 ? 'from-red-500 to-red-600' : 'from-blue-500 to-blue-600',
             createdAt: item.created_at,
+            rawData: item // Simpan data mentah untuk download
           })));
         } else {
           setError(res.message || 'Gagal mengambil data sertifikat');
@@ -63,6 +71,52 @@ const CertificatePage: React.FC = () => {
 
   const handleDonorSekarang = () => {
     navigate("/campaigns");
+  };
+
+  const handleViewCertificateDetail = (certificate: any) => {
+    setSelectedCertificate(certificate);
+    setShowDetailModal(true);
+  };
+
+  const closeDetailModal = () => {
+    setShowDetailModal(false);
+    setSelectedCertificate(null);
+  };
+
+  const downloadCertificateAsImage = async (certificate: any) => {
+    if (!certificateRef.current) return;
+    
+    setDownloading(true);
+    try {
+      const canvas = await html2canvas(certificateRef.current, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        width: 800,
+        height: 600,
+        scrollX: 0,
+        scrollY: 0,
+      });
+
+      const link = document.createElement('a');
+      link.download = `sertifikat-donor-${certificate.name}-${certificate.id}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (error) {
+      console.error('Error downloading certificate:', error);
+      alert('Gagal mengunduh sertifikat. Silakan coba lagi.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('id-ID', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
   };
 
   return (
@@ -100,7 +154,18 @@ const CertificatePage: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {certificates.map((cert) => (
                     <HoverScale key={cert.id} scale={1.02} duration={0.2}>
-                      <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                      <div 
+                        className="bg-white rounded-xl shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200"
+                        onClick={() => handleViewCertificateDetail(cert)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleViewCertificateDetail(cert);
+                          }
+                        }}
+                      >
                         {/* Certificate Header */}
                         <div
                           className={`bg-gradient-to-r ${cert.bgGradient} p-4 text-white relative`}
@@ -168,12 +233,52 @@ const CertificatePage: React.FC = () => {
                               </span>
                             </div>
                             <p className="text-sm font-mono text-blue-600 break-all">
-                              {cert.blockchainId}
+                              <a
+                                href={`https://sepolia.etherscan.io/tx/${cert.digitalSignature}`}
+                                target="_blank"
+                                rel="nofollow noopener noreferrer"
+                                className="underline hover:text-blue-800"
+                              >
+                                {cert.blockchainId}
+                              </a>
+                            </p>
+                            <div className="flex items-center space-x-2 mb-2 mt-2">
+                              <span className="text-xs text-gray-500 uppercase tracking-wide">
+                                Certificate Number:
+                              </span>
+                            </div>
+                            <p className="text-sm font-mono text-gray-800 break-all">
+                              {cert.certificateNumber}
                             </p>
                           </div>
 
+                          {/* Download Certificate Button */}
+                          <button
+                            className="flex items-center space-x-2 text-green-600 hover:text-green-700 text-sm font-medium transition-colors mb-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const dataStr = JSON.stringify(cert.rawData, null, 2);
+                              const blob = new Blob([dataStr], { type: 'application/json' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `sertifikat-donor-${cert.id}.json`;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            }}
+                          >
+                            <ShieldCheckIcon className="w-4 h-4" />
+                            <span>Download Sertifikat</span>
+                          </button>
+
                           {/* View Detail Link */}
-                          <button className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewCertificateDetail(cert);
+                            }}
+                            className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors hover:bg-blue-50 p-2 rounded-lg"
+                          >
                             <UserIcon className="w-4 h-4" />
                             <span>Klik untuk melihat detail</span>
                             <ExternalLinkIcon className="w-3 h-3" />
@@ -249,6 +354,115 @@ const CertificatePage: React.FC = () => {
           </FadeIn>
         </div>
       </div>
+
+      {/* Certificate Detail Modal */}
+      {showDetailModal && selectedCertificate && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={closeDetailModal}
+        >
+          <div 
+            className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Detail Sertifikat</h2>
+                <button
+                  onClick={closeDetailModal}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Certificate Header */}
+                <div className="bg-gradient-to-r from-red-500 to-red-600 p-6 rounded-xl text-white">
+                  <div className="flex items-center space-x-4">
+                    <HeartIcon className="w-12 h-12 fill-current" />
+                    <div>
+                      <h3 className="text-2xl font-bold">{selectedCertificate.type}</h3>
+                      <p className="text-red-100">Digital Certificate - Blockchain Verified</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Certificate Content */}
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-xl font-bold text-gray-900 mb-2">{selectedCertificate.name}</h4>
+                    <p className="text-gray-600">{selectedCertificate.role}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-600">Golongan Darah</p>
+                      <p className="text-xl font-bold text-red-600">{selectedCertificate.bloodType}</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-600">Total Donasi</p>
+                      <p className="text-xl font-bold text-gray-900">{selectedCertificate.totalDonations}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <h5 className="font-semibold text-gray-900 mb-2">Blockchain Verification</h5>
+                    <div className="space-y-2">
+                      <div>
+                        <p className="text-sm text-gray-600">Blockchain ID:</p>
+                        <p className="text-sm font-mono text-blue-600 break-all">{selectedCertificate.blockchainId}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Certificate Number:</p>
+                        <p className="text-sm font-mono text-gray-800">{selectedCertificate.certificateNumber}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <h5 className="font-semibold text-gray-900 mb-2">Status</h5>
+                    <div className="flex items-center space-x-2">
+                      <CheckCircleIcon className="w-5 h-5 text-green-600" />
+                      <span className="text-green-800 font-medium">{selectedCertificate.status}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex space-x-3 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const dataStr = JSON.stringify(selectedCertificate.rawData, null, 2);
+                      const blob = new Blob([dataStr], { type: 'application/json' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `sertifikat-donor-${selectedCertificate.id}.json`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <ShieldCheckIcon className="w-4 h-4" />
+                    <span>Download</span>
+                  </button>
+                  <button
+                    onClick={closeDetailModal}
+                    className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </>
   );

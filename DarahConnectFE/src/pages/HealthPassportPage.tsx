@@ -354,15 +354,43 @@ const HealthPassportPage: React.FC = () => {
       // Call the API
       const response = await getApi('/user/health-passport');
       
+      // Debug: Log the response structure
+      console.log('Health Passport API Response:', response);
+      
       if (response.success && response.data) {
-        const apiData = response.data as HealthPassportApiResponse;
+        let apiData: HealthPassportApiResponse;
+        
+        // Try to handle different possible response structures
+        if (response.data.data) {
+          // Standard structure: { data: { data: {...} } }
+          apiData = response.data as HealthPassportApiResponse;
+        } else if (response.data.id) {
+          // Direct structure: { data: { id: ..., user: {...} } }
+          apiData = {
+            meta: { code: 200, message: 'Success' },
+            data: response.data as HealthPassportApiData
+          };
+        } else {
+          throw new Error('Unexpected API response structure');
+        }
+        
+        // Check if apiData.data exists and has the required properties
+        if (!apiData.data) {
+          throw new Error('Health passport data not found');
+        }
+        
+        // Validate required fields
+        if (!apiData.data.id || !apiData.data.user_id || !apiData.data.user) {
+          throw new Error('Invalid health passport data structure');
+        }
+        
         setHealthPassportApi(apiData.data);
         
         // Transform API data to legacy format for backward compatibility
         const transformedData: HealthPassportData = {
           id: apiData.data.id,
           userId: apiData.data.user_id,
-          bloodType: apiData.data.user.blood_type,
+          bloodType: apiData.data.user.blood_type || 'Unknown',
           allergies: [], // Not available in API
           medications: [], // Not available in API
           medicalConditions: [], // Not available in API
@@ -413,8 +441,13 @@ const HealthPassportPage: React.FC = () => {
           }
         );
       }
-      // Check if it's a 404 error (health passport doesn't exist yet)
-      else if (err.message && (err.message.includes('404') || err.message.includes('not found'))) {
+      // Check if it's a 404 error or data not found (health passport doesn't exist yet)
+      else if (err.message && (
+        err.message.includes('404') || 
+        err.message.includes('not found') ||
+        err.message.includes('Health passport data not found') ||
+        err.message.includes('Invalid health passport data structure')
+      )) {
         setError('Health Passport belum dibuat. Silakan lengkapi kuesioner untuk membuat Health Passport Anda.');
         setShowQuestionnaire(true);
       } else {

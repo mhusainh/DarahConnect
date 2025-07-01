@@ -92,9 +92,21 @@ const requiresAuth = (endpoint: string): boolean => {
   ];
   
   // Cek apakah endpoint adalah public endpoint
-  return !publicEndpoints.some(publicEndpoint => 
-    endpoint.includes(publicEndpoint) || endpoint.endsWith(publicEndpoint)
-  );
+  // Gunakan exact match atau path yang tepat untuk menghindari false positive
+  return !publicEndpoints.some(publicEndpoint => {
+    // Exact match
+    if (endpoint === publicEndpoint) return true;
+    
+    // Endpoint ends with public endpoint (e.g., /campaign matches /campaign)
+    if (endpoint.endsWith(publicEndpoint)) return true;
+    
+    // Special case: /campaign should only match /campaign, not /admin/campaign
+    if (publicEndpoint === '/campaign') {
+      return endpoint === '/campaign' || endpoint.startsWith('/campaign?');
+    }
+    
+    return false;
+  });
 };
 
 // Helper untuk performance timing

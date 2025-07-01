@@ -1,5 +1,9 @@
 import React from 'react';
 import { HeartIcon, UsersIcon, ShieldCheckIcon, PhoneIcon, MailIcon, MapPinIcon, CheckCircleIcon } from 'lucide-react';
+import ridwan from '../examples/images/ridwan.jpg';
+import mahmudi from '../examples/images/husain.jpg'; // ganti 'mahmudi' jadi 'husain'
+import aditya from '../examples/images/adit.jpg';    // ganti 'aditya' jadi 'adit'
+
 
 const AboutPage: React.FC = () => {
   const stats = [
@@ -29,24 +33,25 @@ const AboutPage: React.FC = () => {
 
   const team = [
     {
-      name: 'Dr. Sarah Wijaya',
-      role: 'Medical Director',
-      image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80',
-      description: 'Dokter spesialis hematologi dengan pengalaman 15 tahun dalam transfusi darah.'
+      name: 'Muhammad Ridwan',
+      role: 'Frontend Developer',
+      image: ridwan,
+      description: 'Spesialis dalam membangun antarmuka pengguna yang responsif dan dinamis dengan teknologi modern seperti React dan Tailwind CSS.'
     },
     {
-      name: 'Ahmad Fauzi',
-      role: 'Community Manager',
-      image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80',
-      description: 'Mengelola komunitas donor dan memastikan respons cepat untuk kebutuhan darurat.'
+      name: 'Mahmudi Husain Hasbullah',
+      role: 'Blockchain Developer & Backend Developer',
+      image: mahmudi,
+      description: 'Ahli dalam pengembangan smart contract dan integrasi backend, serta memastikan keamanan dan efisiensi sistem terdistribusi.'
     },
     {
-      name: 'Sari Dewi',
-      role: 'Operations Lead',
-      image: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80',
-      description: 'Koordinator operasional yang memastikan efisiensi proses donor dan distribusi darah.'
+      name: 'Aditya Bacthiar',
+      role: 'Backend Developer & QA',
+      image: aditya,
+      description: 'Menangani pengembangan server-side dan pengujian sistem untuk menjamin kestabilan, keandalan, dan performa aplikasi.'
     }
   ];
+  
 
   const howItWorks = [
     {
@@ -77,7 +82,7 @@ const AboutPage: React.FC = () => {
       <div className="bg-gradient-to-br from-primary-600 to-primary-700 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center">
-            <h1 className="text-4xl font-bold mb-4">Tentang DonorKita</h1>
+            <h1 className="text-4xl font-bold mb-4">Tentang DonorConnect</h1>
             <p className="text-xl text-primary-100 max-w-3xl mx-auto mb-8">
               Platform komunitas donor darah terdepan di Indonesia yang menghubungkan 
               para hero penyelamat nyawa dengan mereka yang membutuhkan bantuan.
@@ -96,7 +101,7 @@ const AboutPage: React.FC = () => {
             <div>
               <h2 className="text-3xl font-bold text-gray-900 mb-6">Misi Kami</h2>
               <p className="text-lg text-gray-600 mb-6">
-                DonorKita hadir untuk menyelesaikan tantangan ketersediaan darah di Indonesia. 
+                DonorConnect hadir untuk menyelesaikan tantangan ketersediaan darah di Indonesia. 
                 Kami percaya bahwa teknologi dapat mempermudah proses donor darah dan 
                 mempercepat respons terhadap kebutuhan darurat.
               </p>
@@ -131,13 +136,13 @@ const AboutPage: React.FC = () => {
               </div>
             </div>
             
-            <div className="relative">
+            {/* <div className="relative">
               <img
                 src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
                 alt="Blood donation"
                 className="rounded-xl shadow-lg"
               />
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
@@ -168,7 +173,7 @@ const AboutPage: React.FC = () => {
       <div className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Mengapa Memilih DonorKita?</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Mengapa Memilih DonorConnect?</h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
               Platform kami dirancang dengan teknologi terdepan dan standar keamanan 
               tinggi untuk memberikan pengalaman terbaik bagi para donor.
@@ -267,8 +272,8 @@ const AboutPage: React.FC = () => {
                 <MailIcon className="h-8 w-8 text-primary-200" />
               </div>
               <h3 className="text-lg font-semibold mb-2">Email</h3>
-              <p className="text-primary-100">info@donorkita.id</p>
-              <p className="text-primary-100">support@donorkita.id</p>
+              <p className="text-primary-100">info@DonorConnect.id</p>
+              <p className="text-primary-100">support@DonorConnect.id</p>
             </div>
             
             <div className="text-center">
