@@ -41,6 +41,7 @@ export const adaptCampaignFromApi = (apiCampaign: ApiCampaign): ComponentCampaig
     contactPerson: apiCampaign.user?.name || 'Contact Person',
     contactPhone: apiCampaign.user?.phone || '-',
     imageUrl: apiCampaign.user?.url_file || defaultImage,
+    url_file: apiCampaign.url_file || defaultImage,
     createdAt: apiCampaign.created_at || new Date().toISOString(),
     organizer: {
       name: apiCampaign.user?.name || 'Organizer',

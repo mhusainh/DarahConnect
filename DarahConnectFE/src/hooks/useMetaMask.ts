@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { WalletState, MetaMaskError } from '../types/index';
+import { connectWalletAddress } from '../services/walletService';
 
 declare global {
   interface Window {
@@ -88,6 +89,19 @@ export const useMetaMask = () => {
         const account = accounts[0];
         const balance = await getBalance(account);
         const network = await getNetworkInfo();
+
+        // Call API to connect wallet address
+        try {
+          const response = await connectWalletAddress(account);
+          if (response.success) {
+            console.log('Wallet address connected successfully:', response.data);
+          } else {
+            console.warn('Failed to connect wallet address to backend:', response.message);
+          }
+        } catch (error) {
+          console.error('Error connecting wallet address to backend:', error);
+          // Don't fail the wallet connection if API call fails
+        }
 
         setWalletState(prev => ({
           ...prev,

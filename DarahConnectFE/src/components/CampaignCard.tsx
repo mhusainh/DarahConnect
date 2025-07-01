@@ -117,7 +117,7 @@ const CampaignCard: React.FC<CampaignCardProps> = ({
           {/* Image */}
           <div className="relative h-48 overflow-hidden">
             <img 
-              src={campaign.imageUrl} 
+              src={campaign.url_file} 
               alt={campaign.title}
               className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
             />
