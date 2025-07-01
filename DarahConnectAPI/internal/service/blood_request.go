@@ -82,6 +82,7 @@ func (s *bloodRequestService) CreateCampaign(ctx context.Context, req dto.Campai
 	bloodRequest.SlotsBooked = req.SlotsBooked
 	bloodRequest.EventDate = req.EventDate
 	bloodRequest.EventType = "campaign"
+	bloodRequest.Status = "verified"
 
 	if req.Image != nil {
 		UrlFile, publicId, err := s.cloudinaryService.UploadFile(req.Image, "BloodRequests")
