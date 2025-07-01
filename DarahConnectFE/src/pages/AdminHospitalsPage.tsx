@@ -20,6 +20,7 @@ import AdminLayout from '../components/AdminLayout';
 import { getApi, deleteApi } from '../services/fetchApi';
 import { useNotification } from '../hooks/useNotification';
 import { Hospital } from '../types/index';
+import AddHospitalModal from '../components/AddHospitalModal';
 
 // Interface untuk response API
 interface HospitalsResponse {
@@ -178,6 +179,7 @@ const AdminHospitalsPage: React.FC = () => {
   const handleHospitalAdded = () => {
     fetchHospitals(); // Refresh the list
     setShowAddModal(false);
+    setSelectedHospital(null); // Clear selected hospital
   };
 
   if (loading) {
@@ -211,7 +213,10 @@ const AdminHospitalsPage: React.FC = () => {
                 <span>Export</span>
               </button>
               <button 
-                onClick={() => setShowAddModal(true)}
+                onClick={() => {
+                  setSelectedHospital(null); // Clear any selected hospital for new addition
+                  setShowAddModal(true);
+                }}
                 className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
               >
                 <Plus className="h-4 w-4" />
@@ -510,169 +515,6 @@ const AdminHospitalsPage: React.FC = () => {
         />
       )}
     </AdminLayout>
-  );
-};
-
-// Add Hospital Modal Component (simplified version)
-interface AddHospitalModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onHospitalAdded: () => void;
-  hospital?: Hospital | null;
-}
-
-const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, onHospitalAdded, hospital }) => {
-  const [formData, setFormData] = useState({
-    name: hospital?.name || '',
-    address: hospital?.address || '',
-    city: hospital?.city || '',
-    province: hospital?.province || '',
-    latitude: hospital?.latitude || -6.2088,
-    longitude: hospital?.longitude || 106.8456
-  });
-  const [loading, setLoading] = useState(false);
-  const { addNotification } = useNotification();
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const response = await fetch('/api/hospital', {
-        method: hospital ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (response.ok) {
-        addNotification({
-          type: 'success',
-          title: 'Berhasil',
-          message: hospital ? 'Rumah sakit berhasil diperbarui' : 'Rumah sakit berhasil ditambahkan'
-        });
-        onHospitalAdded();
-      } else {
-        throw new Error('Failed to save hospital');
-      }
-    } catch (error) {
-      addNotification({
-        type: 'error',
-        title: 'Error',
-        message: 'Gagal menyimpan rumah sakit'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-semibold text-gray-900">
-              {hospital ? 'Edit Rumah Sakit' : 'Tambah Rumah Sakit Baru'}
-            </h3>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              <X className="h-6 w-6" />
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nama Rumah Sakit</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
-              <textarea
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                rows={3}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kota</label>
-                <input
-                  type="text"
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Provinsi</label>
-                <input
-                  type="text"
-                  value={formData.province}
-                  onChange={(e) => setFormData({ ...formData, province: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={formData.latitude}
-                  onChange={(e) => setFormData({ ...formData, latitude: parseFloat(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={formData.longitude}
-                  onChange={(e) => setFormData({ ...formData, longitude: parseFloat(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-              >
-                Batal
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                disabled={loading}
-              >
-                {loading ? 'Menyimpan...' : (hospital ? 'Update' : 'Simpan')}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
   );
 };
 

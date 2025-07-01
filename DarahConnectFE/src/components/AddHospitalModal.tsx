@@ -8,6 +8,7 @@ interface AddHospitalModalProps {
   isOpen: boolean;
   onClose: () => void;
   onHospitalAdded: (hospital: HospitalData) => void;
+  hospital?: HospitalData | null;
 }
 
 interface HospitalData {
@@ -64,14 +65,14 @@ const hospitalExamples = [
 const getProvinsiName = (id: string) => provinsiData.find(p => p.id === id)?.nama || id;
 const getKotaName = (id: string) => kotaData.find(k => k.id === id)?.nama.replace(/^Kota |Kabupaten /, '') || id;
 
-const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, onHospitalAdded }) => {
+const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, onHospitalAdded, hospital }) => {
   const [formData, setFormData] = useState<HospitalFormData>({
-    name: '',
-    address: '',
-    city: '',
-    province: '',
-    latitude: -6.2088,
-    longitude: 106.8456
+    name: hospital?.name || '',
+    address: hospital?.address || '',
+    city: hospital?.city || '',
+    province: hospital?.province || '',
+    latitude: hospital?.latitude || -6.2088,
+    longitude: hospital?.longitude || 106.8456
   });
   
   const [errors, setErrors] = useState<Partial<HospitalFormData>>({});
@@ -83,7 +84,7 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, on
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [mapsStatus, setMapsStatus] = useState<'loading' | 'success' | 'error'>('loading');
   
-  const { post, loading } = useApi();
+  const { post, put, loading } = useApi();
 
   // Load Google Maps
   useEffect(() => {
@@ -194,16 +195,41 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, on
     }
   }, [isMapLoaded, isOpen, map, formData.latitude, formData.longitude]);
 
+  // Update form data when hospital prop changes (for editing)
+  useEffect(() => {
+    if (hospital) {
+      setFormData({
+        name: hospital.name || '',
+        address: hospital.address || '',
+        city: hospital.city || '',
+        province: hospital.province || '',
+        latitude: hospital.latitude || -6.2088,
+        longitude: hospital.longitude || 106.8456
+      });
+    } else {
+      setFormData({
+        name: '',
+        address: '',
+        city: '',
+        province: '',
+        latitude: -6.2088,
+        longitude: 106.8456
+      });
+    }
+  }, [hospital]);
+
   // Update cities when province changes
   useEffect(() => {
     if (formData.province) {
       const cities = getKotaByProvinsi(formData.province);
       setAvailableCities(cities);
-      setFormData(prev => ({ ...prev, city: '' }));
+      if (!hospital) {
+        setFormData(prev => ({ ...prev, city: '' }));
+      }
     } else {
       setAvailableCities([]);
     }
-  }, [formData.province]);
+  }, [formData.province, hospital]);
 
   const handleInputChange = (field: keyof HospitalFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -286,21 +312,30 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, on
     if (!validateForm()) return;
 
     try {
-      const response = await post('/hospital', {
+      const hospitalData = {
         name: formData.name,
         address: formData.address,
         city: getKotaName(formData.city),
         province: getProvinsiName(formData.province),
         latitude: formData.latitude,
         longitude: formData.longitude
-      });
+      };
+
+      let response;
+      if (hospital) {
+        // Update existing hospital
+        response = await put(`/hospital/${hospital.id}`, hospitalData);
+      } else {
+        // Create new hospital
+        response = await post('/hospital', hospitalData);
+      }
 
       if (response.success && response.data) {
         onHospitalAdded(response.data);
         handleClose();
       }
     } catch (error) {
-      console.error('Error adding hospital:', error);
+      console.error('Error saving hospital:', error);
     }
   };
 
@@ -346,7 +381,7 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, on
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <Building className="w-6 h-6" />
-              <h2 className="text-xl font-bold">Tambah Rumah Sakit Baru</h2>
+              <h2 className="text-xl font-bold">{hospital ? 'Edit Rumah Sakit' : 'Tambah Rumah Sakit Baru'}</h2>
             </div>
             <button 
               onClick={handleClose}
@@ -517,7 +552,7 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, on
               ) : (
                 <>
                   <Save className="w-5 h-5 mr-2" />
-                  Simpan Rumah Sakit
+                  {hospital ? 'Update Rumah Sakit' : 'Simpan Rumah Sakit'}
                 </>
               )}
             </button>

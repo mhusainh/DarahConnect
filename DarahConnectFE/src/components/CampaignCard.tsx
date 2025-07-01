@@ -270,7 +270,7 @@ const CampaignCard: React.FC<CampaignCardProps> = ({
               </div>
               
               {/* Crypto Donation Button */}
-              {onCryptoDonate && (
+              {/* {onCryptoDonate && (
                 <RippleEffect 
                   className="w-full" 
                   color="rgba(59, 130, 246, 0.4)"
@@ -283,7 +283,7 @@ const CampaignCard: React.FC<CampaignCardProps> = ({
                     <span className="font-semibold">💎 Crypto Donation</span>
                   </button>
                 </RippleEffect>
-              )}
+              )} */}
             </div>
           </div>
         </div>

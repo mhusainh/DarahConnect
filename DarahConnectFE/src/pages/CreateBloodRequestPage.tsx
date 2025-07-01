@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, MapPinIcon, PhoneIcon, CalendarIcon, AlertTriangleIcon, UserIcon, BuildingIcon, HeartIcon, ClockIcon, Plus } from 'lucide-react';
+import { ArrowLeftIcon, MapPinIcon, PhoneIcon, CalendarIcon, AlertTriangleIcon, UserIcon, BuildingIcon, HeartIcon, ClockIcon, Plus, Upload, X } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 import { useQuickNotifications } from '../contexts/NotificationContext';
 import { getUserData } from '../utils/jwt';
@@ -27,6 +27,7 @@ interface FormErrors {
   urgency_level?: string;
   diagnosis?: string;
   hospital_id?: string;
+  image?: string;
 }
 
 interface Hospital {
@@ -59,6 +60,8 @@ const CreateBloodRequestPage: React.FC = () => {
   const [errors, setErrors] = useState<FormErrors>({});
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [isAddHospitalModalOpen, setIsAddHospitalModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   const urgencyLevels = [
@@ -111,6 +114,45 @@ const CreateBloodRequestPage: React.FC = () => {
     notifications.success('Berhasil!', 'Rumah sakit baru telah ditambahkan');
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setErrors(prev => ({ ...prev, image: 'File harus berupa gambar' }));
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors(prev => ({ ...prev, image: 'Ukuran file maksimal 5MB' }));
+        return;
+      }
+      
+      setSelectedImage(file);
+      
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+      
+      // Clear any previous errors
+      if (errors.image) {
+        setErrors(prev => ({ ...prev, image: undefined }));
+      }
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (errors.image) {
+      setErrors(prev => ({ ...prev, image: undefined }));
+    }
+  };
+
   const validateForm = () => {
     const newErrors: FormErrors = {};
     
@@ -157,6 +199,11 @@ const CreateBloodRequestPage: React.FC = () => {
       formPayload.append('quantity', String(formData.quantity));
       formPayload.append('urgency_level', formData.urgency_level);
       formPayload.append('diagnosis', formData.diagnosis);
+      
+      // Add image if selected
+      if (selectedImage) {
+        formPayload.append('image', selectedImage);
+      }
 
       console.log('🔧 Sending blood request as FormData:', Array.from(formPayload.entries()));
 
@@ -382,6 +429,53 @@ const CreateBloodRequestPage: React.FC = () => {
               {errors.diagnosis && <p className="mt-1 text-sm text-red-600">{errors.diagnosis}</p>}
             </div>
 
+            {/* Image Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Dokumen Pendukung (Opsional)
+              </label>
+              
+              {!imagePreview ? (
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-red-400 transition-colors">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    id="image-upload"
+                  />
+                  <label htmlFor="image-upload" className="cursor-pointer">
+                    <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <p className="text-sm text-gray-600 mb-2">
+                      Klik untuk upload gambar atau drag & drop
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      PNG, JPG, GIF hingga 5MB (Surat rujukan, hasil lab, dll)
+                    </p>
+                  </label>
+                </div>
+              ) : (
+                <div className="relative">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full h-48 object-cover rounded-lg border"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+              
+              {errors.image && (
+                <p className="text-red-500 text-sm mt-1">{errors.image}</p>
+              )}
+            </div>
+
             {/* Preview */}
             {formData.patient_name && formData.blood_type && (
               <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
@@ -477,4 +571,4 @@ const CreateBloodRequestPage: React.FC = () => {
   );
 };
 
-export default CreateBloodRequestPage; 
+export default CreateBloodRequestPage;

@@ -650,16 +650,16 @@ const DashboardPage: React.FC = () => {
                       label: "Request Darah",
                       icon: <AlertTriangle className="w-5 h-5" />,
                     },
-                    {
-                      key: "achievements",
-                      label: "Pencapaian",
-                      icon: <AwardIcon className="w-5 h-5" />,
-                    },
-                    {
-                      key: "analytics",
-                      label: "Analytics",
-                      icon: <TrendingUpIcon className="w-5 h-5" />,
-                    },
+                    // {
+                    //   key: "achievements",
+                    //   label: "Pencapaian",
+                    //   icon: <AwardIcon className="w-5 h-5" />,
+                    // },
+                    // {
+                    //   key: "analytics",
+                    //   label: "Analytics",
+                    //   icon: <TrendingUpIcon className="w-5 h-5" />,
+                    // },
                   ].map((tab) => (
                     <button
                       key={tab.key}
@@ -840,96 +840,7 @@ const DashboardPage: React.FC = () => {
                     </FadeIn>
 
                     {/* Recent Achievements */}
-                    <FadeIn direction="up" delay={0.6}>
-                      <div className="bg-white rounded-xl shadow-lg p-6">
-                        <div className="flex items-center justify-between mb-6">
-                          <h3 className="text-xl font-bold text-gray-900">
-                            Pencapaian
-                          </h3>
-                          <button
-                            onClick={handleViewAchievements}
-                            className="text-yellow-600 hover:text-yellow-700 text-sm font-medium transition-colors hover:scale-105"
-                          >
-                            Lihat Semua →
-                          </button>
-                        </div>
-                        
-                        {/* Achievement Stats Grid - Similar to BloodRequestStats */}
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                          <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg p-4 border border-yellow-200">
-                            <div className="flex items-center">
-                              <div className="w-10 h-10 bg-yellow-400 rounded-lg flex items-center justify-center">
-                                <TrophyIcon className="w-5 h-5 text-white" />
-                              </div>
-                              <div className="ml-3">
-                                <p className="text-sm text-yellow-700">
-                                  Badge Diraih
-                                </p>
-                                <p className="text-xl font-bold text-yellow-800">
-                                  {0}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
-                            <div className="flex items-center">
-                              <div className="w-10 h-10 bg-green-400 rounded-lg flex items-center justify-center">
-                                <TargetIcon className="w-5 h-5 text-white" />
-                              </div>
-                              <div className="ml-3">
-                                <p className="text-sm text-green-700">
-                                  Dalam Progress
-                                </p>
-                                <p className="text-xl font-bold text-green-800">
-                                  {0}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Latest Achievement Preview */}
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <h4 className="text-sm font-medium text-gray-700 mb-2">
-                            Pencapaian Terbaru
-                          </h4>
-                          {[]
-                            .slice(-1)
-                            .map((achievement, index) => (
-                              <div
-                                key={index}
-                                className="flex items-center space-x-3"
-                              >
-                              <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-white">
-                                {/* Achievement icon placeholder */}
-                              </div>
-                              <div className="flex-1">
-                                  <p className="text-sm font-medium text-gray-900">
-                                    {/* Achievement title placeholder */}
-                                  </p>
-                                  <p className="text-xs text-gray-600">
-                                    {/* Achievement description placeholder */}
-                                  </p>
-                              </div>
-                              <div className="text-green-500">
-                                  <svg
-                                    className="w-4 h-4"
-                                    fill="currentColor"
-                                    viewBox="0 0 20 20"
-                                  >
-                                    <path
-                                      fillRule="evenodd"
-                                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                      clipRule="evenodd"
-                                    />
-                                </svg>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </FadeIn>
+                  
                   </div>
 
                   {/* Right Column */}
@@ -1005,80 +916,7 @@ const DashboardPage: React.FC = () => {
                       </div>
                     </FadeIn>
 
-                    {/* Quick Actions */}
-                    <FadeIn direction="left" delay={0.4}>
-                      <div className="bg-white rounded-xl shadow-lg p-6">
-                        <div className="flex items-center justify-between mb-6">
-                          <h3 className="text-xl font-bold text-gray-900">
-                            Aksi Cepat
-                          </h3>
-                          <ZapIcon className="w-6 h-6 text-orange-500" />
-                        </div>
-                        
-                        <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <button
-                            onClick={handleScheduleDonation}
-                            className="bg-gradient-to-r from-primary-500 to-primary-600 text-white p-4 rounded-lg text-center hover:from-primary-600 hover:to-primary-700 transition-all duration-300 hover:scale-105"
-                          >
-                            <CalendarIcon className="w-6 h-6 mx-auto mb-2" />
-                              <span className="text-sm font-medium">
-                                Jadwalkan Donasi
-                              </span>
-                          </button>
-                          
-                          <button
-                            onClick={handleJoinNow}
-                            className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg text-center hover:from-blue-600 hover:to-blue-700 transition-all duration-300 hover:scale-105"
-                          >
-                            <UserPlusIcon className="w-6 h-6 mx-auto mb-2" />
-                              <span className="text-sm font-medium">
-                                Bergabung Sekarang
-                              </span>
-                          </button>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <button
-                              onClick={handleCreateBloodRequest}
-                              className="bg-gradient-to-r from-red-500 to-red-600 text-white p-4 rounded-lg text-center hover:from-red-600 hover:to-red-700 transition-all duration-300 hover:scale-105"
-                            >
-                              <div className="flex items-center justify-center space-x-1 mb-2">
-                                <HeartIcon className="w-5 h-5" />
-                                <PlusCircleIcon className="w-4 h-4" />
-                              </div>
-                              <span className="text-sm font-medium">
-                                Buat Request
-                              </span>
-                            </button>
-
-                            <button
-                              onClick={handleHealthPassport}
-                              className="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-lg text-center hover:from-green-600 hover:to-green-700 transition-all duration-300 hover:scale-105"
-                            >
-                              <div className="flex items-center justify-center mb-2">
-                                <svg
-                                  className="w-6 h-6"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                  />
-                                </svg>
-                              </div>
-                              <span className="text-sm font-medium">
-                                Health Passport
-                              </span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </FadeIn>
+                 
                   </div>
                 </div>
               )}

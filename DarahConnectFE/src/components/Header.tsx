@@ -14,7 +14,8 @@ import {
   Settings,
   User,
   FileTextIcon,
-  BellIcon
+  BellIcon,
+  ShieldIcon
 } from 'lucide-react';
 import NotificationDropdown from './NotificationDropdown';
 import { HoverScale, FadeIn } from './ui/AnimatedComponents';
@@ -43,13 +44,16 @@ const Header: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifDetail, setNotifDetail] = useState<Notification | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     // Check login status
     const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
     const name = localStorage.getItem('userName') || 'User';
+    const adminStatus = localStorage.getItem('userRole') === 'admin' || localStorage.getItem('isAdmin') === 'true';
     setIsLoggedIn(loggedIn);
     setUserName(name);
+    setIsAdmin(adminStatus);
   }, []);
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
@@ -353,6 +357,20 @@ const Header: React.FC = () => {
                               <span>Pengaturan</span>
                             </button>
                             
+                            {/* Admin Button - Only show if user is admin */}
+                            {isAdmin && (
+                              <button
+                                onClick={() => {
+                                  setShowUserMenu(false);
+                                  navigate('/admin/dashboard');
+                                }}
+                                className="flex items-center space-x-2.5 w-full px-3 py-2.5 text-sm text-blue-600 hover:bg-blue-50 transition-colors"
+                              >
+                                <ShieldIcon className="w-4 h-4" />
+                                <span>Admin Dashboard</span>
+                              </button>
+                            )}
+                            
                             <div className="border-t border-gray-100 my-1"></div>
                             
                             <button
@@ -644,4 +662,4 @@ const Header: React.FC = () => {
   );
 };
 
-export default Header; 
+export default Header;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, MapPinIcon, PhoneIcon, CalendarIcon, AlertTriangleIcon, Building, Plus } from 'lucide-react';
+import { ArrowLeftIcon, MapPinIcon, PhoneIcon, CalendarIcon, AlertTriangleIcon, Building, Plus, Upload, X } from 'lucide-react';
 import { BloodType, UrgencyLevel } from '../types';
 import LocationPicker from '../components/LocationPicker';
 import AddHospitalModal from '../components/AddHospitalModal';
@@ -41,6 +41,7 @@ interface FormErrors {
   contactPerson?: string;
   contactPhone?: string;
   deadline?: string;
+  image?: string;
 }
 
 const CreateCampaignPage: React.FC = () => {
@@ -62,6 +63,8 @@ const CreateCampaignPage: React.FC = () => {
   const [errors, setErrors] = useState<FormErrors>({});
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [isAddHospitalModalOpen, setIsAddHospitalModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   
   const hospitalsApi = useApi<Hospital[]>();
   const notifications = useQuickNotifications();
@@ -99,6 +102,45 @@ const CreateCampaignPage: React.FC = () => {
       : [...formData.bloodType, bloodType];
     
     handleInputChange('bloodType', newBloodTypes);
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setErrors(prev => ({ ...prev, image: 'File harus berupa gambar' }));
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors(prev => ({ ...prev, image: 'Ukuran file maksimal 5MB' }));
+        return;
+      }
+      
+      setSelectedImage(file);
+      
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+      
+      // Clear any previous errors
+      if (errors.image) {
+        setErrors(prev => ({ ...prev, image: undefined }));
+      }
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (errors.image) {
+      setErrors(prev => ({ ...prev, image: undefined }));
+    }
   };
 
   const validateForm = () => {
@@ -141,26 +183,56 @@ const CreateCampaignPage: React.FC = () => {
     
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      const newCampaign = {
-        ...formData,
-        id: Date.now().toString(),
-        currentDonors: 0,
-        createdAt: new Date().toISOString().split('T')[0],
-        organizer: {
-          name: localStorage.getItem('userName') || 'User',
-          avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
-          verified: false,
-          role: 'Individual'
-        }
-      };
+    try {
+      // Create FormData object
+      const formDataPayload = new FormData();
       
-      console.log('New campaign created:', newCampaign);
+      // Add form fields
+      formDataPayload.append('title', formData.title);
+      formDataPayload.append('description', formData.description);
+      formDataPayload.append('hospital_id', String(formData.hospital_id));
+      formDataPayload.append('location', formData.location);
+      formDataPayload.append('blood_type', JSON.stringify(formData.bloodType));
+      formDataPayload.append('target_donors', String(formData.targetDonors));
+      formDataPayload.append('urgency_level', formData.urgencyLevel);
+      formDataPayload.append('contact_person', formData.contactPerson);
+      formDataPayload.append('contact_phone', formData.contactPhone);
+      formDataPayload.append('deadline', formData.deadline);
+      
+      // Add image if selected
+      if (selectedImage) {
+        formDataPayload.append('image', selectedImage);
+      }
+      
+      console.log('🔧 Sending campaign as FormData:', Array.from(formDataPayload.entries()));
+      
+      // For now, simulate API call - replace with actual API call later
+      setTimeout(() => {
+        const newCampaign = {
+          ...formData,
+          id: Date.now().toString(),
+          currentDonors: 0,
+          createdAt: new Date().toISOString().split('T')[0],
+          organizer: {
+            name: localStorage.getItem('userName') || 'User',
+            avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
+            verified: false,
+            role: 'Individual'
+          },
+          imageFile: selectedImage ? selectedImage.name : null
+        };
+        
+        console.log('New campaign created:', newCampaign);
+        setIsLoading(false);
+        notifications.success('Berhasil!', 'Campaign donor darah berhasil dibuat');
+        navigate('/dashboard');
+      }, 2000);
+      
+    } catch (error: any) {
+      console.error('❌ Create campaign error:', error);
       setIsLoading(false);
-      alert('Campaign berhasil dibuat!');
-      navigate('/dashboard');
-    }, 2000);
+      notifications.error('Error', 'Gagal membuat campaign. Silakan coba lagi.');
+    }
   };
 
   return (
@@ -226,6 +298,53 @@ const CreateCampaignPage: React.FC = () => {
                 {formData.description.length}/500 karakter (minimal 50 karakter)
               </p>
               {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
+            </div>
+
+            {/* Image Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Gambar Campaign (Opsional)
+              </label>
+              
+              {!imagePreview ? (
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-red-400 transition-colors">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    id="image-upload"
+                  />
+                  <label htmlFor="image-upload" className="cursor-pointer">
+                    <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <p className="text-sm text-gray-600 mb-2">
+                      Klik untuk upload gambar atau drag & drop
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      PNG, JPG, GIF hingga 5MB
+                    </p>
+                  </label>
+                </div>
+              ) : (
+                <div className="relative">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full h-48 object-cover rounded-lg border"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+              
+              {errors.image && (
+                <p className="text-red-500 text-sm mt-1">{errors.image}</p>
+              )}
             </div>
 
             {/* Hospital & Location */}
@@ -464,4 +583,4 @@ const CreateCampaignPage: React.FC = () => {
   );
 };
 
-export default CreateCampaignPage; 
+export default CreateCampaignPage;

@@ -470,7 +470,7 @@ export const patchApi = async <T = any>(
   
   // Debug PATCH data summary
   if (API_CONFIG.DEBUG) {
-    console.log(`🔧 [PATCH] ${endpoint} - Summary:`, {
+    console.log(`🔧 [PUT] ${endpoint} - Summary:`, {
       hasData: !!data,
       dataKeys: data && typeof data === 'object' ? Object.keys(data) : [],
       dataSize: data ? JSON.stringify(data).length : 0
@@ -479,7 +479,7 @@ export const patchApi = async <T = any>(
   
   return fetchApi<T>(endpoint, {
     ...options,
-    method: 'PATCH',
+    method: 'PUT',
     body: data ? JSON.stringify(data) : undefined,
   });
 };
@@ -538,7 +538,7 @@ export const adminBloodRequestsApi = {
 
   // Update status of blood request/campaign
   updateStatus: async (id: number, status: string) => {
-    return patchApi(`/admin/blood-requests/${id}`, { status });
+    return patchApi(`/admin/blood-request/${id}`, { status });
   },
 
   // Update health passport status

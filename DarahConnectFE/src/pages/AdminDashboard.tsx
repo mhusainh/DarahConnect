@@ -349,7 +349,7 @@ const AdminDashboard: React.FC = () => {
                 </div>
 
                 {/* Recent Donation Requests */}
-                <div className="bg-white p-6 rounded-xl shadow-sm border">
+                {/* <div className="bg-white p-6 rounded-xl shadow-sm border">
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-lg font-semibold text-gray-900">Permintaan Donasi Terbaru</h3>
                     <button className="text-red-600 hover:text-red-700 text-sm font-medium">
@@ -388,7 +388,7 @@ const AdminDashboard: React.FC = () => {
                       );
                     })}
                   </div>
-                </div>
+                </div> */}
               </div>
 
               {/* Notifications & Quick Actions */}
