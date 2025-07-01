@@ -5,7 +5,8 @@ import {
   PhoneIcon,
   AlertTriangleIcon,
   CheckCircleIcon,
-  Wallet
+  Wallet,
+  HeartIcon
 } from 'lucide-react';
 import { BloodCampaign } from '../types';
 import { HoverScale, FadeIn, Pulse } from './ui/AnimatedComponents';
@@ -115,12 +116,28 @@ const CampaignCard: React.FC<CampaignCardProps> = ({
       <HoverScale scale={1.02} duration={0.3}>
         <div className="bg-white rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden">
           {/* Image */}
-          <div className="relative h-48 overflow-hidden">
-            <img 
-              src={campaign.url_file} 
-              alt={campaign.title}
-              className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
-            />
+          <div className="relative h-48 overflow-hidden bg-gradient-to-br from-red-100 to-red-200">
+            {campaign.url_file ? (
+              <img 
+                src={campaign.url_file} 
+                alt={campaign.title}
+                className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  target.nextElementSibling?.classList.remove('hidden');
+                }}
+              />
+            ) : null}
+            
+            {/* Fallback Image */}
+            <div className={`w-full h-full flex items-center justify-center ${campaign.url_file ? 'hidden' : ''}`}>
+              <div className="text-center">
+                <HeartIcon className="w-16 h-16 text-red-400 mx-auto mb-2" />
+                <p className="text-red-600 font-semibold">Kampanye Donor Darah</p>
+              </div>
+            </div>
+            
             <div className="absolute top-4 left-4">
               {campaign.urgencyLevel === 'critical' ? (
                 <Pulse scale={[1, 1.1]} duration={1}>

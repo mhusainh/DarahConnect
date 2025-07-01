@@ -315,7 +315,7 @@ const EditBloodRequestModal: React.FC<EditBloodRequestModalProps> = ({
                     min="1"
                     max="50"
                     value={formData.quantity}
-                    onChange={(e) => handleInputChange('quantity', parseInt(e.target.value))}
+                    onChange={(e) => handleInputChange('quantity', e.target.value === '' ? 1 : parseInt(e.target.value) || 1)}
                     className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                       errors.quantity ? 'border-red-500' : 'border-gray-300'
                     }`}

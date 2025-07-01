@@ -231,12 +231,27 @@ const CampaignDetailPage: React.FC = () => {
           {/* Main Content */}
           <div className="lg:col-span-2">
             {/* Hero Image */}
-            <div className="relative h-64 md:h-80 rounded-xl overflow-hidden mb-6">
-              <img 
-                src={campaign.imageUrl} 
-                alt={campaign.title}
-                className="w-full h-full object-cover"
-              />
+            <div className="relative h-64 md:h-80 rounded-xl overflow-hidden mb-6 bg-gradient-to-br from-red-100 to-red-200">
+              {campaign.url_file ? (
+                <img 
+                  src={campaign.url_file} 
+                  alt={campaign.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    target.nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+              ) : null}
+              
+              {/* Fallback Image */}
+              <div className={`w-full h-full flex items-center justify-center ${campaign.url_file ? 'hidden' : ''}`}>
+                <div className="text-center">
+                  <HeartIcon className="w-20 h-20 text-red-400 mx-auto mb-3" />
+                  <p className="text-red-600 font-semibold text-lg">Kampanye Donor Darah</p>
+                </div>
+              </div>
               <div className="absolute top-4 left-4">
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(campaign.urgencyLevel)}`}>
                   <AlertTriangleIcon className="w-3 h-3 mr-1" />

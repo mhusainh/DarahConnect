@@ -58,6 +58,9 @@ const Header: React.FC = () => {
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userName');
+    localStorage.removeItem('walletBannerDismissed');
+    localStorage.removeItem('walletConnected');
+    localStorage.removeItem('authToken');
     setIsLoggedIn(false);
     setShowUserMenu(false);
     navigate('/');
@@ -328,6 +331,16 @@ const Header: React.FC = () => {
                               <FileTextIcon className="w-4 h-4" />
                               <span>Permintaan Saya</span>
                             </button>
+                            <button
+                              onClick={() => {
+                                setShowUserMenu(false);
+                                navigate('/history-donor');
+                              }}
+                              className="flex items-center space-x-2.5 w-full px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            >
+                              <AwardIcon className="w-4 h-4" />
+                              <span>Riwayat Donor</span>
+                            </button>
                             
                             <button
                               onClick={() => {
@@ -535,6 +548,17 @@ const Header: React.FC = () => {
                           >
                             <FileTextIcon className="w-4 h-4" />
                             <span>Permintaan Saya</span>
+                          </button>
+                          
+                          <button
+                            onClick={() => {
+                              navigate('/history-donor');
+                              setIsMenuOpen(false);
+                            }}
+                            className="flex items-center space-x-2.5 w-full px-2.5 py-2 text-sm text-gray-700 hover:bg-white/70 rounded-lg transition-colors"
+                          >
+                            <AwardIcon className="w-4 h-4" />
+                            <span>Riwayat Donor</span>
                           </button>
                           
                           <button

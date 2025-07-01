@@ -266,7 +266,7 @@ const AdminSettingsPage: React.FC = () => {
               <input
                 type="number"
                 value={settings.security.sessionTimeout}
-                onChange={(e) => handleSettingChange('security', 'sessionTimeout', parseInt(e.target.value))}
+                onChange={(e) => handleSettingChange('security', 'sessionTimeout', e.target.value === '' ? 30 : parseInt(e.target.value) || 30)}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               />
             </div>
@@ -276,7 +276,7 @@ const AdminSettingsPage: React.FC = () => {
               <input
                 type="number"
                 value={settings.security.passwordMinLength}
-                onChange={(e) => handleSettingChange('security', 'passwordMinLength', parseInt(e.target.value))}
+                onChange={(e) => handleSettingChange('security', 'passwordMinLength', e.target.value === '' ? 8 : parseInt(e.target.value) || 8)}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               />
             </div>
@@ -286,7 +286,7 @@ const AdminSettingsPage: React.FC = () => {
               <input
                 type="number"
                 value={settings.security.loginAttempts}
-                onChange={(e) => handleSettingChange('security', 'loginAttempts', parseInt(e.target.value))}
+                onChange={(e) => handleSettingChange('security', 'loginAttempts', e.target.value === '' ? 3 : parseInt(e.target.value) || 3)}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               />
             </div>
@@ -296,7 +296,7 @@ const AdminSettingsPage: React.FC = () => {
               <input
                 type="number"
                 value={settings.security.lockoutDuration}
-                onChange={(e) => handleSettingChange('security', 'lockoutDuration', parseInt(e.target.value))}
+                onChange={(e) => handleSettingChange('security', 'lockoutDuration', e.target.value === '' ? 15 : parseInt(e.target.value) || 15)}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               />
             </div>

@@ -230,7 +230,7 @@ const ChatBotConfig: React.FC<ChatBotConfigProps> = ({ onSave }) => {
           <input
             type="number"
             value={config.responseTimeout / 1000}
-            onChange={(e) => handleInputChange('responseTimeout', parseInt(e.target.value) * 1000)}
+            onChange={(e) => handleInputChange('responseTimeout', (e.target.value === '' ? 5 : parseInt(e.target.value) || 5) * 1000)}
             min="5"
             max="60"
             className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"

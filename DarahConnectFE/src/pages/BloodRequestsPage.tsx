@@ -435,24 +435,66 @@ const BloodRequestsPage: React.FC = () => {
               <FadeIn key={request.id} direction="up" delay={0.1 * index}>
                 <HoverScale scale={1.02}>
                   <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-all duration-300">
-                    {/* Header */}
-                    <div className="bg-gradient-to-r from-red-500 to-red-600 p-4 text-white">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-8 h-8 ${getBloodTypeColor(request.blood_type)} rounded-full flex items-center justify-center text-white font-bold text-sm`}>
-                            {request.blood_type}
-                          </div>
-                          <span className="font-semibold">{request.quantity} Kantong</span>
+                    {/* Image Section */}
+                    <div className="relative h-48 bg-gradient-to-br from-red-100 to-red-200">
+                      {request.url_file ? (
+                        <img
+                          src={request.url_file}
+                          alt={request.event_name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            target.nextElementSibling?.classList.remove('hidden');
+                          }}
+                        />
+                      ) : null}
+                      {/* Fallback Image */}
+                      <div className={`w-full h-full flex items-center justify-center ${request.url_file ? 'hidden' : ''}`}>
+                        <div className="text-center">
+                          <Droplet className="w-16 h-16 text-red-400 mx-auto mb-2" />
+                          <p className="text-red-600 font-semibold">Permintaan Darah</p>
                         </div>
-                        <div className={`px-2 py-1 rounded-full text-xs font-semibold ${getUrgencyColor(request.urgency_level)}`}>
+                      </div>
+                      
+                      {/* Urgency Badge Overlay */}
+                      <div className="absolute top-3 right-3">
+                        <div className={`px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg ${getUrgencyColor(request.urgency_level)}`}>
                           {getUrgencyText(request.urgency_level)}
                         </div>
                       </div>
-                      <h3 className="font-bold text-lg">{request.event_name}</h3>
+                      
+                      {/* Blood Type Badge Overlay */}
+                      <div className="absolute top-3 left-3">
+                        <div className={`w-10 h-10 ${getBloodTypeColor(request.blood_type)} rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg`}>
+                          {request.blood_type}
+                        </div>
+                      </div>
+                      
+                      {/* Quantity Badge Overlay */}
+                      <div className="absolute bottom-3 left-3">
+                        <div className="bg-black/70 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                          {request.quantity} Kantong
+                        </div>
+                      </div>
                     </div>
 
                     {/* Content */}
                     <div className="p-4 space-y-4">
+                      {/* Event Name */}
+                      <div>
+                        <h3 className="font-bold text-xl text-gray-900 mb-2">{request.event_name}</h3>
+                        {request.description && (
+                          <p className="text-sm text-gray-600 overflow-hidden text-ellipsis" style={{
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical'
+                          }}>
+                            {request.description}
+                          </p>
+                        )}
+                      </div>
+
                       {/* Patient Info */}
                       <div className="space-y-2">
                         <div className="flex items-center space-x-2">

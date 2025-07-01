@@ -9,7 +9,7 @@ import AddHospitalModal from '../components/AddHospitalModal';
 
 interface CreateBloodRequestForm {
   user_id: number;
-  hospital_id: number;
+  hospital_id: number | string;
   patient_name: string;
   event_date: string;
   blood_type: string;
@@ -92,6 +92,11 @@ const CreateBloodRequestPage: React.FC = () => {
       return;
     }
     
+    // Ensure quantity is always a valid number
+    if (field === 'quantity' && (isNaN(value) || value < 1)) {
+      value = 1;
+    }
+    
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
@@ -126,7 +131,7 @@ const CreateBloodRequestPage: React.FC = () => {
     if (!formData.diagnosis.trim()) newErrors.diagnosis = 'Diagnosis wajib diisi';
     if (formData.diagnosis.length < 10) newErrors.diagnosis = 'Diagnosis minimal 10 karakter';
     
-    if (!formData.hospital_id) newErrors.hospital_id = 'Rumah sakit wajib dipilih';
+    if (!formData.hospital_id || formData.hospital_id === 'add-new') newErrors.hospital_id = 'Rumah sakit wajib dipilih';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -184,7 +189,7 @@ const CreateBloodRequestPage: React.FC = () => {
     }
   };
 
-  const selectedHospital = hospitals.find(h => h.id === formData.hospital_id);
+  const selectedHospital = hospitals.find(h => h.id === formData.hospital_id && typeof formData.hospital_id === 'number');
   const selectedUrgency = urgencyLevels.find(u => u.value === formData.urgency_level);
 
   return (
@@ -268,7 +273,7 @@ const CreateBloodRequestPage: React.FC = () => {
                 <select
                   id="hospital_id"
                   value={formData.hospital_id}
-                  onChange={(e) => handleInputChange('hospital_id', parseInt(e.target.value))}
+                  onChange={(e) => handleInputChange('hospital_id', e.target.value === 'add-new' ? 'add-new' : parseInt(e.target.value))}
                   className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors ${
                     errors.hospital_id ? 'border-red-500' : 'border-gray-300'
                   }`}
@@ -322,7 +327,7 @@ const CreateBloodRequestPage: React.FC = () => {
                   min="1"
                   max="100"
                   value={formData.quantity}
-                  onChange={(e) => handleInputChange('quantity', parseInt(e.target.value))}
+                  onChange={(e) => handleInputChange('quantity', e.target.value === '' ? 1 : parseInt(e.target.value) || 1)}
                   className={`w-full px-3 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors ${
                     errors.quantity ? 'border-red-500' : 'border-gray-300'
                   }`}

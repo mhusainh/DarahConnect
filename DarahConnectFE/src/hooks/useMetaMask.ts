@@ -66,7 +66,10 @@ export const useMetaMask = () => {
 
   // Connect to MetaMask
   const connect = useCallback(async () => {
+    console.log('🔗 Starting MetaMask connection...');
+    
     if (!isMetaMaskInstalled()) {
+      console.error('❌ MetaMask not installed');
       setWalletState(prev => ({
         ...prev,
         error: 'MetaMask is not installed. Please install MetaMask to continue.',
@@ -74,6 +77,7 @@ export const useMetaMask = () => {
       return;
     }
 
+    console.log('✅ MetaMask detected, requesting accounts...');
     setWalletState(prev => ({
       ...prev,
       isConnecting: true,
@@ -85,21 +89,28 @@ export const useMetaMask = () => {
         method: 'eth_requestAccounts',
       });
 
+      console.log('📋 Received accounts:', accounts);
+
       if (accounts.length > 0) {
         const account = accounts[0];
+        console.log('🎯 Selected account:', account);
+        
         const balance = await getBalance(account);
         const network = await getNetworkInfo();
+        
+        console.log('💰 Balance:', balance);
+        console.log('🌐 Network:', network);
 
         // Call API to connect wallet address
         try {
           const response = await connectWalletAddress(account);
           if (response.success) {
-            console.log('Wallet address connected successfully:', response.data);
+            console.log('✅ Wallet address connected successfully:', response.data);
           } else {
-            console.warn('Failed to connect wallet address to backend:', response.message);
+            console.warn('⚠️ Failed to connect wallet address to backend:', response.message);
           }
         } catch (error) {
-          console.error('Error connecting wallet address to backend:', error);
+          console.error('❌ Error connecting wallet address to backend:', error);
           // Don't fail the wallet connection if API call fails
         }
 
@@ -112,9 +123,19 @@ export const useMetaMask = () => {
           network,
           error: null,
         }));
+        // ini ngelink ke halaman login 
+        window.location.href = '/login';
+        console.log('✅ Wallet connection completed successfully');
+      } else {
+        console.warn('⚠️ No accounts received from MetaMask');
+        setWalletState(prev => ({
+          ...prev,
+          isConnecting: false,
+          error: 'No accounts found in MetaMask',
+        }));
       }
     } catch (error: any) {
-      console.error('Error connecting to MetaMask:', error);
+      console.error('❌ Error connecting to MetaMask:', error);
       setWalletState(prev => ({
         ...prev,
         isConnecting: false,

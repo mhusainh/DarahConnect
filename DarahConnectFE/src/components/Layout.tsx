@@ -2,6 +2,7 @@ import React from 'react';
 import Header from './Header';
 import Footer from './Footer';
 import WalletConnectBanner from './WalletConnectBanner';
+import WalletDebugPanel from './WalletDebugPanel';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -20,6 +21,7 @@ export const Layout: React.FC<LayoutProps> = ({
       <Header />
       {children}
       {showFooter && <Footer />}
+      <WalletDebugPanel />
     </>
   );
 };
