@@ -11,7 +11,6 @@ import (
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/dto"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/repository"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cache"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cloudinary"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/mailer"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/timezone"
@@ -40,7 +39,6 @@ type UserService interface {
 type userService struct {
 	userRepository    repository.UserRepository
 	tokenUseCase      token.TokenUseCase
-	cacheable         cache.Cacheable
 	mailer            *mailer.Mailer
 	cfg               *configs.Config
 	cloudinaryService *cloudinary.Service
@@ -49,12 +47,11 @@ type userService struct {
 func NewUserService(
 	userRepository repository.UserRepository,
 	tokenUseCase token.TokenUseCase,
-	cacheable cache.Cacheable,
 	cfg *configs.Config,
 	mailer *mailer.Mailer,
 	cloudinaryService *cloudinary.Service,
 ) UserService {
-	return &userService{userRepository, tokenUseCase, cacheable, mailer, cfg, cloudinaryService}
+	return &userService{userRepository, tokenUseCase, mailer, cfg, cloudinaryService}
 }
 
 func (s *userService) Login(ctx context.Context, email string, password string) (string, bool, error) {

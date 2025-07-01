@@ -7,7 +7,6 @@ import (
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/http/router"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/repository"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/service"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cache"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cloudinary"
 	googleoauth "github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/googleOauth"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/mailer"
@@ -15,12 +14,10 @@ import (
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/route"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/token"
 
-	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
-func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, cloudinaryService *cloudinary.Service, mailer *mailer.Mailer, blockchain service.BlockchainService) []route.Route {
-	cacheable := cache.NewCacheable(rdb)
+func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, cloudinaryService *cloudinary.Service, mailer *mailer.Mailer, blockchain service.BlockchainService) []route.Route {
 	tokenUseCase := token.NewTokenUseCase(cfg.JWT.SecretKey)
 
 	//repository
@@ -34,7 +31,7 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clou
 	//end
 
 	//service
-	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg, mailer, cloudinaryService)
+	userService := service.NewUserService(userRepository, tokenUseCase, cfg, mailer, cloudinaryService)
 	bloodRequestService := service.NewBloodRequestService(bloodRequestRepository, *cloudinaryService)
 	notificationService := service.NewNotificationService(notificationRepository,userRepository)
 	bloodDonationService := service.NewBloodDonationService(bloodDonationRepository, *cloudinaryService)
@@ -60,8 +57,7 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clou
 	return router.PublicRoutes(userHandler, bloodRequestHandler, bloodDonationHandler, certificateHandler, donationHandler, dashboardHandler)
 }
 
-func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, cloudinaryService *cloudinary.Service, mailer *mailer.Mailer, blockchain service.BlockchainService) []route.Route {
-	cacheable := cache.NewCacheable(rdb)
+func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, cloudinaryService *cloudinary.Service, mailer *mailer.Mailer, blockchain service.BlockchainService) []route.Route {
 	tokenUseCase := token.NewTokenUseCase(cfg.JWT.SecretKey)
 
 	//repository
@@ -78,7 +74,7 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clo
 	//end
 
 	//service
-	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg, mailer,cloudinaryService)
+	userService := service.NewUserService(userRepository, tokenUseCase, cfg, mailer,cloudinaryService)
 	notificationService := service.NewNotificationService(notificationRepository,userRepository)
 	healthPassportService := service.NewHealthPassportService(healthPassportRepository)
 	bloodRequestService := service.NewBloodRequestService(bloodRequestRepository, *cloudinaryService)

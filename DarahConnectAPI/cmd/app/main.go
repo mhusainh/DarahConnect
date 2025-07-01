@@ -11,7 +11,6 @@ import (
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/configs"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/builder"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/service"
-	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cache"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/cloudinary"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/database"
 	googleoauth "github.com/mhusainh/DarahConnect/DarahConnectAPI/pkg/googleOauth"
@@ -27,9 +26,6 @@ func main() {
 	checkError(err)
 
 	db, err := database.InitDatabase(cfg.PostgresConfig)
-	checkError(err)
-
-	rdb := cache.InitCache(cfg.RedisConfig)
 
 	err = timezone.InitTimezone()
 	checkError(err)
@@ -49,8 +45,8 @@ func main() {
 	blockchain, err := service.NewBlockchainService(cfg.Blockchain)
 	checkError(err)
 
-	publicRoutes := builder.BuildPublicRoutes(cfg, db, rdb, cloudinaryService, mailer, blockchain)
-	privateRoutes := builder.BuildPrivateRoutes(cfg, db, rdb, cloudinaryService, mailer, blockchain)
+	publicRoutes := builder.BuildPublicRoutes(cfg, db, cloudinaryService, mailer, blockchain)
+	privateRoutes := builder.BuildPrivateRoutes(cfg, db, cloudinaryService, mailer, blockchain)
 
 	srv := server.NewServer(cfg, publicRoutes, privateRoutes)
 	runServer(srv, cfg.PORT)
