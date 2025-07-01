@@ -13,3 +13,7 @@ type Donation struct {
 	CreatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
 	UpdatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
 }
+
+func (Donation) TableName() string {
+	return "public.donations"
+}
