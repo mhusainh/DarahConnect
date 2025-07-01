@@ -31,7 +31,7 @@ func PublicRoutes(
 		// User Handler
 		{
 			Method:  http.MethodPost,
-			Path:    "login",
+			Path:    "logins",
 			Handler: userHandler.Login,
 		},
 		{
