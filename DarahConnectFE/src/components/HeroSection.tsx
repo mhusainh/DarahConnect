@@ -3,9 +3,13 @@ import { HeartIcon, UsersIcon, CalendarIcon, TrendingUpIcon, StarIcon, MapPinIco
 import { FadeIn, StaggerContainer, StaggerItem, CountUp, Typewriter, Floating } from './ui/AnimatedComponents';
 import { MagneticButton, ParticleBackground, MorphingShape, GradientBackground } from './ui/AdvancedAnimations';
 import { motion } from 'framer-motion';
+import { useApi } from '../hooks/useApi';
 
 const HeroSection: React.FC = () => {
   const [currentHeroMessage, setCurrentHeroMessage] = useState(0);
+  const { get } = useApi<any>();
+  const [statsData, setStatsData] = useState<any>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
 
   const heroMessages = [
     "Selamatkan Nyawa dengan Setetes Darah Anda",
@@ -24,11 +28,45 @@ const HeroSection: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    // Fetch landing stats
+    const fetchStats = async () => {
+      setLoadingStats(true);
+      const res = await get('/landing');
+      if (res.success && res.data) {
+        setStatsData(res.data);
+      }
+      setLoadingStats(false);
+    };
+    fetchStats();
+    // eslint-disable-next-line
+  }, []);
+
   const stats = [
-    { icon: <UsersIcon className="w-6 h-6" />, value: 15420, label: 'Donor Terdaftar', color: 'from-blue-500 to-blue-600' },
-    { icon: <HeartIcon className="w-6 h-6" />, value: 8945, label: 'Donasi Berhasil', color: 'from-red-500 to-red-600' },
-    { icon: <TrendingUpIcon className="w-6 h-6" />, value: 26835, label: 'Nyawa Diselamatkan', color: 'from-green-500 to-green-600' },
-    { icon: <CalendarIcon className="w-6 h-6" />, value: 156, label: 'Event Bulan Ini', color: 'from-purple-500 to-purple-600' },
+    {
+      icon: <UsersIcon className="w-6 h-6" />, 
+      value: loadingStats ? 0 : statsData?.donasi_terdaftar ?? 0, 
+      label: 'Donor Terdaftar', 
+      color: 'from-blue-500 to-blue-600'
+    },
+    {
+      icon: <HeartIcon className="w-6 h-6" />, 
+      value: loadingStats ? 0 : statsData?.donasi_sukses ?? 0, 
+      label: 'Donasi Berhasil', 
+      color: 'from-red-500 to-red-600'
+    },
+    {
+      icon: <TrendingUpIcon className="w-6 h-6" />, 
+      value: loadingStats ? 0 : statsData?.total_user ?? 0, 
+      label: 'Total User', 
+      color: 'from-green-500 to-green-600'
+    },
+    {
+      icon: <CalendarIcon className="w-6 h-6" />, 
+      value: loadingStats ? 0 : statsData?.event_bulan_ini ?? 0, 
+      label: 'Event Bulan Ini', 
+      color: 'from-purple-500 to-purple-600'
+    },
   ];
 
   return (

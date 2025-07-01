@@ -26,6 +26,8 @@ const clearSession = () => {
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userName');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('walletBannerDismissed');
+    localStorage.removeItem('walletConnected');
     
     debugConsole.log('Session data cleared');
   } catch (error) {

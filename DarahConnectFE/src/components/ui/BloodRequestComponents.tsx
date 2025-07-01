@@ -290,7 +290,7 @@ export const EmergencyBloodRequestForm: React.FC<{
               min="1"
               required
               value={formData.unitsNeeded}
-              onChange={(e) => setFormData({ ...formData, unitsNeeded: parseInt(e.target.value) })}
+              onChange={(e) => setFormData({ ...formData, unitsNeeded: e.target.value === '' ? 1 : parseInt(e.target.value) || 1 })}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
             />
           </div>

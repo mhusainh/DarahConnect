@@ -254,7 +254,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
                     min="17"
                     max="65"
                     value={formData.age}
-                    onChange={(e) => handleInputChange('age', parseInt(e.target.value))}
+                    onChange={(e) => handleInputChange('age', e.target.value === '' ? 17 : parseInt(e.target.value) || 17)}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
                       errors.age ? 'border-red-500' : 'border-gray-300'
                     }`}
@@ -270,7 +270,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
                     type="number"
                     min="45"
                     value={formData.weight}
-                    onChange={(e) => handleInputChange('weight', parseInt(e.target.value))}
+                    onChange={(e) => handleInputChange('weight', e.target.value === '' ? 45 : parseInt(e.target.value) || 45)}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
                       errors.weight ? 'border-red-500' : 'border-gray-300'
                     }`}

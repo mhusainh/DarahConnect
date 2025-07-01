@@ -311,7 +311,7 @@ const CreateCampaignPage: React.FC = () => {
                   min="10"
                   max="1000"
                   value={formData.targetDonors}
-                  onChange={(e) => handleInputChange('targetDonors', parseInt(e.target.value))}
+                  onChange={(e) => handleInputChange('targetDonors', e.target.value === '' ? 10 : parseInt(e.target.value) || 10)}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
                     errors.targetDonors ? 'border-red-500' : 'border-gray-300'
                   }`}

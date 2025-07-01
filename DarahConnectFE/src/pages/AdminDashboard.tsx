@@ -16,10 +16,12 @@ import {
   PieChart,
   Filter,
   Search,
-  Download
+  Download,
+  Building
 } from 'lucide-react';
 import { adminStats, adminNotifications, campaigns, donors, donationRequests } from '../data/dummy';
 import { AdminNotification } from '../types';
+import { Hospital } from '../types/index';
 import AdminLayout from '../components/AdminLayout';
 import { getApi } from '../services/fetchApi';
 
@@ -31,12 +33,15 @@ interface AdminDashboardData {
   total_campaign: number;
   total_donor: number;
   urgent_campaigns?: number;
+  total_hospital?: number;
+  hospital_active?: number;
 }
 
 const AdminDashboard: React.FC = () => {
   const [notifications, setNotifications] = useState<AdminNotification[]>(adminNotifications);
   const [selectedTimeRange, setSelectedTimeRange] = useState('7d');
   const [dashboardData, setDashboardData] = useState<AdminDashboardData | null>(null);
+  const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,6 +70,23 @@ const AdminDashboard: React.FC = () => {
     fetchDashboardData();
   }, []);
 
+  // Fetch hospitals data
+  useEffect(() => {
+    const fetchHospitals = async () => {
+      try {
+        const response = await getApi<Hospital[]>('/hospital');
+        
+        if (response.success && response.data) {
+          setHospitals(Array.isArray(response.data) ? response.data : []);
+        }
+      } catch (err) {
+        console.error('Error fetching hospitals:', err);
+      }
+    };
+
+    fetchHospitals();
+  }, []);
+
   // Use API data if available, otherwise fallback to dummy data
   const statsData = dashboardData || {
     total_campaign: adminStats.totalCampaigns,
@@ -72,7 +94,9 @@ const AdminDashboard: React.FC = () => {
     total_donor: adminStats.totalDonors,
     donor_terverifikasi: adminStats.verifiedDonors,
     request_pending: adminStats.pendingRequests,
-    urgent_campaigns: adminStats.urgentCampaigns
+    urgent_campaigns: adminStats.urgentCampaigns,
+    total_hospital: hospitals.length,
+    hospital_active: hospitals.length
   };
 
   const stats = [
@@ -109,20 +133,20 @@ const AdminDashboard: React.FC = () => {
       changeType: 'positive'
     },
     {
+      title: 'Total Rumah Sakit', 
+      value: statsData.total_hospital || hospitals.length,
+      icon: Building,
+      color: 'bg-indigo-500',
+      change: '+3',
+      changeType: 'positive'
+    },
+    {
       title: 'Permintaan Pending', 
       value: statsData.request_pending,
       icon: Clock,
       color: 'bg-yellow-500',
       change: '-5%',
       changeType: 'negative'
-    },
-    {
-      title: 'Campaign Urgent', 
-      value: statsData.urgent_campaigns || 0,
-      icon: AlertTriangle,
-      color: 'bg-red-500',
-      change: '+2',
-      changeType: 'neutral'
     }
   ];
 
@@ -280,6 +304,50 @@ const AdminDashboard: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Recent Hospitals */}
+                <div className="bg-white p-6 rounded-xl shadow-sm border">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900">Rumah Sakit Terbaru</h3>
+                    <button className="text-red-600 hover:text-red-700 text-sm font-medium">
+                      Lihat Semua
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    {hospitals.slice(0, 3).map((hospital) => (
+                      <div key={hospital.id} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                        <div className="w-16 h-16 bg-indigo-100 rounded-lg flex items-center justify-center">
+                          <Building className="h-8 w-8 text-indigo-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-medium text-gray-900 truncate">
+                            {hospital.name}
+                          </h4>
+                          <div className="flex items-center space-x-4 mt-1">
+                            <span className="text-xs text-gray-500 flex items-center">
+                              <MapPin className="h-3 w-3 mr-1" />
+                              {hospital.city}, {hospital.province}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {hospital.address}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500">
+                            {new Date(hospital.created_at).toLocaleDateString('id-ID')}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    {hospitals.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        <Building className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                        <p>Belum ada data rumah sakit</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* Recent Donation Requests */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border">
                   <div className="flex items-center justify-between mb-6">
@@ -382,6 +450,12 @@ const AdminDashboard: React.FC = () => {
                       <div className="flex items-center space-x-3">
                         <Users className="h-5 w-5 text-blue-600" />
                         <span className="text-sm font-medium text-blue-900">Verifikasi Donor</span>
+                      </div>
+                    </button>
+                    <button className="w-full text-left p-4 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors border border-indigo-200">
+                      <div className="flex items-center space-x-3">
+                        <Building className="h-5 w-5 text-indigo-600" />
+                        <span className="text-sm font-medium text-indigo-900">Kelola Rumah Sakit</span>
                       </div>
                     </button>
                     <button className="w-full text-left p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors border border-green-200">

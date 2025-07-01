@@ -11,7 +11,8 @@ import {
   Shield,
   X,
   Award,
-  CreditCard
+  CreditCard,
+  Building
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -42,6 +43,12 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) => {
       description: 'Kelola Data Donor'
     },
     {
+      title: 'Rumah Sakit',
+      icon: Building,
+      path: '/admin/hospitals',
+      description: 'Kelola Data Rumah Sakit'
+    },
+    {
       title: 'Permintaan',
       icon: FileText,
       path: '/admin/requests',
@@ -52,7 +59,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) => {
       icon: Award,
       path: '/admin/certificates',
       description: 'Kelola Sertifikat Donor',
-      badge: '5' // Pending certificates
     },
     {
       title: 'Health Passport',
@@ -143,11 +149,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) => {
                     </div>
                   </div>
                   
-                  {item.badge && (
-                    <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                      {item.badge}
-                    </span>
-                  )}
+    
                 </NavLink>
               );
             })}

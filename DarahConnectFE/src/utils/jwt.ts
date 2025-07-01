@@ -114,6 +114,8 @@ export const clearAuthData = () => {
     localStorage.removeItem('userName');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('isAdmin');
+    localStorage.removeItem('walletBannerDismissed');
+    localStorage.removeItem('walletConnected');
     
     debugConsole.log('Auth data cleared successfully');
   } catch (error) {
@@ -263,6 +265,14 @@ export const requiresAuthentication = (pathname: string): boolean => {
   return !publicPaths.includes(pathname) && !pathname.startsWith('/campaign/');
 };
 
+export function parseJwt(token: string) {
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch (e) {
+    return null;
+  }
+}
+
 export default {
   decodeJWTToken,
   isTokenValid,
@@ -273,4 +283,5 @@ export default {
   validateCurrentSession,
   getCurrentUserInfo,
   requiresAuthentication,
+  parseJwt,
 }; 

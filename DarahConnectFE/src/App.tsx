@@ -39,11 +39,13 @@ const HealthPassportPage = lazy(() => import('./pages/HealthPassportPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const OAuthCallbackPage = lazy(() => import('./pages/OAuthCallbackPage'));
+const BloodDonationHistoryPage = lazy(() => import('./pages/BloodDonationHistoryPage'));
 
 // Lazy-loaded Admin Pages
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminCampaignsPage = lazy(() => import('./pages/AdminCampaignsPage'));
 const AdminDonorsPage = lazy(() => import('./pages/AdminDonorsPage'));
+const AdminHospitalsPage = lazy(() => import('./pages/AdminHospitalsPage'));
 const AdminRequestsPage = lazy(() => import('./pages/AdminRequestsPage'));
 const AdminCertificatesPage = lazy(() => import('./pages/AdminCertificatesPage'));
 const AdminHealthPassportPage = lazy(() => import('./pages/AdminHealthPassportPage'));
@@ -401,6 +403,13 @@ function App() {
                   <RegisterPage />
                 </Suspense>
               } />
+              <Route path="/history-donor" element={
+                <ProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <BloodDonationHistoryPage />
+                  </Suspense>
+                </ProtectedRoute>
+              } />
               <Route path="/forgot-password" element={
                 <Suspense fallback={<PageLoader />}>
                   <ForgotPasswordPage />
@@ -508,6 +517,13 @@ function App() {
                 <AdminProtectedRoute>
                   <Suspense fallback={<PageLoader />}>
                     <AdminDonorsPage />
+                  </Suspense>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/hospitals" element={
+                <AdminProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <AdminHospitalsPage />
                   </Suspense>
                 </AdminProtectedRoute>
               } />
