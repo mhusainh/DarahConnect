@@ -146,7 +146,6 @@ func (s *Service) Callback(ctx echo.Context) (string, error) {
 		log.Printf("Error generating access token: %v", err)
 		return "", errors.New("ada kesalahan saat generate token")
 	}
-	redirectURL := s.cfg.RedirectURL
 	// Return token dan data user
-	return redirectURL + accessToken, nil
+	return s.cfg.RedirectURL + accessToken, nil
 }
