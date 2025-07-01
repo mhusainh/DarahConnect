@@ -114,7 +114,6 @@ const RegisterPage: React.FC = () => {
     if (!formData.birth_date) newErrors.birth_date = 'Tanggal lahir wajib diisi';
     if (formData.age < 17 || formData.age > 65) newErrors.age = 'Usia harus antara 17-65 tahun';
     if (formData.weight < 45) newErrors.weight = 'Berat badan minimal 45 kg';
-    if (!formData.address.trim()) newErrors.address = 'Lokasi wajib diisi';
     if (!formData.agreedToTerms) newErrors.agreedToTerms = 'Anda harus menyetujui syarat dan ketentuan';
 
     setErrors(newErrors);
@@ -152,7 +151,7 @@ const RegisterPage: React.FC = () => {
       phone: formData.phone,
       blood_type: formData.bloodType,
       birth_date: formatBirthDate(formData.birth_date),
-      address: formData.location
+      address: formData.address
     };
 
     try {
