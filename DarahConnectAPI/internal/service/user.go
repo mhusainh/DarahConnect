@@ -128,8 +128,10 @@ func (s *userService) Register(ctx context.Context, req dto.UserRegisterRequest)
 		Template: "verify-email.html",
 		Data: struct {
 			Token string
+			Link string
 		}{
-			Token: s.cfg.VerifyEmailBaseURL + "?token=" + user.VerifyEmailToken,
+			Token: user.VerifyEmailToken,
+			Link: s.cfg.VerifyEmailBaseURL + "?token=" + user.VerifyEmailToken,
 		},
 	}
 
@@ -329,7 +331,7 @@ func (s *userService) ResendTokenVerifyEmail(ctx context.Context, email string) 
 		Data: struct {
 			Token string
 		}{
-			Token: s.cfg.VerifyEmailBaseURL + "?token=" + user.VerifyEmailToken,
+			Token: user.VerifyEmailToken,
 		},
 	}
 
