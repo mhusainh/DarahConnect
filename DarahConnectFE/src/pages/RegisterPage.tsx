@@ -329,10 +329,11 @@ const RegisterPage: React.FC = () => {
                       id="phone"
                       type="tel"
                       value={formData.phone}
-                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      onChange={(e) => handleInputChange('phone', (e.target as HTMLInputElement).value)}
                       onInput={(e) => {
-                        e.target.value = e.target.value.replace(/[^0-9]/g, '');
-                        handleInputChange('phone', e.target.value);
+                        const input = e.target as HTMLInputElement;
+                        input.value = input.value.replace(/[^0-9]/g, '');
+                        handleInputChange('phone', input.value);
                       }}
                       className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.phone ? 'border-red-500' : 'border-gray-300'
                         }`}
