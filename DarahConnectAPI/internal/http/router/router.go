@@ -301,7 +301,7 @@ func PrivateRoutes(
 		},
 		{
 			Method:  http.MethodGet,
-			Path:    "admin/notification",
+			Path:    "admin/notification/:id",
 			Handler: notificationHandler.GetNotification,
 			Roles:   adminOnly,
 		},
@@ -334,12 +334,6 @@ func PrivateRoutes(
 			Method:  http.MethodDelete,
 			Path:    "admin/users/:id",
 			Handler: userHandler.DeleteUser,
-			Roles:   adminOnly,
-		},
-		{
-			Method:  http.MethodDelete,
-			Path:    "donor-registration/",
-			Handler: donorRegistrationHandler.DeleteDonorRegistration,
 			Roles:   adminOnly,
 		},
 		{

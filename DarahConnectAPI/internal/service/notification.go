@@ -21,11 +21,12 @@ type NotificationService interface {
 
 type notificationService struct {
 	notificationRepository repository.NotificationRepository
+	userRepository repository.UserRepository
 }
 
-func NewNotificationService(notificationRepository repository.NotificationRepository,
+func NewNotificationService(notificationRepository repository.NotificationRepository, userRepository repository.UserRepository,
 ) NotificationService {
-	return &notificationService{notificationRepository}
+	return &notificationService{notificationRepository, userRepository}
 }
 
 func (s *notificationService) GetAll(ctx context.Context, req dto.GetAllNotificationRequest) ([]entity.Notification, int64, error) {
@@ -67,7 +68,10 @@ func (s *notificationService) Create(ctx context.Context, req dto.NotificationCr
 	notification.Message = req.Message
 	notification.NotificationType = req.NotificationType
 	notification.IsRead = false // Default to unread
-
+	
+	if _,err := s.userRepository.GetById(ctx,notification.UserId); err != nil{
+		return errors.New("user tidak ditemukan")
+	}
 	if err := s.notificationRepository.Create(ctx, notification); err != nil {
 		return errors.New("Notifikasi gagal dibuat")
 	}
