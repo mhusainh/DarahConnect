@@ -128,7 +128,7 @@ func (s *Service) Callback(ctx echo.Context) (string, error) {
 	claims := &token.GoogleOAuthClaims{
 		Id:         userEntity.Id,
 		Email:      user.Email,
-		Name:       user.Name,
+		Name:       userEntity.Name,
 		Role:       userEntity.Role,
 		PictureURL: user.AvatarURL,
 		Provider:   "google",
