@@ -18,6 +18,7 @@ type BloodDonationRepository interface {
 	Update(ctx context.Context, bloodDonation *entity.BloodDonation) error
 	Delete(ctx context.Context, bloodDonation *entity.BloodDonation) error
 	GetByUser(ctx context.Context, userId int64) ([]entity.BloodDonation, error)
+	CountSuccessDonation(ctx context.Context) (int64, error)
 }
 
 type bloodDonationRepository struct {
@@ -147,4 +148,12 @@ func (r *bloodDonationRepository) GetByUser(ctx context.Context, userId int64) (
 		return nil, err
 	}
 	return result, nil
+}
+
+func (r *bloodDonationRepository) CountSuccessDonation(ctx context.Context) (int64, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).Model(&entity.BloodDonation{}).Where("status = ?", "completed").Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
 }

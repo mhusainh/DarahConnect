@@ -23,6 +23,8 @@ type BloodRequestRepository interface {
 	CountBloodRequest(ctx context.Context, status string, eventType string) (int64, error)
 	CountCampaignActive(ctx context.Context, status string, eventType string) (int64, error)
 	CountTotal(ctx context.Context, eventType string) (int64, error)
+	CountAllTotal(ctx context.Context) (int64, error)
+	CountByMonth(ctx context.Context, month string, year string) (int64, error)
 }
 
 type bloodRequestRepository struct {
@@ -239,6 +241,22 @@ func (r *bloodRequestRepository) CountTotal(ctx context.Context, eventType strin
 func (r *bloodRequestRepository) CountCampaignActive(ctx context.Context, status string, eventType string) (int64, error) {
 	var count int64
 	if err := r.db.WithContext(ctx).Model(&entity.BloodRequest{}).Where("status != ? AND event_type = ?", status, eventType).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (r *bloodRequestRepository) CountAllTotal(ctx context.Context) (int64, error){
+	var count int64
+	if err := r.db.WithContext(ctx).Model(&entity.BloodRequest{}).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (r *bloodRequestRepository) CountByMonth(ctx context.Context, month string, year string) (int64, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).Model(&entity.BloodRequest{}).Where("EXTRACT(MONTH FROM created_at) = ? AND EXTRACT(YEAR FROM created_at) = ?", month, year).Count(&count).Error; err != nil {
 		return 0, err
 	}
 	return count, nil

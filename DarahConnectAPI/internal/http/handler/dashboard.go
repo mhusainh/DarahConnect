@@ -50,3 +50,11 @@ func (h *Dashboard) DashboardAdmin(ctx echo.Context) error {
 	}
 	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully showing dashboard admin", data))
 }
+
+func (h *Dashboard) GetLandingPage(ctx echo.Context) error {
+	data, err := h.dashboardService.LandingPage(ctx.Request().Context())
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully showing dashboard admin", data))
+}

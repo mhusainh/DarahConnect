@@ -44,7 +44,7 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clou
 	midtransService := midtrans.NewMidtransService(&cfg.MidtransConfig)
 	// Set donationsRepository
 	midtransService.DonationsRepository = donationsRepository
-
+	dashboardService := service.NewDashboardService(bloodDonationRepository, bloodRequestRepository, userRepository)
 	googleAuthService := googleoauth.NewGoogleOAuthService(tokenUseCase, userService, &cfg.GoogleOauth)
 	//end
 
@@ -52,12 +52,12 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clou
 	userHandler := handler.NewUserHandler(userService, cloudinaryService, googleAuthService)
 	bloodRequestHandler := handler.NewBloodRequestHandler(bloodRequestService, notificationService)
 	bloodDonationHandler := handler.NewBloodDonationHandler(bloodDonationService, notificationService, certificateService, donorRegistrationService, userService, blockchain)
-
+	dashboardHandler := handler.NewDashboardHandler(dashboardService)
 	certificateHandler := handler.NewCertificateHandler(certificateService)
 	donationHandler := handler.NewDonationHandler(midtransService, notificationService)
 	//end
 
-	return router.PublicRoutes(userHandler, bloodRequestHandler, bloodDonationHandler, certificateHandler, donationHandler)
+	return router.PublicRoutes(userHandler, bloodRequestHandler, bloodDonationHandler, certificateHandler, donationHandler, dashboardHandler)
 }
 
 func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, cloudinaryService *cloudinary.Service, mailer *mailer.Mailer, blockchain service.BlockchainService) []route.Route {
@@ -94,7 +94,8 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clo
 	midtransService.DonationsRepository = donationsRepository
 	googleAuthService := googleoauth.NewGoogleOAuthService(tokenUseCase, userService, &cfg.GoogleOauth)
 
-	dashboardService := service.NewDashboardService(bloodDonationRepository, bloodRequestRepository)
+	dashboardService := service.NewDashboardService(bloodDonationRepository, bloodRequestRepository, userRepository)
+
 	//end
 
 	//handler

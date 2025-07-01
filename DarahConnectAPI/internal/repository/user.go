@@ -20,6 +20,7 @@ type UserRepository interface {
 	Delete(ctx context.Context, user *entity.User) error
 	GetByResetPasswordToken(ctx context.Context, token string) (*entity.User, error)
 	GetByVerifyEmailToken(ctx context.Context, token string) (*entity.User, error)
+	CountUser(ctx context.Context) (int64, error)
 }
 
 type userRepository struct {
@@ -139,4 +140,12 @@ func (r *userRepository) GetByVerifyEmailToken(ctx context.Context, token string
 		return nil, err
 	}
 	return result, nil
+}
+
+func (r *userRepository) CountUser(ctx context.Context) (int64, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).Model(&entity.User{}).Where("role = ?", "User").Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
 }

@@ -20,8 +20,14 @@ func PublicRoutes(
 	bloodDonationHandler handler.BloodDonationHandler,
 	certificateHandler handler.CertificateHandler,
 	donationHandler *handler.DonationHandler,
+	dashboardHandler handler.Dashboard,
 ) []route.Route {
 	return []route.Route{
+		{
+			Method:  http.MethodGet,
+			Path:    "landing",
+			Handler: dashboardHandler.GetLandingPage,
+		},
 		// User Handler
 		{
 			Method:  http.MethodPost,
@@ -37,7 +43,7 @@ func PublicRoutes(
 			Method:  http.MethodGet,
 			Path:    "login/:provider/callback",
 			Handler: userHandler.CallbackGoogleAuth,
-		},	
+		},
 		{
 			Method:  http.MethodPost,
 			Path:    "register",
