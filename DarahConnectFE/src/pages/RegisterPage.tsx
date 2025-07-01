@@ -87,7 +87,7 @@ const RegisterPage: React.FC = () => {
 
   const validateStep1 = () => {
     const newErrors: FormErrors = {};
-    
+
     if (!formData.name.trim()) newErrors.name = 'Nama wajib diisi';
     if (!formData.email.trim()) {
       newErrors.email = 'Email wajib diisi';
@@ -110,7 +110,7 @@ const RegisterPage: React.FC = () => {
 
   const validateStep2 = () => {
     const newErrors: FormErrors = {};
-    
+
     if (!formData.birth_date) newErrors.birth_date = 'Tanggal lahir wajib diisi';
     if (formData.age < 17 || formData.age > 65) newErrors.age = 'Usia harus antara 17-65 tahun';
     if (formData.weight < 45) newErrors.weight = 'Berat badan minimal 45 kg';
@@ -140,9 +140,9 @@ const RegisterPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateStep2()) return;
-    
+
+    // if (!validateStep2()) return;
+
     // Format data sesuai dengan API backend
     const apiData: RegisterApiData = {
       name: formData.name,
@@ -152,24 +152,24 @@ const RegisterPage: React.FC = () => {
       phone: formData.phone,
       blood_type: formData.bloodType,
       birth_date: formatBirthDate(formData.birth_date),
-      address: formData.address
+      address: formData.location
     };
 
     try {
       const response = await registerApi.post('/register', apiData);
-      
+
       if (response.success) {
         // Tampilkan modal email sent untuk instruksi verifikasi
         setShowEmailSentModal(true);
       } else {
         // Handle error dari API
-        setErrors({ 
+        setErrors({
           email: response.error || 'Terjadi kesalahan saat mendaftar. Silakan coba lagi.'
         });
       }
     } catch (error: any) {
-      setErrors({ 
-        email: 'Terjadi kesalahan jaringan. Silakan coba lagi.' 
+      setErrors({
+        email: 'Terjadi kesalahan jaringan. Silakan coba lagi.'
       });
     }
   };
@@ -182,7 +182,7 @@ const RegisterPage: React.FC = () => {
       name: user.name,
       email: user.email
     }));
-    
+
     // Show success modal immediately for Google users
     setTimeout(() => {
       setShowSuccessModal(true);
@@ -196,10 +196,10 @@ const RegisterPage: React.FC = () => {
 
   const handleResendVerification = async () => {
     try {
-      const response = await registerApi.post('/resend-verification', { 
-        email: formData.email 
+      const response = await registerApi.post('/resend-verification', {
+        email: formData.email
       });
-      
+
       if (response.success) {
         alert('Email verifikasi telah dikirim ulang. Silakan cek inbox Anda.');
       } else {
@@ -234,7 +234,7 @@ const RegisterPage: React.FC = () => {
           <p className="mt-2 text-sm text-gray-600">
             Buat akun Anda untuk bergabung dengan komunitas DarahConnect
           </p>
-          
+
           {/* Info Box */}
           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-start">
@@ -243,7 +243,7 @@ const RegisterPage: React.FC = () => {
               </div>
               <div className="ml-3">
                 <p className="text-sm text-blue-800">
-                  <strong>Langkah selanjutnya:</strong> Setelah membuat akun, Anda dapat melengkapi profil donor yang lebih detail 
+                  <strong>Langkah selanjutnya:</strong> Setelah membuat akun, Anda dapat melengkapi profil donor yang lebih detail
                   melalui menu "Daftar Donor" untuk mulai mendonorkan darah.
                 </p>
               </div>
@@ -254,15 +254,13 @@ const RegisterPage: React.FC = () => {
         {/* Progress Indicator */}
         <div className="mb-8">
           <div className="flex items-center justify-center">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              currentStep >= 1 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-600'
-            }`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep >= 1 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-600'
+              }`}>
               1
             </div>
             <div className={`flex-1 h-1 mx-4 max-w-xs ${currentStep >= 2 ? 'bg-primary-600' : 'bg-gray-200'}`}></div>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              currentStep >= 2 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-600'
-            }`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep >= 2 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-600'
+              }`}>
               2
             </div>
           </div>
@@ -279,7 +277,7 @@ const RegisterPage: React.FC = () => {
             {currentStep === 1 && (
               <div className="space-y-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-6">Informasi Akun</h3>
-                
+
                 {/* Name */}
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
@@ -292,9 +290,8 @@ const RegisterPage: React.FC = () => {
                       type="text"
                       value={formData.name}
                       onChange={(e) => handleInputChange('name', e.target.value)}
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                        errors.name ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.name ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       placeholder="Masukkan nama lengkap"
                     />
                   </div>
@@ -313,9 +310,8 @@ const RegisterPage: React.FC = () => {
                       type="email"
                       value={formData.email}
                       onChange={(e) => handleInputChange('email', e.target.value)}
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                        errors.email ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.email ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       placeholder="contoh@email.com"
                     />
                   </div>
@@ -334,11 +330,15 @@ const RegisterPage: React.FC = () => {
                       type="tel"
                       value={formData.phone}
                       onChange={(e) => handleInputChange('phone', e.target.value)}
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                        errors.phone ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      onInput={(e) => {
+                        e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                        handleInputChange('phone', e.target.value);
+                      }}
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.phone ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       placeholder="08123456789"
                     />
+
                   </div>
                   {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
                 </div>
@@ -356,9 +356,8 @@ const RegisterPage: React.FC = () => {
                         type={showPassword ? 'text' : 'password'}
                         value={formData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
-                        className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                          errors.password ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                        className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.password ? 'border-red-500' : 'border-gray-300'
+                          }`}
                         placeholder="Minimal 6 karakter"
                       />
                       <button
@@ -384,9 +383,8 @@ const RegisterPage: React.FC = () => {
                         type={showConfirmPassword ? 'text' : 'password'}
                         value={formData.confirmPassword}
                         onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                        className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                          errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                        className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                          }`}
                         placeholder="Ulangi password"
                       />
                       <button
@@ -425,7 +423,7 @@ const RegisterPage: React.FC = () => {
             {currentStep === 2 && (
               <div className="space-y-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-6">Profil Donor</h3>
-                
+
                 {/* Gender and Birth Date */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Gender */}
@@ -459,15 +457,14 @@ const RegisterPage: React.FC = () => {
                         type="date"
                         value={formData.birth_date}
                         onChange={(e) => handleInputChange('birth_date', e.target.value)}
-                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                          errors.birth_date ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.birth_date ? 'border-red-500' : 'border-gray-300'
+                          }`}
                       />
                     </div>
                     {errors.birth_date && <p className="mt-1 text-sm text-red-600">{errors.birth_date}</p>}
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
                   {/* Blood Type */}
                   <div>
@@ -486,7 +483,7 @@ const RegisterPage: React.FC = () => {
                     </select>
                   </div>
 
-                 
+
                 </div>
 
                 {/* Location */}
@@ -536,7 +533,7 @@ const RegisterPage: React.FC = () => {
                   </button>
                 )}
               </div>
-              
+
               <div>
                 {currentStep === 1 ? (
                   <button
@@ -599,23 +596,23 @@ const RegisterPage: React.FC = () => {
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <MailIcon className="w-8 h-8 text-blue-600" />
               </div>
-              
+
               <h3 className="text-2xl font-bold text-gray-900 mb-2">
                 Verifikasi Email Anda
               </h3>
-              
+
               <p className="text-gray-600 mb-6">
-                Kami telah mengirimkan link verifikasi ke email <strong>{formData.email}</strong>. 
+                Kami telah mengirimkan link verifikasi ke email <strong>{formData.email}</strong>.
                 Silakan cek inbox Anda dan klik link verifikasi untuk mengaktifkan akun.
               </p>
-              
+
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <p className="text-blue-800 text-sm">
-                  🔗 <strong>Link verifikasi akan membawa Anda kembali ke aplikasi</strong><br/>
+                  🔗 <strong>Link verifikasi akan membawa Anda kembali ke aplikasi</strong><br />
                   Setelah klik link di email, Anda akan otomatis login dan dapat menggunakan semua fitur DarahConnect.
                 </p>
               </div>
-              
+
               <div className="space-y-3">
                 <button
                   onClick={() => window.open('https://gmail.com', '_blank')}
@@ -623,14 +620,14 @@ const RegisterPage: React.FC = () => {
                 >
                   📧 Buka Gmail
                 </button>
-                
+
                 <button
                   onClick={() => setShowEmailSentModal(false)}
                   className="w-full border border-gray-300 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-50 transition-colors"
                 >
                   Tutup
                 </button>
-                
+
                 <div className="text-center">
                   <p className="text-sm text-gray-600 mb-2">
                     Tidak menerima email?
@@ -644,10 +641,10 @@ const RegisterPage: React.FC = () => {
                   </button>
                 </div>
               </div>
-              
+
               <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <p className="text-xs text-yellow-800">
-                  💡 <strong>Tips:</strong> Pastikan untuk memeriksa folder spam/junk email Anda. 
+                  💡 <strong>Tips:</strong> Pastikan untuk memeriksa folder spam/junk email Anda.
                   Setelah klik link verifikasi, Anda dapat langsung login ke akun Anda.
                 </p>
               </div>
@@ -664,16 +661,16 @@ const RegisterPage: React.FC = () => {
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <HeartHandshakeIcon className="w-8 h-8 text-green-600" />
               </div>
-              
+
               <h3 className="text-2xl font-bold text-gray-900 mb-2">
                 Selamat! Akun Berhasil Dibuat
               </h3>
-              
+
               <p className="text-gray-600 mb-6">
-                Halo {formData.name}! Akun Anda telah berhasil dibuat. 
+                Halo {formData.name}! Akun Anda telah berhasil dibuat.
                 Sekarang Anda dapat melengkapi profil donor untuk mulai mendonorkan darah.
               </p>
-              
+
               <div className="space-y-3">
                 <button
                   onClick={handleGoToDonorRegister}
@@ -681,7 +678,7 @@ const RegisterPage: React.FC = () => {
                 >
                   🩸 Lengkapi Profil Donor Sekarang
                 </button>
-                
+
                 <button
                   onClick={handleGoToDashboard}
                   className="w-full border border-gray-300 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-50 transition-colors"
@@ -689,7 +686,7 @@ const RegisterPage: React.FC = () => {
                   Ke Dashboard
                 </button>
               </div>
-              
+
               <p className="text-xs text-gray-500 mt-4">
                 Anda dapat melengkapi profil donor kapan saja melalui menu "Daftar Donor"
               </p>
