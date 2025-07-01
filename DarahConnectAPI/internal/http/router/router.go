@@ -236,7 +236,13 @@ func PrivateRoutes(
 			Handler: userHandler.WalletAddress,
 			Roles:   userOnly,
 		},
-
+		// Certificate - User Only
+		{
+			Method:  http.MethodGet,
+			Path:    "user/certificates",
+			Handler: certificateHandler.GetByUser,
+			Roles:   userOnly,
+		},
 		// =============================================
 		// ADMIN ONLY ROUTES
 		// =============================================
@@ -438,13 +444,6 @@ func PrivateRoutes(
 			Method:  http.MethodDelete,
 			Path:    "blood-donation/:id",
 			Handler: bloodDonationHandler.Delete,
-			Roles:   allRoles,
-		},
-		// Certificate - All Roles
-		{
-			Method:  http.MethodGet,
-			Path:    "certificates/user",
-			Handler: certificateHandler.GetByUser,
 			Roles:   allRoles,
 		},
 		{
