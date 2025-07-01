@@ -10,7 +10,7 @@ type HospitalCreateRequest struct {
 }
 
 type HospitalUpdateRequest struct {
-	Id        int64   `json:"id" form:"id" validate:"required"`
+	Id        int64   `param:"id" form:"id" validate:"required"`
 	Name      string  `json:"name" form:"name"`
 	Address   string  `json:"address" form:"address"`
 	City      string  `json:"city" form:"city"`
@@ -28,9 +28,9 @@ type HospitalGetByIdRequest struct {
 }
 
 type GetAllHospitalRequest struct {
-	Page      int64  `query:"page" `
-	Limit     int64  `query:"limit" `
-	Search    string `query:"search"`
-	Sort      string `query:"sort"`
-	Order     string `query:"order"`
+	Page   int64  `query:"page" `
+	Limit  int64  `query:"limit" `
+	Search string `query:"search"`
+	Sort   string `query:"sort"`
+	Order  string `query:"order"`
 }
