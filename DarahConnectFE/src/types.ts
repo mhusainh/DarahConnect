@@ -25,6 +25,7 @@ export interface BloodCampaign {
   deadline: string;
   createdAt: string;
   imageUrl: string;
+  url_file: string;
 }
 
 export interface Donor {

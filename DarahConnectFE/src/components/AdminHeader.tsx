@@ -88,7 +88,7 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ onMenuToggle }) => {
             </button>
             
             {/* Search bar */}
-            <div className="hidden md:block max-w-md w-full">
+            {/* <div className="hidden md:block max-w-md w-full">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <input
@@ -97,7 +97,7 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ onMenuToggle }) => {
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm bg-gray-50"
                 />
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Right side - Notifications and Profile */}
