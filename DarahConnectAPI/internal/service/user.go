@@ -129,7 +129,7 @@ func (s *userService) Register(ctx context.Context, req dto.UserRegisterRequest)
 		Data: struct {
 			Token string
 		}{
-			Token: user.VerifyEmailToken,
+			Token: s.cfg.VerifyEmailBaseURL + "?token=" + user.VerifyEmailToken,
 		},
 	}
 
@@ -329,7 +329,7 @@ func (s *userService) ResendTokenVerifyEmail(ctx context.Context, email string) 
 		Data: struct {
 			Token string
 		}{
-			Token: user.VerifyEmailToken,
+			Token: s.cfg.VerifyEmailBaseURL + "?token=" + user.VerifyEmailToken,
 		},
 	}
 

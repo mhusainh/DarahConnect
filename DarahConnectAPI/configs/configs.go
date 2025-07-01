@@ -19,6 +19,7 @@ type Config struct {
 	MidtransConfig   MidtransConfig   `envPrefix:"MIDTRANS_" mapstructure:"MIDTRANS"`
 	GoogleOauth      GoogleOauth      `envPrefix:"GOOGLE_" mapstructure:"GOOGLE_"`
 	Blockchain       BlockchainConfig `envPrefix:"BLOCKCHAIN_"`
+	VerifyEmailBaseURL string           `env:"VERIFY_EMAIL_BASE_URL" envDefault:"http://localhost:8081/verify-email"`
 }
 
 type BlockchainConfig struct {
