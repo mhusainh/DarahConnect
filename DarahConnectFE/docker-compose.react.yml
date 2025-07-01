@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  react-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.react
+    container_name: react-app-v2
+    ports:
+      - "3001:80"  # Port VPS 3001 ? Nginx container port 80
+    restart: always
