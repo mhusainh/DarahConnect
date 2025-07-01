@@ -354,6 +354,13 @@ func PrivateRoutes(
 			Handler: bloodDonationHandler.StatusBloodDonation,
 			Roles:   adminOnly,
 		},
+		// Hospital - Admin Only
+		{
+			Method:  http.MethodGet,
+			Path:    "admin/hospital/:id",
+			Handler: hospitalHandler.Update,
+			Roles:   adminOnly,
+		},
 		// =============================================
 		// ALL ROLES ROUTES (Admin & User)
 		// =============================================
