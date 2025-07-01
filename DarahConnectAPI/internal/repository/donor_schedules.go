@@ -17,6 +17,7 @@ type DonorScheduleRepository interface {
 	Update(ctx context.Context, donorSchedule *entity.DonorSchedule) error
 	Delete(ctx context.Context, donorSchedule *entity.DonorSchedule) error
 	GetByRequestId(ctx context.Context, requestId int64) (*entity.DonorSchedule, error)
+	Validate(ctx context.Context, requestId int64, userId int64) (*entity.DonorSchedule, error)
 }
 
 type donorScheduleRepository struct {
@@ -118,4 +119,12 @@ func (r *donorScheduleRepository) Update(ctx context.Context, donorSchedule *ent
 
 func (r *donorScheduleRepository) Delete(ctx context.Context, donorSchedule *entity.DonorSchedule) error {
 	return r.db.WithContext(ctx).Delete(donorSchedule).Error
+}
+
+func (r *donorScheduleRepository) Validate(ctx context.Context, requestId int64, userId int64) (*entity.DonorSchedule, error) {
+	result := new(entity.DonorSchedule)
+	if err := r.db.WithContext(ctx).Where("request_id = ? AND user_id = ?", requestId, userId).First(result).Error; err != nil {
+		return nil, err
+	}
+	return result, nil
 }
