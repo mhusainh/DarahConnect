@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import WalletConnectBanner from "../components/WalletConnectBanner";
 import {
@@ -18,38 +18,48 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { FadeIn, HoverScale } from "../components/ui/AnimatedComponents";
 import { MagneticButton } from "../components/ui/AdvancedAnimations";
+import { fetchApi } from '../services/fetchApi';
 
 const CertificatePage: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("certificates");
+  const [certificates, setCertificates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Data sertifikat
-  const certificates = [
-    {
-      id: "cert-001",
-      type: "Sertifikat Donor",
-      status: "Disetujui",
-      name: "Husain Jancok2",
-      role: "Donor Darah Terdaftar",
-      bloodType: "O+",
-      totalDonations: 12,
-      blockchainId: "BC-CERT-0x9F8E7D6C5B4A",
-      color: "red",
-      bgGradient: "from-red-500 to-red-600",
-    },
-    {
-      id: "cert-002",
-      type: "Hero Donor",
-      status: "Disetujui",
-      name: "Husain Jancok2",
-      role: "Donor Darah Terdaftar",
-      bloodType: "O+",
-      totalDonations: 10,
-      blockchainId: "BC-04X6E-0x6E7D6C560A",
-      color: "blue",
-      bgGradient: "from-blue-500 to-blue-600",
-    },
-  ];
+  useEffect(() => {
+    const fetchCertificates = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetchApi('/user/certificates');
+        if (res.success && Array.isArray(res.data)) {
+          // Map API data ke struktur UI
+          setCertificates(res.data.map((item: any, idx: number) => ({
+            id: item.id,
+            type: 'Sertifikat Donor', // atau mapping dari tipe jika ada
+            status: 'Disetujui', // atau mapping dari status jika ada
+            name: item.user?.name || '-',
+            role: item.user?.role || '-',
+            bloodType: item.user?.blood_type || '-',
+            totalDonations: item.donation?.amount || 1, // fallback 1 jika tidak ada
+            blockchainId: item.certificate_number || '-',
+            digitalSignature: item.digital_signature || '-',
+            color: idx % 2 === 0 ? 'red' : 'blue',
+            bgGradient: idx % 2 === 0 ? 'from-red-500 to-red-600' : 'from-blue-500 to-blue-600',
+            createdAt: item.created_at,
+          })));
+        } else {
+          setError(res.message || 'Gagal mengambil data sertifikat');
+        }
+      } catch (err: any) {
+        setError(err.message || 'Gagal mengambil data sertifikat');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCertificates();
+  }, []);
 
   const handleDonorSekarang = () => {
     navigate("/campaigns");
@@ -60,33 +70,6 @@ const CertificatePage: React.FC = () => {
       <WalletConnectBanner />
       <Header />
       <div className="min-h-screen bg-gray-50">
-        {/* Dashboard Tabs */}
-        {/* <div className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <nav className="flex space-x-8 py-4">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = tab.id === 'certificates';
-                
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => handleTabClick(tab)}
-                    className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'text-red-600 border-b-2 border-red-600'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-        </div> */}
-
         {/* Main Content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <FadeIn direction="up">
@@ -101,7 +84,16 @@ const CertificatePage: React.FC = () => {
               </p>
             </div>
 
+            {/* Loading & Error State */}
+            {loading && (
+              <div className="text-center py-12 text-gray-500">Memuat data sertifikat...</div>
+            )}
+            {error && (
+              <div className="text-center py-12 text-red-500">{error}</div>
+            )}
+
             {/* Content Grid */}
+            {!loading && !error && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Certificates Grid */}
               <div className="lg:col-span-2">
@@ -253,18 +245,7 @@ const CertificatePage: React.FC = () => {
                 </div>
               </div>
             </div>
-
-            {/* View All Certificates Button */}
-            {/* <div className="text-center mt-8">
-              <MagneticButton
-                onClick={() => console.log('View all certificates')}
-                className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors inline-flex items-center space-x-2"
-                strength={0.3}
-              >
-                <AwardIcon className="w-5 h-5" />
-                <span>Lihat Semua Sertifikat</span>
-              </MagneticButton>
-            </div> */}
+            )}
           </FadeIn>
         </div>
       </div>

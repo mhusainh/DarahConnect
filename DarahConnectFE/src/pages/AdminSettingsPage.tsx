@@ -371,7 +371,7 @@ const AdminSettingsPage: React.FC = () => {
             <input
               type="number"
               value={settings.certificates.expirationDays}
-              onChange={(e) => handleSettingChange('certificates', 'expirationDays', parseInt(e.target.value))}
+              onChange={(e) => handleSettingChange('certificates', 'expirationDays', e.target.value === '' ? 365 : parseInt(e.target.value) || 365)}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
             />
           </div>

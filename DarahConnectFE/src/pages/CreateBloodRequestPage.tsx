@@ -6,6 +6,7 @@ import { useQuickNotifications } from '../contexts/NotificationContext';
 import { getUserData } from '../utils/jwt';
 import { formatDateForBackend, formatDateForDisplay, isDateInFuture, EXAMPLE_FORMATTED_DATE } from '../utils/dateUtils';
 import AddHospitalModal from '../components/AddHospitalModal';
+import Header from '../components/Header';
 
 interface CreateBloodRequestForm {
   user_id: number;
@@ -193,6 +194,8 @@ const CreateBloodRequestPage: React.FC = () => {
   const selectedUrgency = urgencyLevels.find(u => u.value === formData.urgency_level);
 
   return (
+    <>
+    {/* <Header />   */}
     <div className="min-h-screen bg-gradient-to-br from-red-50 to-pink-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
@@ -470,6 +473,7 @@ const CreateBloodRequestPage: React.FC = () => {
         onHospitalAdded={handleHospitalAdded}
       />
     </div>
+    </>
   );
 };
 

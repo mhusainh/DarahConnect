@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { X, MapPin, Building, Save, Search } from 'lucide-react';
 import { provinsiData, kotaData, getKotaByProvinsi } from '../data/wilayahIndonesia';
 import { useApi } from '../hooks/useApi';
+import GoogleMapsStatus from './GoogleMapsStatus';
 
 interface AddHospitalModalProps {
   isOpen: boolean;
@@ -35,6 +36,34 @@ declare global {
   }
 }
 
+const hospitalExamples = [
+  {
+    name: "RS Cipto Mangunkusumo",
+    province: "jakarta",
+    city: "jak-pusat",
+    address: "Jl. Diponegoro No. 71, Kenari, Senen",
+    search: "RS Cipto Mangunkusumo Jakarta"
+  },
+  {
+    name: "RS Dr. Soetomo",
+    province: "jatim",
+    city: "surabaya",
+    address: "Jl. Mayjen Prof. Dr. Moestopo No.6-8, Surabaya",
+    search: "RS Dr. Soetomo Surabaya"
+  },
+  {
+    name: "RS Hasan Sadikin",
+    province: "jabar",
+    city: "bandung",
+    address: "Jl. Pasteur No.38, Pasteur, Kec. Sukajadi, Kota Bandung",
+    search: "RS Hasan Sadikin Bandung"
+  },
+];
+
+// Helper untuk mapping id ke nama
+const getProvinsiName = (id: string) => provinsiData.find(p => p.id === id)?.nama || id;
+const getKotaName = (id: string) => kotaData.find(k => k.id === id)?.nama.replace(/^Kota |Kabupaten /, '') || id;
+
 const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, onHospitalAdded }) => {
   const [formData, setFormData] = useState<HospitalFormData>({
     name: '',
@@ -50,6 +79,9 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, on
   const [marker, setMarker] = useState<any>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [availableCities, setAvailableCities] = useState<typeof kotaData>([]);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [mapsStatus, setMapsStatus] = useState<'loading' | 'success' | 'error'>('loading');
   
   const { post, loading } = useApi();
 
@@ -66,6 +98,44 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, on
       setIsMapLoaded(true);
     }
   }, [isOpen]);
+
+  // Initialize autocomplete when map is loaded
+  useEffect(() => {
+    if (isMapLoaded && isOpen && window.google) {
+      const searchInput = document.getElementById('location-search-input') as HTMLInputElement;
+      if (searchInput) {
+        const autocomplete = new window.google.maps.places.Autocomplete(searchInput, {
+          types: ['establishment', 'geocode'],
+          componentRestrictions: { country: 'id' },
+          fields: ['formatted_address', 'geometry', 'name']
+        });
+
+        autocomplete.addListener('place_changed', () => {
+          const place = autocomplete.getPlace();
+          if (place.geometry && place.geometry.location) {
+            const lat = place.geometry.location.lat();
+            const lng = place.geometry.location.lng();
+            
+            setFormData(prev => ({ 
+              ...prev, 
+              latitude: lat, 
+              longitude: lng,
+              address: place.formatted_address || prev.address,
+              name: place.name || prev.name
+            }));
+            
+            if (map) {
+              map.setCenter({ lat, lng });
+              marker.setPosition({ lat, lng });
+              map.setZoom(16);
+            }
+            
+            setSearchQuery(place.formatted_address || '');
+          }
+        });
+      }
+    }
+  }, [isMapLoaded, isOpen, map, marker]);
 
   // Initialize map
   useEffect(() => {
@@ -167,6 +237,38 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, on
     });
   }, [formData.name, formData.address, map, marker]);
 
+  const searchLocationByQuery = useCallback(() => {
+    if (!window.google || !map || !searchQuery.trim()) return;
+
+    setIsSearching(true);
+    const geocoder = new window.google.maps.Geocoder();
+    
+    geocoder.geocode({ address: searchQuery }, (results: any[], status: string) => {
+      setIsSearching(false);
+      
+      if (status === 'OK' && results[0]) {
+        const location = results[0].geometry.location;
+        const lat = location.lat();
+        const lng = location.lng();
+        
+        setFormData(prev => ({ 
+          ...prev, 
+          latitude: lat, 
+          longitude: lng,
+          address: results[0].formatted_address 
+        }));
+        
+        map.setCenter({ lat, lng });
+        marker.setPosition({ lat, lng });
+        
+        // Update map zoom to show the area better
+        map.setZoom(16);
+      } else {
+        alert('Lokasi tidak ditemukan. Silakan coba dengan kata kunci yang lebih spesifik.');
+      }
+    });
+  }, [searchQuery, map, marker]);
+
   const validateForm = (): boolean => {
     const newErrors: Partial<HospitalFormData> = {};
     
@@ -181,15 +283,14 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, on
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validateForm()) return;
 
     try {
       const response = await post('/hospital', {
         name: formData.name,
         address: formData.address,
-        city: formData.city,
-        province: formData.province,
+        city: getKotaName(formData.city),
+        province: getProvinsiName(formData.province),
         latitude: formData.latitude,
         longitude: formData.longitude
       });
@@ -216,7 +317,23 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, on
     setMap(null);
     setMarker(null);
     setIsMapLoaded(false);
+    setSearchQuery('');
+    setIsSearching(false);
+    setMapsStatus('loading');
     onClose();
+  };
+
+  const handleExampleClick = (example: typeof hospitalExamples[0]) => {
+    setFormData(prev => ({
+      ...prev,
+      name: example.name,
+      province: example.province,
+      city: example.city,
+      address: example.address,
+    }));
+    setSearchQuery(example.search);
+    // Jika ingin langsung search di map:
+    setTimeout(() => searchLocationByQuery(), 200); // delay agar state update dulu
   };
 
   if (!isOpen) return null;
@@ -325,7 +442,7 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, on
               </div>
 
               {/* Search Location Button */}
-              <button
+              {/* <button
                 type="button"
                 onClick={searchLocation}
                 disabled={!formData.name || !formData.address || !isMapLoaded}
@@ -333,7 +450,7 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, on
               >
                 <Search className="w-4 h-4 mr-2" />
                 Cari Lokasi di Maps
-              </button>
+              </button> */}
 
               {/* Coordinates Display */}
               <div className="bg-gray-50 rounded-lg p-4">
@@ -348,11 +465,16 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, on
             {/* Map Section */}
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Lokasi di Google Maps <span className="text-red-500">*</span>
-                </label>
+                
+
                 <div className="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden">
-                  {isMapLoaded ? (
+                  {mapsStatus === 'error' ? (
+                    <div className="w-full h-80 flex items-center justify-center bg-gray-100">
+                      <div className="text-center p-4">
+                        <GoogleMapsStatus onStatusChange={setMapsStatus} />
+                      </div>
+                    </div>
+                  ) : isMapLoaded ? (
                     <div
                       id="hospital-map"
                       className="w-full h-80"
