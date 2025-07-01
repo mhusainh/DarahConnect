@@ -38,6 +38,7 @@ const MyBloodRequestsPage = lazy(() => import('./pages/MyBloodRequestsPage'));
 const HealthPassportPage = lazy(() => import('./pages/HealthPassportPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const OAuthCallbackPage = lazy(() => import('./pages/OAuthCallbackPage'));
 
 // Lazy-loaded Admin Pages
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
@@ -50,6 +51,7 @@ const AdminReportsPage = lazy(() => import('./pages/AdminReportsPage'));
 const AdminSettingsPage = lazy(() => import('./pages/AdminSettingsPage'));
 const AdminProfilePage = lazy(() => import('./pages/AdminProfilePage'));
 const AdminNotificationsPage = lazy(() => import('./pages/AdminNotificationsPage'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 
 // Homepage Component
 const HomePage: React.FC = () => {
@@ -310,7 +312,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   return <>{children}</>;
 };
-const OAuthCallbackPage = lazy(() => import('./pages/OAuthCallbackPage'));
+
 // Admin Protected Route Component
 const AdminProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
@@ -444,6 +446,13 @@ function App() {
                 <ProtectedRoute>
                   <Suspense fallback={<PageLoader />}>
                     <SettingsPage />
+                  </Suspense>
+                </ProtectedRoute>
+              } />
+              <Route path="/notifications" element={
+                <ProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <NotificationsPage />
                   </Suspense>
                 </ProtectedRoute>
               } />
