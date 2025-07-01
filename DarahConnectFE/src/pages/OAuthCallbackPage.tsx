@@ -140,6 +140,7 @@ const OAuthCallbackPage: React.FC = () => {
     formData.append('blood_type', form.blood_type);
     formData.append('province', province);
     formData.append('city', city);
+    formData.append('address', form.location);
 
     console.log('📝 OAuth Callback - Sending profile data:', {
       name: form.name,

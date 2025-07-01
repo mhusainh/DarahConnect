@@ -99,13 +99,27 @@ const HomePage: React.FC = () => {
           duration: 5000
         });
       }
-    } catch (error) {
-      addNotification({
-        type: 'error',
-        title: 'Error',
-        message: 'Terjadi kesalahan sistem. Silakan coba lagi nanti.',
-        duration: 5000
-      });
+    } catch (error: any) {
+      // Check if error is related to missing health passport
+      const errorMessage = error?.message || error?.toString() || '';
+      if (errorMessage.includes('health passport') || errorMessage.includes('Health passport')) {
+        addNotification({
+          type: 'error',
+          title: 'Menyimpan Gagal',
+          message: 'Anda belum memiliki health passport, silahkan untuk mengisi health passport terlebih dahulu',
+          duration: 5000
+        });
+        setTimeout(() => {
+          navigate('/health-passport');
+        }, 5000);
+      } else {
+        addNotification({
+          type: 'error',
+          title: 'Error',
+          message: 'Terjadi kesalahan sistem. Silakan coba lagi nanti.',
+          duration: 5000
+        });
+      }
     }
   };
 
@@ -227,13 +241,27 @@ const CampaignsPage: React.FC = () => {
           duration: 5000
         });
       }
-    } catch (error) {
-      addNotification({
-        type: 'error',
-        title: 'Error',
-        message: 'Terjadi kesalahan sistem. Silakan coba lagi nanti.',
-        duration: 5000
-      });
+    } catch (error: any) {
+      // Check if error is related to missing health passport
+      const errorMessage = error?.message || error?.toString() || '';
+      if (errorMessage.includes('health passport') || errorMessage.includes('Health passport')) {
+        addNotification({
+          type: 'error',
+          title: 'Menyimpan Gagal',
+          message: 'Anda belum memiliki health passport, silahkan untuk mengisi health passport terlebih dahulu',
+          duration: 5000
+        });
+        setTimeout(() => {
+          navigate('/health-passport');
+        }, 5000);
+      } else {
+        addNotification({
+          type: 'error',
+          title: 'Error',
+          message: 'Terjadi kesalahan sistem. Silakan coba lagi nanti.',
+          duration: 5000
+        });
+      }
     }
   };
 

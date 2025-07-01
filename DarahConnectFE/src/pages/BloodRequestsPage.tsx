@@ -22,6 +22,7 @@ import Footer from '../components/Footer';
 import EditBloodRequestModal from '../components/EditBloodRequestModal';
 import { HoverScale, FadeIn } from '../components/ui/AnimatedComponents';
 import { Spinner } from '../components/ui/LoadingComponents';
+import WalletConnectBanner from '../components/WalletConnectBanner';
 
 interface UserData {
   id: number;
@@ -287,6 +288,7 @@ const BloodRequestsPage: React.FC = () => {
 
   return (
     <>
+    <WalletConnectBanner />
       <Header />
       <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-blue-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
