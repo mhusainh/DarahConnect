@@ -95,9 +95,13 @@ const EmailVerificationPage: React.FC = () => {
               });
             }
           } else {
-            setVerificationStatus('error');
-            setMessage('Token tidak ditemukan dalam response. Silakan hubungi support.');
-            notifications.error('Verifikasi Gagal', 'Token tidak tersedia');
+
+               setVerificationStatus('success');
+              setMessage('Email berhasil diverifikasi! Anda akan diarahkan ke halaman login  dalam beberapa detik...');
+              notifications.success('Verifikasi Berhasil', 'Email Anda telah diverifikasi');
+              startCountdown(() => {
+                navigate('/login', { replace: true });
+              });
           }
         } else {
           // Handle error dari API
