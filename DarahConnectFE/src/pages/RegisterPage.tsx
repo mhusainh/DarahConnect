@@ -17,6 +17,7 @@ interface RegisterFormData {
   birth_date: string;
   age: number;
   weight: number;
+  address: string;
   location: string;
   agreedToTerms: boolean;
 }
@@ -32,6 +33,7 @@ interface FormErrors {
   birth_date?: string;
   age?: string;
   weight?: string;
+  address?: string;
   location?: string;
   agreedToTerms?: string;
 }
@@ -68,6 +70,7 @@ const RegisterPage: React.FC = () => {
     age: 18,
     weight: 50,
     location: '',
+    address: '',
     agreedToTerms: false
   });
 
@@ -111,7 +114,7 @@ const RegisterPage: React.FC = () => {
     if (!formData.birth_date) newErrors.birth_date = 'Tanggal lahir wajib diisi';
     if (formData.age < 17 || formData.age > 65) newErrors.age = 'Usia harus antara 17-65 tahun';
     if (formData.weight < 45) newErrors.weight = 'Berat badan minimal 45 kg';
-    if (!formData.location.trim()) newErrors.location = 'Lokasi wajib diisi';
+    if (!formData.address.trim()) newErrors.address = 'Lokasi wajib diisi';
     if (!formData.agreedToTerms) newErrors.agreedToTerms = 'Anda harus menyetujui syarat dan ketentuan';
 
     setErrors(newErrors);
