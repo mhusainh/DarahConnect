@@ -234,6 +234,13 @@ func PrivateRoutes(
 		// =============================================
 		// ADMIN ONLY ROUTES
 		// =============================================
+		// Dasboard - Admin Only
+		{
+			Method:  http.MethodGet,
+			Path:    "admin/dashboard",
+			Handler: dashboardHandler.DashboardAdmin,
+			Roles:   adminOnly,
+		},
 		// Health Passport - Admin Only
 		{
 			Method:  http.MethodGet,

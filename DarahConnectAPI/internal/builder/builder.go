@@ -34,7 +34,7 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clou
 	//end
 
 	//service
-	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg, mailer,cloudinaryService)
+	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg, mailer, cloudinaryService)
 	bloodRequestService := service.NewBloodRequestService(bloodRequestRepository, *cloudinaryService)
 	notificationService := service.NewNotificationService(notificationRepository)
 	bloodDonationService := service.NewBloodDonationService(bloodDonationRepository, *cloudinaryService)
@@ -50,9 +50,8 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clou
 
 	//handler
 	userHandler := handler.NewUserHandler(userService, cloudinaryService, googleAuthService)
-	bloodRequestHandler := handler.NewBloodRequestHandler(bloodRequestService,notificationService)
+	bloodRequestHandler := handler.NewBloodRequestHandler(bloodRequestService, notificationService)
 	bloodDonationHandler := handler.NewBloodDonationHandler(bloodDonationService, notificationService, certificateService, donorRegistrationService, userService, blockchain)
-
 
 	certificateHandler := handler.NewCertificateHandler(certificateService)
 	donationHandler := handler.NewDonationHandler(midtransService, notificationService)
@@ -79,7 +78,7 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clo
 	//end
 
 	//service
-	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg, mailer,cloudinaryService)
+	userService := service.NewUserService(userRepository, tokenUseCase, cacheable, cfg, mailer, cloudinaryService)
 	notificationService := service.NewNotificationService(notificationRepository)
 	healthPassportService := service.NewHealthPassportService(healthPassportRepository)
 	bloodRequestService := service.NewBloodRequestService(bloodRequestRepository, *cloudinaryService)
@@ -95,26 +94,24 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, rdb *redis.Client, clo
 	midtransService.DonationsRepository = donationsRepository
 	googleAuthService := googleoauth.NewGoogleOAuthService(tokenUseCase, userService, &cfg.GoogleOauth)
 
-
-	dashboardService := service.NewDashboardService(bloodDonationRepository)
+	dashboardService := service.NewDashboardService(bloodDonationRepository, bloodRequestRepository)
 	//end
 
 	//handler
 	userHandler := handler.NewUserHandler(userService, cloudinaryService, googleAuthService)
 	notificationHandler := handler.NewNotificationHandler(notificationService)
 	healthPassportHandler := handler.NewHealthPassportHandler(healthPassportService)
-	bloodRequestHandler := handler.NewBloodRequestHandler(bloodRequestService,notificationService)
-	donorRegistrationHandler := handler.NewDonorRegistrationHandler(donorRegistrationService,healthPassportService,notificationService, bloodRequestService)
+	bloodRequestHandler := handler.NewBloodRequestHandler(bloodRequestService, notificationService)
+	donorRegistrationHandler := handler.NewDonorRegistrationHandler(donorRegistrationService, healthPassportService, notificationService, bloodRequestService)
 
 	donorScheduleHandler := handler.NewDonorScheduleHandler(donorScheduleService)
 	hospitalHandler := handler.NewHospitalHandler(hospitalService)
 	bloodDonationHandler := handler.NewBloodDonationHandler(bloodDonationService, notificationService, certificateService, donorRegistrationService, userService, blockchain)
-
 
 	certificateHandler := handler.NewCertificateHandler(certificateService)
 	donationHandler := handler.NewDonationHandler(midtransService, notificationService)
 	dashboardHandler := handler.NewDashboardHandler(dashboardService)
 	//end
 
-	return router.PrivateRoutes(userHandler, notificationHandler, healthPassportHandler, bloodRequestHandler, donorRegistrationHandler, donorScheduleHandler, hospitalHandler, bloodDonationHandler, certificateHandler, donationHandler,dashboardHandler)
+	return router.PrivateRoutes(userHandler, notificationHandler, healthPassportHandler, bloodRequestHandler, donorRegistrationHandler, donorScheduleHandler, hospitalHandler, bloodDonationHandler, certificateHandler, donationHandler, dashboardHandler)
 }
