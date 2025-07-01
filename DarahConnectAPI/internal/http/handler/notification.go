@@ -171,6 +171,10 @@ func (h *NotificationHandler) CreateNotification(ctx echo.Context) error {
 		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
 	}
 
+	if err := ctx.Validate(&req); err != nil{
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+	
 	if err := h.notificationService.Create(ctx.Request().Context(), req); err != nil {
 		return ctx.JSON(http.StatusInternalServerError,
 			response.ErrorResponse(http.StatusInternalServerError, err.Error()))

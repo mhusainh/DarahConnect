@@ -255,9 +255,10 @@ func (h *DonorRegistrationHandler) DeleteDonorRegistration(ctx echo.Context) err
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-	
-	if claimsData.Id != donorRegistration.UserId {
-		return ctx.JSON(http.StatusUnauthorized, response.ErrorResponse(http.StatusUnauthorized, "unauthorized"))
+	if claimsData.Role == "User"{
+		if claimsData.Id != donorRegistration.UserId {
+			return ctx.JSON(http.StatusUnauthorized, response.ErrorResponse(http.StatusUnauthorized, "unauthorized"))
+		}
 	}
 	
 	if err := h.donorRegistrationService.Delete(ctx.Request().Context(), req.Id); err != nil {

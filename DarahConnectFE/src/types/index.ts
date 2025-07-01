@@ -196,4 +196,21 @@ export interface HealthPassportResponse {
     total_items: number;
     total_pages: number;
   };
+}
+
+// Admin Dashboard Types
+export interface AdminDashboardData {
+  campaign_active: number;
+  donor_terverifikasi: number;
+  request_pending: number;
+  total_campaign: number;
+  total_donor: number;
+}
+
+export interface AdminDashboardResponse {
+  meta: {
+    code: number;
+    message: string;
+  };
+  data: AdminDashboardData;
 } 

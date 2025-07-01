@@ -68,6 +68,8 @@ interface BloodRequest {
   event_type: string;
   created_at: string;
   updated_at: string;
+  image_url?: string;
+  description?: string;
 }
 
 interface BloodRequestsResponse {

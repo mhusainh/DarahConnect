@@ -155,32 +155,10 @@ const DashboardPage: React.FC = () => {
     null
   );
   
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: "urgent",
-      title: "Campaign Mendesak!",
-      message: "RS Hasan Sadikin membutuhkan donor O+ untuk operasi darurat",
-      time: "5 menit yang lalu",
-      unread: true,
-    },
-    {
-      id: 2,
-      type: "achievement",
-      title: "Pencapaian Baru!",
-      message: "Anda telah mencapai 10 kali donasi darah",
-      time: "2 jam yang lalu",
-      unread: true,
-    },
-    {
-      id: 3,
-      type: "reminder",
-      title: "Pengingat Donasi",
-      message: "Sudah waktunya untuk donasi rutin Anda",
-      time: "1 hari yang lalu",
-      unread: false,
-    },
-  ]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifDetail, setNotifDetail] = useState<any | null>(null);
 
   const [monthlyGoal, setMonthlyGoal] = useState({
     target: 2,
@@ -231,8 +209,58 @@ const DashboardPage: React.FC = () => {
     error: dashboardError,
     get: getDashboard,
   } = useApi<DashboardResponse>();
+  
+  // Notification API hooks
+  const { get: getNotificationsApi } = useApi<any>();
+  const { get: getUnreadCountApi } = useApi<any>();
+  const { get: patchNotificationApi } = useApi<any>();
 
-  // Fetch dashboard data
+  // Fetch notifications from API
+  const fetchNotifications = () => {
+    setNotifLoading(true);
+    getNotificationsApi('/user/notifications/').then((res) => {
+      setNotifLoading(false);
+      if (res && res.data && Array.isArray(res.data)) {
+        setNotifications(
+          res.data.map((n: any) => ({
+            id: n.id,
+            title: n.title,
+            message: n.message,
+            unread: !n.is_read,
+            time: n.created_at,
+          }))
+        );
+      } else {
+        setNotifications([]);
+      }
+    });
+  };
+
+  // Fetch unread count
+  const fetchUnreadCount = () => {
+    getUnreadCountApi('/user/notifications/count').then((res) => {
+      if (res && typeof res.data === 'number') {
+        setUnreadCount(res.data);
+      } else if (res && res.data && typeof res.data.count === 'number') {
+        setUnreadCount(res.data.count);
+      } else {
+        setUnreadCount(0);
+      }
+    });
+  };
+
+  // Mark notification as read and show detail
+  const handleNotifClick = (notif: any) => {
+    setNotifDetail(notif);
+    if (notif.unread) {
+      patchNotificationApi(`/user/notifications/${notif.id}`).then(() => {
+        fetchNotifications();
+        fetchUnreadCount();
+      });
+    }
+  };
+
+  // Fetch dashboard data and notifications
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -242,6 +270,8 @@ const DashboardPage: React.FC = () => {
           setDashboardData(response.data);
         }
         getBloodRequests("/blood-request");
+        fetchNotifications();
+        fetchUnreadCount();
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       }
@@ -250,7 +280,7 @@ const DashboardPage: React.FC = () => {
     if (isLoggedIn) {
       fetchDashboardData();
     }
-  }, [isLoggedIn, getDashboard]);
+  }, [isLoggedIn, getDashboard, getNotificationsApi, getUnreadCountApi]);
 
   // Fetch blood requests for dashboard
   useEffect(() => {
@@ -912,31 +942,66 @@ const DashboardPage: React.FC = () => {
                             Notifikasi
                           </h3>
                           <div className="relative">
-                            {notifications.filter((n) => n.unread).length >
-                              0 && (
-                              <div className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full" />
+                            <BellIcon className="w-6 h-6 text-gray-600" />
+                            {unreadCount > 0 && (
+                              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 font-bold">
+                                {unreadCount}
+                              </span>
                             )}
                           </div>
                         </div>
                         
-                        <div className="space-y-3">
-                          {notifications.map((notification, index) => (
-                            <div 
-                              key={notification.id}
-                              className="border-l-4 rounded-lg p-3"
-                            >
-                              <h4 className="text-sm font-semibold text-gray-900 mb-1">
-                                {notification.title}
-                              </h4>
-                              <p className="text-xs text-gray-600 mb-2">
-                                {notification.message}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {notification.time}
-                              </p>
+                        <div className="space-y-3 max-h-80 overflow-y-auto">
+                          {notifLoading ? (
+                            <div className="text-center text-gray-500 text-sm py-6">
+                              <DotsLoader className="mx-auto scale-75 mb-2" />
+                              Memuat notifikasi...
                             </div>
-                          ))}
+                          ) : notifications.length === 0 ? (
+                            <div className="text-center text-gray-500 text-sm py-6">
+                              Tidak ada notifikasi
+                            </div>
+                          ) : (
+                            notifications.map((notification) => (
+                              <div 
+                                key={notification.id}
+                                onClick={() => handleNotifClick(notification)}
+                                className={`border-l-4 rounded-lg p-3 cursor-pointer transition-colors ${
+                                  notification.unread 
+                                    ? 'bg-red-50 hover:bg-red-100 border-red-400' 
+                                    : 'hover:bg-gray-50 border-gray-300'
+                                }`}
+                              >
+                                <h4 className="text-sm font-semibold text-gray-900 mb-1">
+                                  {notification.title}
+                                </h4>
+                                <p className="text-xs text-gray-600 mb-2 truncate">
+                                  {notification.message}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {notification.time}
+                                </p>
+                                {notification.unread && (
+                                  <div className="mt-1">
+                                    <span className="inline-block w-2 h-2 bg-red-500 rounded-full"></span>
+                                  </div>
+                                )}
+                              </div>
+                            ))
+                          )}
                         </div>
+
+                        {/* View All Notifications Button */}
+                        {notifications.length > 0 && (
+                          <div className="mt-4 pt-4 border-t border-gray-200">
+                            <button 
+                              onClick={() => navigate('/notifications')}
+                              className="w-full text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
+                            >
+                              Lihat Semua Notifikasi
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </FadeIn>
 
@@ -1586,6 +1651,24 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
       </FadeIn>
+
+      {/* Modal untuk detail notifikasi */}
+      {notifDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center min-h-screen bg-black/40">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 relative mx-4">
+            <button
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl font-bold"
+              onClick={() => setNotifDetail(null)}
+            >
+              &times;
+            </button>
+            <div className="mb-2 text-lg font-bold text-gray-900">{notifDetail.title}</div>
+            <div className="mb-4 text-gray-700 whitespace-pre-line">{notifDetail.message}</div>
+            {notifDetail.time && <div className="text-xs text-gray-400">{notifDetail.time}</div>}
+          </div>
+        </div>
+      )}
+
       <Footer />
     </>
   );
