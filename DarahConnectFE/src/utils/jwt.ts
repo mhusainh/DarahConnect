@@ -3,6 +3,7 @@ import { notificationManager } from './notification';
 
 // Interface untuk JWT payload dari backend
 export interface JWTPayload {
+  is_new(is_new: any): unknown;
   id: string;
   email: string;
   name: string;
