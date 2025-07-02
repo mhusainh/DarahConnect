@@ -299,10 +299,10 @@ const AboutPage: React.FC = () => {
             Setiap donasi Anda sangat berarti bagi yang membutuhkan.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-primary-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors">
+            <button onClick={() => window.location.href = '/register'} className="bg-primary-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors">
               Daftar Sebagai Donor
             </button>
-            <button className="border border-primary-600 text-primary-600 px-8 py-3 rounded-lg font-semibold hover:bg-primary-50 transition-colors">
+            <button onClick={() => window.location.href = '/campaigns'} className="border border-primary-600 text-primary-600 px-8 py-3 rounded-lg font-semibold hover:bg-primary-50 transition-colors">
               Lihat Campaign
             </button>
           </div>
