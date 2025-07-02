@@ -45,7 +45,7 @@ func (r *bloodRequestRepository) applyFilters(query *gorm.DB, req dto.GetAllBloo
 	}
 
 	if req.BloodType != "" {
-		query = query.Where("LOWER(blood_type) = ?", req.BloodType)
+		query = query.Where("blood_type LIKE ?", "%"+req.BloodType+"%")
 	}
 
 	if req.MaxQuantity > 0 && req.MinQuantity > 0 {
@@ -62,8 +62,8 @@ func (r *bloodRequestRepository) applyFilters(query *gorm.DB, req dto.GetAllBloo
 		search := strings.ToLower(req.Search)
 		query = query.Joins("LEFT JOIN users ON users.id = blood_requests.user_id").
 			Joins("LEFT JOIN hospitals ON hospitals.id = blood_requests.hospital_id").
-			Where("LOWER(blood_requests.patient_name) LIKE ? OR LOWER(users.name) LIKE ? OR LOWER(blood_requests.patient_name) LIKE ? OR LOWER(hospitals.name) LIKE ? OR LOWER(hospitals.city) LIKE ? OR LOWER(hospitals.province) LIKE ?",
-				"%"+search+"%", "%"+search+"%", "%"+search+"%", "%"+search+"%")
+			Where("(LOWER(blood_requests.patient_name) LIKE ?) OR (LOWER(users.name) LIKE ?) OR (LOWER(hospitals.name) LIKE ?) OR (LOWER(hospitals.city) LIKE ?) OR (LOWER(hospitals.province) LIKE ?)",
+				"%"+search+"%", "%"+search+"%", "%"+search+"%", "%"+search+"%", "%"+search+"%")
 	}
 
 	// Set default values jika tidak ada
