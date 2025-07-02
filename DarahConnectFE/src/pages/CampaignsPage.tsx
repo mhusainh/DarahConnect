@@ -32,6 +32,7 @@ import { HoverScale, FadeIn } from '../components/ui/AnimatedComponents';
 import { Spinner } from '../components/ui/LoadingComponents';
 import WalletConnectBanner from '../components/WalletConnectBanner';
 import { BloodCampaign } from '../types';
+import debounce from 'lodash.debounce';
 
 // API response interface (from backend)
 interface ApiCampaign {
@@ -145,7 +146,18 @@ const CampaignsPage: React.FC = () => {
     order: 'desc'
   });
 
+  // Tambahkan state untuk search input
+  const [searchInput, setSearchInput] = useState(filters.search);
+
   const { get: getApi } = useApi<any>();
+
+  // Tambahkan debounced function
+  const debouncedSearch = useCallback(
+    debounce((value: string) => {
+      handleFilterChange('search', value);
+    }, 500),
+    []
+  );
 
   // Convert API campaign to UI campaign format
   const convertApiCampaignToBloodCampaign = (apiCampaign: ApiCampaign): BloodCampaign => {
@@ -554,8 +566,11 @@ const CampaignsPage: React.FC = () => {
                 <input
                   type="text"
                   placeholder="Cari campaign berdasarkan judul, deskripsi, atau lokasi..."
-                  value={filters.search}
-                  onChange={(e) => handleFilterChange('search', e.target.value)}
+                  value={searchInput}
+                  onChange={(e) => {
+                    setSearchInput(e.target.value);
+                    debouncedSearch(e.target.value);
+                  }}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent text-lg"
                 />
               </div>
