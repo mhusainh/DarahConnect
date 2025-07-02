@@ -40,6 +40,7 @@ const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const OAuthCallbackPage = lazy(() => import('./pages/OAuthCallbackPage'));
 const BloodDonationHistoryPage = lazy(() => import('./pages/BloodDonationHistoryPage'));
+const DonorRegistrationPage = lazy(() => import('./pages/DonorRegistrationPage'));
 
 // Lazy-loaded Admin Pages
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
@@ -521,6 +522,13 @@ function App() {
                 <ProtectedRoute>
                   <Suspense fallback={<PageLoader />}>
                     <HealthPassportPage />
+                  </Suspense>
+                </ProtectedRoute>
+              } />
+              <Route path="/donor-registration" element={
+                <ProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <DonorRegistrationPage />
                   </Suspense>
                 </ProtectedRoute>
               } />

@@ -15,7 +15,8 @@ import {
   User,
   FileTextIcon,
   BellIcon,
-  ShieldIcon
+  ShieldIcon,
+  BookOpenIcon
 } from 'lucide-react';
 import NotificationDropdown from './NotificationDropdown';
 import { HoverScale, FadeIn } from './ui/AnimatedComponents';
@@ -346,6 +347,17 @@ const Header: React.FC = () => {
                               <span>Riwayat Donor</span>
                             </button>
                             
+                            <button
+                              onClick={() => {
+                                setShowUserMenu(false);
+                                navigate('/donor-registration');
+                              }}
+                              className="flex items-center space-x-2.5 w-full px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            >
+                              <HeartHandshakeIcon className="w-4 h-4" />
+                              <span>Donor Terdaftar</span>
+                            </button>
+                            
                             {/* <button
                               onClick={() => {
                                 setShowUserMenu(false);
@@ -388,63 +400,77 @@ const Header: React.FC = () => {
 
                   {/* Tambahkan icon notifikasi di desktop */}
                   {isLoggedIn && (
-                    <div className="relative ml-2">
-                      <button
-                        id="notif-bell"
-                        className="relative focus:outline-none"
-                        title="Notifikasi"
-                        onClick={() => setShowNotifDropdown((v) => !v)}
-                      >
-                        <BellIcon className="w-6 h-6 text-gray-600" />
-                        {unreadCount > 0 && (
-                          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 font-bold">
-                            {unreadCount}
-                          </span>
-                        )}
-                      </button>
-                      {showNotifDropdown && (
-                        <div
-                          id="notif-dropdown"
-                          className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50"
+                    <div className="flex items-center space-x-2 ml-2">
+                      {/* Health Passport Icon */}
+                      <HoverScale scale={1.05}>
+                        <button
+                          className="relative focus:outline-none p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                          title="Health Passport"
+                          onClick={() => navigate('/health-passport')}
                         >
-                          <div className="px-4 py-2 border-b font-semibold text-gray-800">Notifikasi</div>
-                          <div className="max-h-80 overflow-y-auto">
-                            {notifLoading ? (
-                              <div className="px-4 py-6 text-center text-gray-500 text-sm">Memuat notifikasi...</div>
-                            ) : notifications.length === 0 ? (
-                              <div className="px-4 py-6 text-center text-gray-500 text-sm">Tidak ada notifikasi</div>
-                            ) : (
-                              notifications.map((notif) => (
-                                <div
-                                  key={notif.id}
-                                  onClick={() => handleNotifClick(notif)}
-                                  className={`px-4 py-3 border-b last:border-b-0 cursor-pointer transition-colors ${notif.unread ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50'}`}
-                                >
-                                  <div className="font-medium text-gray-900 truncate">{notif.title}</div>
-                                  <div className="text-xs text-gray-600 mb-1 truncate">{notif.message}</div>
-                                  {notif.time && <div className="text-xs text-gray-400">{notif.time}</div>}
-                                </div>
-                              ))
-                            )}
+                          <BookOpenIcon className="w-6 h-6 text-blue-600" />
+                        </button>
+                      </HoverScale>
+
+                      {/* Notification Icon */}
+                      <div className="relative">
+                        <button
+                          id="notif-bell"
+                          className="relative focus:outline-none p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                          title="Notifikasi"
+                          onClick={() => setShowNotifDropdown((v) => !v)}
+                        >
+                          <BellIcon className="w-6 h-6 text-gray-600" />
+                          {unreadCount > 0 && (
+                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 font-bold">
+                              {unreadCount}
+                            </span>
+                          )}
+                        </button>
+                        {showNotifDropdown && (
+                          <div
+                            id="notif-dropdown"
+                            className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50"
+                          >
+                            <div className="px-4 py-2 border-b font-semibold text-gray-800">Notifikasi</div>
+                            <div className="max-h-80 overflow-y-auto">
+                              {notifLoading ? (
+                                <div className="px-4 py-6 text-center text-gray-500 text-sm">Memuat notifikasi...</div>
+                              ) : notifications.length === 0 ? (
+                                <div className="px-4 py-6 text-center text-gray-500 text-sm">Tidak ada notifikasi</div>
+                              ) : (
+                                notifications.map((notif) => (
+                                  <div
+                                    key={notif.id}
+                                    onClick={() => handleNotifClick(notif)}
+                                    className={`px-4 py-3 border-b last:border-b-0 cursor-pointer transition-colors ${notif.unread ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50'}`}
+                                  >
+                                    <div className="font-medium text-gray-900 truncate">{notif.title}</div>
+                                    <div className="text-xs text-gray-600 mb-1 truncate">{notif.message}</div>
+                                    {notif.time && <div className="text-xs text-gray-400">{notif.time}</div>}
+                                  </div>
+                                ))
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      {/* Modal untuk detail notifikasi */}
-                      {notifDetail && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center min-h-screen bg-black/40">
-                          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 relative">
-                            <button
-                              className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl font-bold"
-                              onClick={() => setNotifDetail(null)}
-                            >
-                              &times;
-                            </button>
-                            <div className="mb-2 text-lg font-bold text-gray-900">{notifDetail.title}</div>
-                            <div className="mb-4 text-gray-700 whitespace-pre-line">{notifDetail.message}</div>
-                            {notifDetail.time && <div className="text-xs text-gray-400">{notifDetail.time}</div>}
+                        )}
+                        {/* Modal untuk detail notifikasi */}
+                        {notifDetail && (
+                          <div className="fixed inset-0 z-50 flex items-center justify-center min-h-screen bg-black/40">
+                            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 relative">
+                              <button
+                                className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl font-bold"
+                                onClick={() => setNotifDetail(null)}
+                              >
+                                &times;
+                              </button>
+                              <div className="mb-2 text-lg font-bold text-gray-900">{notifDetail.title}</div>
+                              <div className="mb-4 text-gray-700 whitespace-pre-line">{notifDetail.message}</div>
+                              {notifDetail.time && <div className="text-xs text-gray-400">{notifDetail.time}</div>}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -577,6 +603,28 @@ const Header: React.FC = () => {
                           >
                             <AwardIcon className="w-4 h-4" />
                             <span>Riwayat Donor</span>
+                          </button>
+                          
+                          <button
+                            onClick={() => {
+                              navigate('/donor-registration');
+                              setIsMenuOpen(false);
+                            }}
+                            className="flex items-center space-x-2.5 w-full px-2.5 py-2 text-sm text-gray-700 hover:bg-white/70 rounded-lg transition-colors"
+                          >
+                            <HeartHandshakeIcon className="w-4 h-4" />
+                            <span>Donor Terdaftar</span>
+                          </button>
+                          
+                          <button
+                            onClick={() => {
+                              navigate('/health-passport');
+                              setIsMenuOpen(false);
+                            }}
+                            className="flex items-center space-x-2.5 w-full px-2.5 py-2 text-sm text-blue-600 hover:bg-blue-50/70 rounded-lg transition-colors"
+                          >
+                            <BookOpenIcon className="w-4 h-4" />
+                            <span>Health Passport</span>
                           </button>
                           
                           {/* <button
