@@ -3,6 +3,9 @@ package midtrans
 import (
 	"context"
 	"errors"
+	"log"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/configs"
@@ -69,8 +72,13 @@ func (s *midtransService) CreateTransaction(ctx context.Context, req dto.Payment
 
 func (s *midtransService) WebHookTransaction(ctx context.Context, input *dto.DonationsCreate) error {
 	donation := new(entity.Donation)
-
-	donation.UserId = input.UserID
+	
+	UserID, err := strconv.ParseInt(strings.Split(input.OrderID, "-")[1], 10, 64)
+	if err != nil {
+		return errors.New("invalid order id format")
+	}
+	
+	donation.UserId = UserID
 	donation.Amount = input.Amount
 	donation.Status = input.Transaction_status
 	donation.CreatedAt = time.Now()
@@ -79,19 +87,19 @@ func (s *midtransService) WebHookTransaction(ctx context.Context, input *dto.Don
 	// Parse transaction time
 	transactionTime, err := time.Parse("2006-01-02 15:04:05", input.Transaction_time)
 	if err != nil {
-		return errors.New("Invalid transaction time format")
+		return errors.New("invalid transaction time format")
 	}
 	donation.TransactionTime = transactionTime
 
 	// Validate transaction status
 	if input.Transaction_status != "settlement" && input.Transaction_status != "capture" {
-		return errors.New("Invalid transaction status")
+		return errors.New("invalid transaction status")
 	} 
 	donation.Status = "success"
-	
+	log.Printf("data : %v", donation )
 	// Save donation to database
 	if err := s.DonationsRepository.Create(ctx, donation); err != nil {
-		return errors.New("Failed to process donation")
+		return errors.New("failed to process donation")
 	}
 
 	return nil

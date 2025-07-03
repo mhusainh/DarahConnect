@@ -1,7 +1,7 @@
 package dto
 
 type DonationsCreate struct {
-	UserID int64 `json:"user_id" form:"user_id" validate:"required"`
+	OrderID  string `json:"order_id" form:"order_id"`
 	Amount int64 `json:"amount" form:"amount" validate:"required"`
 	Transaction_time string `json:"transaction_time" form:"transaction_time" validate:"required"`
 	Transaction_status string `json:"transaction_status" form:"transaction_status" validate:"required"`
