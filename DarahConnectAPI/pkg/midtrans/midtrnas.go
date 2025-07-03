@@ -53,6 +53,7 @@ func NewMidtransService(cfg *configs.MidtransConfig) *midtransService {
 }
 
 func (s *midtransService) CreateTransaction(ctx context.Context, req dto.PaymentRequest) (string, error) {
+	donation := new(entity.Donation)
 	request := &snap.Request{
 		TransactionDetails: midtrans.TransactionDetails{
 			OrderID:  req.OrderID,
@@ -67,39 +68,46 @@ func (s *midtransService) CreateTransaction(ctx context.Context, req dto.Payment
 	if err != nil {
 		return "", err
 	}
+
+	OrderID, errParse := strconv.ParseInt(strings.Split(req.OrderID, "-")[2], 10, 64)
+	if errParse != nil {
+		return "",errors.New("format order id salah")
+	}
+
+	donation.UserId = req.UserId
+	donation.Amount = req.Amount
+	donation.OrderId = OrderID
+	donation.CreatedAt = time.Now()
+	donation.UpdatedAt = time.Now()
+	donation.Status = "pending"
+
+	if err := s.DonationsRepository.Create(ctx, donation); err != nil {
+		return "",errors.New("gagal memproses donasi")
+	}
 	return resp.RedirectURL, nil
 }
 
 func (s *midtransService) WebHookTransaction(ctx context.Context, input *dto.DonationsCreate) error {
 	donation := new(entity.Donation)
-	
-	UserID, err := strconv.ParseInt(strings.Split(input.OrderID, "-")[1], 10, 64)
+
+	OrderID, err := strconv.ParseInt(strings.Split(input.OrderID, "-")[2], 10, 64)
 	if err != nil {
-		return errors.New("invalid order id format")
+		return errors.New("format order id salah")
 	}
-	
-	donation.UserId = UserID
-	donation.Amount = input.Amount
+
+	donation.OrderId = OrderID
 	donation.Status = input.Transaction_status
-	donation.CreatedAt = time.Now()
 	donation.UpdatedAt = time.Now()
-	
-	// Parse transaction time
-	transactionTime, err := time.Parse("2006-01-02 15:04:05", input.Transaction_time)
-	if err != nil {
-		return errors.New("invalid transaction time format")
-	}
-	donation.TransactionTime = transactionTime
 
 	// Validate transaction status
 	if input.Transaction_status != "settlement" && input.Transaction_status != "capture" {
-		return errors.New("invalid transaction status")
+		return errors.New("status transaksi tidak valid")
 	} 
 	donation.Status = "success"
 	log.Printf("data : %v", donation )
 	// Save donation to database
-	if err := s.DonationsRepository.Create(ctx, donation); err != nil {
-		return errors.New("failed to process donation")
+	if err := s.DonationsRepository.Update(ctx,OrderID, donation); err != nil {
+		return errors.New("gagal memproses donasi")
 	}
 
 	return nil
