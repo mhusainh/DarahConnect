@@ -75,7 +75,7 @@ func (h *DonationHandler) CreateTransaction(ctx echo.Context) error {
 	notificationData := dto.NotificationCreateRequest{
 		UserId:      claimsData.Id,
 		Title:       "Pemberitahuan Donasi",
-		Message:     "Terima kasih telah berdonasi. Sialhkan cek cara pembayaran di email anda.",
+		Message:     "Terima kasih telah berdonasi. Sialahkan cek pembayaran di email anda. Atau anda bisa klik link ini : " + redirectURL,
 		NotificationType: "Donation",
 	}
 	if err := h.notificationService.Create(ctx.Request().Context(), notificationData); err != nil {
