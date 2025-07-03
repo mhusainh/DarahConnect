@@ -4,67 +4,60 @@ import {
   Heart, 
   MapPin, 
   User, 
-  Phone, 
-  AlertTriangle, 
   Calendar,
-  Building2,
-  Droplet,
   Search,
   RefreshCw,
   Plus,
-  FileTextIcon,
-  Edit,
   Filter,
   ChevronLeftIcon,
   ChevronRightIcon,
   SortAsc,
   SortDesc,
-  X
+  X,
+  Clock,
+  Building2,
+  Droplet,
+  Target,
+  Users,
+  AlertTriangle,
+  Eye
 } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 import { useNotification } from '../hooks/useNotification';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import EditBloodRequestModal from '../components/EditBloodRequestModal';
+import DonorConfirmationModal from '../components/DonorConfirmationModal';
+import CryptoDonationModal from '../components/CryptoDonationModal';
 import { HoverScale, FadeIn } from '../components/ui/AnimatedComponents';
 import { Spinner } from '../components/ui/LoadingComponents';
 import WalletConnectBanner from '../components/WalletConnectBanner';
+import { BloodCampaign } from '../types';
 import debounce from 'lodash.debounce';
 
-interface UserData {
-  id: number;
-  name: string;
-  gender: string;
-  email: string;
-  phone: string;
-  blood_type: string;
-  birth_date: string;
-  address: string;
-  role: string;
-  is_verified: boolean;
-  url_file: string;
-}
-
-interface Hospital {
-  id: number;
-  name: string;
-  address: string;
-  city: string;
-  province: string;
-  latitude: number;
-  longitude: number;
-}
-
-interface BloodRequest {
+// API response interface (from backend)
+interface ApiCampaign {
   id: number;
   user_id: number;
-  user: UserData;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+  };
   hospital_id: number;
-  hospital: Hospital;
+  hospital: {
+    id: number;
+    name: string;
+    address: string;
+    city: string;
+    province: string;
+    latitude: number;
+    longitude: number;
+  };
   patient_name: string;
   blood_type: string;
   quantity: number;
-  urgency_level: string;
+  urgency_level: 'low' | 'medium' | 'high' | 'critical';
   diagnosis: string;
   event_name: string;
   event_date: string;
@@ -72,21 +65,19 @@ interface BloodRequest {
   end_time: string;
   slots_available: number;
   slots_booked: number;
-  status: string;
+  status: 'pending' | 'verified' | 'completed' | 'rejected';
   event_type: string;
   created_at: string;
   updated_at: string;
-  image_url?: string;
   url_file?: string;
-  description?: string;
 }
 
-interface BloodRequestsResponse {
+interface CampaignsResponse {
   meta: {
     code: number;
     message: string;
   };
-  data: BloodRequest[];
+  data: ApiCampaign[];
   pagination: {
     page: number;
     per_page: number;
@@ -104,6 +95,7 @@ interface FilterState {
   start_date: string;
   end_date: string;
   status: string;
+  event_type: string;
 }
 
 interface PaginationState {
@@ -113,15 +105,17 @@ interface PaginationState {
   order: 'asc' | 'desc';
 }
 
-const BloodRequestsPage: React.FC = () => {
+const CampaignsPage: React.FC = () => {
   const navigate = useNavigate();
   const { addNotification } = useNotification();
-  const [editRequestModalOpen, setEditRequestModalOpen] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<BloodRequest | null>(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<BloodCampaign | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCryptoModalOpen, setIsCryptoModalOpen] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   
   // API state
-  const [bloodRequests, setBloodRequests] = useState<BloodRequest[]>([]);
+  const [apiCampaigns, setApiCampaigns] = useState<ApiCampaign[]>([]);
+  const [campaigns, setCampaigns] = useState<BloodCampaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState({
@@ -140,7 +134,8 @@ const BloodRequestsPage: React.FC = () => {
     max_quantity: '',
     start_date: '',
     end_date: '',
-    status: ''
+    status: '',
+    event_type: ''
   });
 
   // Pagination and sorting state
@@ -154,6 +149,8 @@ const BloodRequestsPage: React.FC = () => {
   // Tambahkan state untuk search input
   const [searchInput, setSearchInput] = useState(filters.search);
 
+  const { get: getApi } = useApi<any>();
+
   // Tambahkan debounced function
   const debouncedSearch = useCallback(
     debounce((value: string) => {
@@ -162,7 +159,32 @@ const BloodRequestsPage: React.FC = () => {
     []
   );
 
-  const { get: getApi } = useApi<any>();
+  // Convert API campaign to UI campaign format
+  const convertApiCampaignToBloodCampaign = (apiCampaign: ApiCampaign): BloodCampaign => {
+    return {
+      id: apiCampaign.id.toString(),
+      title: apiCampaign.event_name,
+      description: apiCampaign.diagnosis,
+      organizer: {
+        name: apiCampaign.user.name,
+        avatar: '/api/placeholder/32/32',
+        verified: true,
+        role: 'Organizer'
+      },
+      hospital: apiCampaign.hospital.name,
+      location: `${apiCampaign.hospital.city}, ${apiCampaign.hospital.province}`,
+      bloodType: [apiCampaign.blood_type as any],
+      targetDonors: apiCampaign.slots_available || 0,
+      currentDonors: apiCampaign.slots_booked || 0,
+      urgencyLevel: apiCampaign.urgency_level,
+      contactPerson: apiCampaign.user.name,
+      contactPhone: apiCampaign.user.phone,
+      deadline: apiCampaign.event_date,
+      createdAt: apiCampaign.created_at,
+      imageUrl: apiCampaign.url_file || '/api/placeholder/400/200',
+      url_file: apiCampaign.url_file || ''
+    };
+  };
 
   // Build query string from filters and pagination
   const buildQueryString = useCallback(() => {
@@ -184,18 +206,22 @@ const BloodRequestsPage: React.FC = () => {
     return params.toString();
   }, [filters, paginationState]);
 
-  // Fetch blood requests with current filters and pagination
-  const fetchBloodRequests = useCallback(async () => {
+  // Fetch campaigns with current filters and pagination
+  const fetchCampaigns = useCallback(async () => {
     setLoading(true);
     setError(null);
     
     try {
       const queryString = buildQueryString();
-      const response = await getApi(`/blood-request?${queryString}`);
+      const response = await getApi(`/campaign?${queryString}`);
       
-                   if (response && response.data) {
-        const dataArray = Array.isArray(response.data) ? response.data : [];
-        setBloodRequests(dataArray);
+      if (response && response.data) {
+        const apiCampaignsData = Array.isArray(response.data) ? response.data : [];
+        setApiCampaigns(apiCampaignsData);
+        
+        // Convert API campaigns to UI campaigns
+        const convertedCampaigns = apiCampaignsData.map(convertApiCampaignToBloodCampaign);
+        setCampaigns(convertedCampaigns);
         
         // Set pagination data with fallbacks
         if ((response as any).pagination) {
@@ -205,16 +231,16 @@ const BloodRequestsPage: React.FC = () => {
           setPagination({
             page: paginationState.page,
             per_page: paginationState.limit,
-            total_items: dataArray.length,
-            total_pages: dataArray.length > 0 ? Math.ceil(dataArray.length / paginationState.limit) : 1
+            total_items: apiCampaignsData.length,
+            total_pages: apiCampaignsData.length > 0 ? Math.ceil(apiCampaignsData.length / paginationState.limit) : 1
           });
         }
       } else {
-        setError('Gagal memuat data permintaan darah');
+        setError('Gagal memuat data campaigns');
       }
     } catch (err: any) {
       setError('Terjadi kesalahan saat memuat data');
-      console.error('Error fetching blood requests:', err);
+      console.error('Error fetching campaigns:', err);
     } finally {
       setLoading(false);
     }
@@ -222,8 +248,8 @@ const BloodRequestsPage: React.FC = () => {
 
   // Effect to fetch data when filters or pagination change
   useEffect(() => {
-    fetchBloodRequests();
-  }, [fetchBloodRequests]);
+    fetchCampaigns();
+  }, [fetchCampaigns]);
 
   // Handle filter changes
   const handleFilterChange = (key: keyof FilterState, value: string) => {
@@ -256,7 +282,8 @@ const BloodRequestsPage: React.FC = () => {
       max_quantity: '',
       start_date: '',
       end_date: '',
-      status: ''
+      status: '',
+      event_type: ''
     });
     setPaginationState(prev => ({ ...prev, page: 1 }));
   };
@@ -292,6 +319,7 @@ const BloodRequestsPage: React.FC = () => {
     return rangeWithDots;
   };
 
+  // Utility functions
   const getUrgencyColor = (urgency: string) => {
     switch (urgency.toLowerCase()) {
       case 'critical':
@@ -326,11 +354,11 @@ const BloodRequestsPage: React.FC = () => {
     switch (status.toLowerCase()) {
       case 'pending':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'active':
+      case 'verified':
         return 'bg-green-100 text-green-800 border-green-200';
       case 'completed':
         return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'canceled':
+      case 'rejected':
         return 'bg-red-100 text-red-800 border-red-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -341,12 +369,12 @@ const BloodRequestsPage: React.FC = () => {
     switch (status.toLowerCase()) {
       case 'pending':
         return 'Menunggu';
-      case 'active':
-        return 'Verified';
+      case 'verified':
+        return 'Aktif';
       case 'completed':
         return 'Selesai';
-      case 'canceled':
-        return 'Dibatalkan';
+      case 'rejected':
+        return 'Ditolak';
       default:
         return status;
     }
@@ -375,31 +403,65 @@ const BloodRequestsPage: React.FC = () => {
     });
   };
 
+  const getProgress = (current: number, target: number) => {
+    if (!target || target === 0) return 0;
+    return Math.min((current / target) * 100, 100);
+  };
+
   const handleRefresh = () => {
-    fetchBloodRequests();
+    fetchCampaigns();
   };
 
-  const handleDonate = (request: BloodRequest) => {
-    navigate(`/donor-register?requestId=${request.id}`);
+  const handleViewDetails = (campaign: BloodCampaign) => {
+    navigate(`/campaigns/${campaign.id}`);
   };
 
-  const handleCreateBloodRequest = () => {
-    navigate('/create-blood-request');
+  const handleDonate = (campaign: BloodCampaign) => {
+    setSelectedCampaign(campaign);
+    setIsModalOpen(true);
   };
 
-  const handleOpenEditRequestModal = (request: BloodRequest) => {
-    setSelectedRequest(request);
-    setEditRequestModalOpen(true);
+  const handleCryptoDonate = (campaign: BloodCampaign) => {
+    setSelectedCampaign(campaign);
+    setIsCryptoModalOpen(true);
   };
 
-  const handleCloseEditRequestModal = () => {
-    setEditRequestModalOpen(false);
-    setSelectedRequest(null);
+  const handleDonorRegistration = async (notes: string) => {
+    if (!selectedCampaign) return;
+
+    try {
+      // Here you would implement the donor registration logic
+      addNotification({
+        type: 'success',
+        title: 'Pendaftaran Berhasil!',
+        message: 'Anda telah berhasil mendaftar sebagai donor. Tim akan menghubungi Anda segera.',
+        duration: 5000
+      });
+      setIsModalOpen(false);
+      fetchCampaigns(); // Refresh to update donor count
+    } catch (error: any) {
+      addNotification({
+        type: 'error',
+        title: 'Pendaftaran Gagal',
+        message: 'Terjadi kesalahan saat mendaftar sebagai donor. Silakan coba lagi.',
+        duration: 5000
+      });
+    }
   };
 
-  const handleEditSuccess = () => {
-    // Refresh the data after successful edit
-    fetchBloodRequests();
+  const handleCryptoDonationSuccess = (txHash: string) => {
+    console.log('Crypto donation successful:', txHash);
+    addNotification({
+      type: 'success',
+      title: 'Donasi Crypto Berhasil!',
+      message: `Transaction Hash: ${txHash}`,
+      duration: 5000
+    });
+    setIsCryptoModalOpen(false);
+  };
+
+  const handleCreateCampaign = () => {
+    navigate('/create-campaign');
   };
 
   if (loading) {
@@ -438,7 +500,7 @@ const BloodRequestsPage: React.FC = () => {
 
   return (
     <>
-    <WalletConnectBanner />
+      <WalletConnectBanner />
       <Header />
       <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-blue-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -446,21 +508,21 @@ const BloodRequestsPage: React.FC = () => {
           <FadeIn direction="up">
             <div className="text-center mb-12">
               <h1 className="text-4xl font-bold text-gray-900 mb-4">
-                Permintaan Darah Darurat
+                Semua Campaign Donor Darah
               </h1>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-                Bantu menyelamatkan nyawa dengan merespons permintaan darah darurat dari rumah sakit dan pasien yang membutuhkan
+                Temukan campaign yang membutuhkan bantuan Anda dan jadilah bagian dari gerakan menyelamatkan nyawa
               </p>
               
-              {/* Create Request CTA */}
+              {/* Create Campaign CTA */}
               <div className="flex justify-center">
                 <HoverScale scale={1.05}>
                   <button
-                    onClick={handleCreateBloodRequest}
+                    onClick={handleCreateCampaign}
                     className="inline-flex items-center space-x-3 bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:from-green-700 hover:to-green-800 transition-all duration-300 shadow-lg hover:shadow-xl"
                   >
                     <Plus className="w-6 h-6" />
-                    <span>Buat Permintaan Darah Darurat</span>
+                    <span>Buat Campaign Baru</span>
                   </button>
                 </HoverScale>
               </div>
@@ -472,25 +534,25 @@ const BloodRequestsPage: React.FC = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
                 <div className="text-2xl font-bold text-blue-600">{pagination.total_items}</div>
-                <div className="text-sm text-gray-600">Total Permintaan</div>
+                <div className="text-sm text-gray-600">Total Campaign</div>
               </div>
               <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
                 <div className="text-2xl font-bold text-red-600">
-                  {bloodRequests.filter(r => r.urgency_level === 'critical').length}
+                  {campaigns.filter(c => c.urgencyLevel === 'critical').length}
                 </div>
                 <div className="text-sm text-gray-600">Sangat Mendesak</div>
               </div>
               <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
                 <div className="text-2xl font-bold text-orange-600">
-                  {bloodRequests.filter(r => r.urgency_level === 'high').length}
+                  {campaigns.filter(c => c.urgencyLevel === 'high').length}
                 </div>
                 <div className="text-sm text-gray-600">Mendesak</div>
               </div>
               <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
                 <div className="text-2xl font-bold text-green-600">
-                  {bloodRequests.filter(r => r.urgency_level === 'low').length}
+                  {apiCampaigns.filter(c => c.status === 'verified').length}
                 </div>
-                <div className="text-sm text-gray-600">Normal</div>
+                <div className="text-sm text-gray-600">Campaign Aktif</div>
               </div>
             </div>
           </FadeIn>
@@ -503,7 +565,7 @@ const BloodRequestsPage: React.FC = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="text"
-                  placeholder="Cari pasien, rumah sakit, atau diagnosis..."
+                  placeholder="Cari campaign berdasarkan judul, deskripsi, atau lokasi..."
                   value={searchInput}
                   onChange={(e) => {
                     setSearchInput(e.target.value);
@@ -542,17 +604,29 @@ const BloodRequestsPage: React.FC = () => {
                   <option value="O+">O+</option>
                   <option value="O-">O-</option>
                 </select>
-
-                {/* <select
+{/* 
+                <select
                   value={filters.status}
                   onChange={(e) => handleFilterChange('status', e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
                 >
                   <option value="">Semua Status</option>
                   <option value="pending">Menunggu</option>
-                  <option value="active">Aktif</option>
+                  <option value="verified">Terverifikasi</option>
                   <option value="completed">Selesai</option>
-                  <option value="canceled">Dibatalkan</option>
+                  <option value="rejected">Ditolak</option>
+                </select> */}
+
+                {/* <select
+                  value={filters.event_type}
+                  onChange={(e) => handleFilterChange('event_type', e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+                >
+                  <option value="">Semua Tipe</option>
+                  <option value="emergency">Darurat</option>
+                  <option value="regular">Regular</option>
+                  <option value="community">Komunitas</option>
+                  <option value="hospital">Rumah Sakit</option>
                 </select> */}
 
                 <button
@@ -613,21 +687,13 @@ const BloodRequestsPage: React.FC = () => {
               {/* Action Buttons and Sort */}
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
                 <div className="flex flex-wrap gap-3">
-                  <button
-                    onClick={handleCreateBloodRequest}
+                  {/* <button
+                    onClick={handleCreateCampaign}
                     className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-colors text-sm font-semibold"
                   >
                     <Plus className="w-4 h-4" />
-                    <span>Buat Permintaan</span>
-                  </button>
-
-                  <button
-                    onClick={() => navigate('/my-blood-requests')}
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-semibold"
-                  >
-                    <FileTextIcon className="w-4 h-4" />
-                    <span>Permintaan Saya</span>
-                  </button>
+                    <span>Buat Campaign</span>
+                  </button> */}
 
                   <button
                     onClick={handleRefresh}
@@ -659,8 +725,9 @@ const BloodRequestsPage: React.FC = () => {
                     <option value="created_at">Tanggal Dibuat</option>
                     <option value="event_date">Tanggal Event</option>
                     <option value="urgency_level">Urgensi</option>
-                    <option value="quantity">Jumlah</option>
-                    <option value="patient_name">Nama Pasien</option>
+                    <option value="quantity">Target Donor</option>
+                    <option value="event_name">Nama Campaign</option>
+                    <option value="slots_booked">Donor Terdaftar</option>
                   </select>
                   <button
                     onClick={() => handleSortChange(paginationState.sort)}
@@ -676,23 +743,23 @@ const BloodRequestsPage: React.FC = () => {
 
               {/* Results Info */}
               <div className="mt-4 text-sm text-gray-600">
-                Menampilkan {bloodRequests.length} dari {pagination.total_items} permintaan (Halaman {pagination.page} dari {pagination.total_pages})
+                Menampilkan {campaigns.length} dari {pagination.total_items} campaign (Halaman {pagination.page} dari {pagination.total_pages})
               </div>
             </div>
           </FadeIn>
 
-          {/* Blood Requests Grid */}
+          {/* Campaigns Grid */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {bloodRequests.map((request, index) => (
-              <FadeIn key={request.id} direction="up" delay={0.1 * index}>
+            {campaigns.map((campaign, index) => (
+              <FadeIn key={campaign.id} direction="up" delay={0.1 * index}>
                 <HoverScale scale={1.02}>
                   <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-all duration-300">
                     {/* Image Section */}
                     <div className="relative h-48 bg-gradient-to-br from-red-100 to-red-200">
-                      {request.url_file ? (
+                      {campaign.imageUrl ? (
                         <img
-                          src={request.url_file}
-                          alt={request.event_name}
+                          src={campaign.imageUrl}
+                          alt={campaign.title}
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
@@ -701,140 +768,144 @@ const BloodRequestsPage: React.FC = () => {
                         />
                       ) : null}
                       {/* Fallback Image */}
-                      <div className={`w-full h-full flex items-center justify-center ${request.url_file ? 'hidden' : ''}`}>
+                      <div className={`w-full h-full flex items-center justify-center ${campaign.imageUrl ? 'hidden' : ''}`}>
                         <div className="text-center">
-                          <Droplet className="w-16 h-16 text-red-400 mx-auto mb-2" />
-                          <p className="text-red-600 font-semibold">Permintaan Darah</p>
+                          <Heart className="w-16 h-16 text-red-400 mx-auto mb-2" />
+                          <p className="text-red-600 font-semibold">Campaign Donor Darah</p>
                         </div>
                       </div>
                       
                       {/* Urgency Badge Overlay */}
                       <div className="absolute top-3 right-3">
-                        <div className={`px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg ${getUrgencyColor(request.urgency_level)}`}>
-                          {getUrgencyText(request.urgency_level)}
+                        <div className={`px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg ${getUrgencyColor(campaign.urgencyLevel)}`}>
+                          {getUrgencyText(campaign.urgencyLevel)}
                         </div>
                       </div>
                       
                       {/* Blood Type Badge Overlay */}
                       <div className="absolute top-3 left-3">
-                        <div className={`w-10 h-10 ${getBloodTypeColor(request.blood_type)} rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg`}>
-                          {request.blood_type}
+                        <div className={`w-10 h-10 ${getBloodTypeColor(campaign.bloodType[0])} rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg`}>
+                          {campaign.bloodType[0]}
                         </div>
                       </div>
                       
-                      {/* Quantity Badge Overlay */}
+                      {/* Progress Badge Overlay */}
                       <div className="absolute bottom-3 left-3">
                         <div className="bg-black/70 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                          {request.quantity} Kantong
+                          {campaign.currentDonors || 0}/{campaign.targetDonors || 0} Donor
                         </div>
                       </div>
                     </div>
 
                     {/* Content */}
                     <div className="p-4 space-y-4">
-                      {/* Event Name */}
+                      {/* Campaign Name */}
                       <div>
-                        <h3 className="font-bold text-xl text-gray-900 mb-2">{request.event_name}</h3>
-                        {request.description && (
+                        <h3 className="font-bold text-xl text-gray-900 mb-2">{campaign.title}</h3>
+                        {campaign.description && (
                           <p className="text-sm text-gray-600 overflow-hidden text-ellipsis" style={{
                             display: '-webkit-box',
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: 'vertical'
                           }}>
-                            {request.description}
+                            {campaign.description}
                           </p>
                         )}
                       </div>
 
-                      {/* Patient Info */}
+                      {/* Progress Bar */}
+                      {campaign.targetDonors && (
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Progress Donor</span>
+                            <span className="text-gray-900 font-semibold">
+                              {campaign.currentDonors || 0}/{campaign.targetDonors || 0}
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-gradient-to-r from-red-500 to-red-600 h-2 rounded-full transition-all duration-300"
+                              style={{ 
+                                width: `${getProgress(
+                                  campaign.currentDonors || 0, 
+                                  campaign.targetDonors || 1
+                                )}%` 
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Campaign Info */}
                       <div className="space-y-2">
                         <div className="flex items-center space-x-2">
                           <User className="w-4 h-4 text-gray-500" />
-                          <span className="font-semibold text-gray-900">
-                            {request.patient_name || 'Tidak disebutkan'}
+                          <span className="text-sm text-gray-600">
+                            Organizer: {campaign.organizer.name}
                           </span>
                         </div>
-                        <div className="flex items-start space-x-2">
-                          <AlertTriangle className="w-4 h-4 text-gray-500 mt-0.5" />
-                          <span className="text-sm text-gray-600">{request.diagnosis}</span>
-                        </div>
-                      </div>
-
-                      {/* Hospital Info */}
-                      <div className="space-y-2">
                         <div className="flex items-center space-x-2">
                           <Building2 className="w-4 h-4 text-gray-500" />
-                          <span className="font-medium text-gray-900">{request.hospital.name}</span>
+                          <span className="text-sm text-gray-600">{campaign.hospital}</span>
                         </div>
                         <div className="flex items-start space-x-2">
                           <MapPin className="w-4 h-4 text-gray-500 mt-0.5" />
                           <span className="text-sm text-gray-600">
-                            {request.hospital.city}, {request.hospital.province}
+                            {campaign.location}
                           </span>
-                        </div>
-                      </div>
-
-                      {/* Request Info */}
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <User className="w-4 h-4 text-gray-500" />
-                          <span className="text-sm text-gray-600">
-                            Diminta oleh: {request.user.name}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Phone className="w-4 h-4 text-gray-500" />
-                          <span className="text-sm text-gray-600">{request.user.phone}</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Calendar className="w-4 h-4 text-gray-500" />
                           <span className="text-sm text-gray-600">
-                            {formatDate(request.event_date)}
+                            {formatDate(campaign.deadline)}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Target className="w-4 h-4 text-gray-500" />
+                          <span className="text-sm text-gray-600">
+                            Target: {campaign.targetDonors} donor
                           </span>
                         </div>
                       </div>
 
                       {/* Status */}
                       <div className="flex items-center justify-between">
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(request.status)}`}>
-                          {getStatusText(request.status)}
+                        <span className="px-3 py-1 rounded-full text-sm font-medium border bg-green-100 text-green-800 border-green-200">
+                          Aktif
                         </span>
                         <span className="text-xs text-gray-500">
-                          {formatDate(request.created_at)}
+                          {formatDate(campaign.createdAt)}
                         </span>
                       </div>
                     </div>
 
                     {/* Actions */}
                     <div className="p-4 bg-gray-50 border-t space-y-2">
-                      {/* Edit Button - Only show if user is the request owner */}
-                      {request.user_id === parseInt(localStorage.getItem('userId') || '0') && (
+                      <div className="grid grid-cols-2 gap-2">
                         <button
-                          onClick={() => handleOpenEditRequestModal(request)}
-                          disabled={request.status === 'completed' || request.status === 'canceled'}
-                          className="w-full bg-blue-600 text-white py-2 px-4 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                          onClick={() => handleViewDetails(campaign)}
+                          className="bg-blue-600 text-white py-2 px-4 rounded-xl font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 text-sm"
                         >
-                          <Edit className="w-4 h-4" />
-                          <span>
-                            {request.status === 'completed' ? 'Tidak Dapat Diedit' :
-                             request.status === 'canceled' ? 'Tidak Dapat Diedit' :
-                             'Edit Permintaan'}
-                          </span>
+                          <Eye className="w-4 h-4" />
+                          <span>Detail</span>
                         </button>
-                      )}
+                        
+                        <button
+                          onClick={() => handleDonate(campaign)}
+                          className="bg-red-600 text-white py-2 px-4 rounded-xl font-semibold hover:bg-red-700 transition-colors flex items-center justify-center space-x-2 text-sm"
+                        >
+                          <Heart className="w-4 h-4" />
+                          <span>Daftar</span>
+                        </button>
+                      </div>
                       
-                      <button
-                        onClick={() => handleDonate(request)}
-                        disabled={request.status === 'completed' || request.status === 'canceled'}
-                        className="w-full bg-red-600 text-white py-2 px-4 rounded-xl font-semibold hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                      {/* <button
+                        onClick={() => handleCryptoDonate(campaign)}
+                        className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-2 px-4 rounded-xl font-semibold hover:from-purple-700 hover:to-purple-800 transition-colors flex items-center justify-center space-x-2 text-sm"
                       >
-                        <Heart className="w-4 h-4" />
-                        <span>
-                          {request.status === 'completed' ? 'Sudah Selesai' :
-                           request.status === 'canceled' ? 'Dibatalkan' :
-                           'Saya Bisa Donor'}
-                        </span>
-                      </button>
+                        <Droplet className="w-4 h-4" />
+                        <span>Donasi Crypto</span>
+                      </button> */}
                     </div>
                   </div>
                 </HoverScale>
@@ -843,7 +914,7 @@ const BloodRequestsPage: React.FC = () => {
           </div>
 
           {/* Pagination */}
-          {(bloodRequests.length > 0 || pagination.total_pages > 0) && (
+          {(campaigns.length > 0 || pagination.total_pages > 0) && (
             <FadeIn direction="up" delay={0.4}>
               {/* Limit Per Page Dropdown */}
               <div className="flex items-center justify-end mb-2">
@@ -865,7 +936,7 @@ const BloodRequestsPage: React.FC = () => {
               </div>
               {/* Pagination Info */}
               <div className="mt-2 text-center text-sm text-gray-600">
-                Menampilkan {bloodRequests.length} dari {pagination.total_items} permintaan 
+                Menampilkan {campaigns.length} dari {pagination.total_items} campaign 
                 (Halaman {paginationState.page} dari {Math.max(pagination.total_pages, 1)})
               </div>
 
@@ -929,17 +1000,17 @@ const BloodRequestsPage: React.FC = () => {
           )}
 
           {/* Empty State */}
-          {bloodRequests.length === 0 && !loading && (
+          {campaigns.length === 0 && !loading && (
             <FadeIn direction="up" delay={0.3}>
               <div className="text-center py-12">
-                <Droplet className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <Heart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Tidak Ada Permintaan Ditemukan
+                  Tidak Ada Campaign Ditemukan
                 </h3>
                 <p className="text-gray-600 mb-6">
                   {Object.values(filters).some(value => value !== '')
                     ? 'Coba ubah filter atau kata kunci pencarian'
-                    : 'Belum ada permintaan darah saat ini'}
+                    : 'Belum ada campaign saat ini'}
                 </p>
                 <div className="flex justify-center space-x-4">
                   {Object.values(filters).some(value => value !== '') ? (
@@ -951,11 +1022,11 @@ const BloodRequestsPage: React.FC = () => {
                     </button>
                   ) : (
                     <button
-                      onClick={handleCreateBloodRequest}
+                      onClick={handleCreateCampaign}
                       className="inline-flex items-center space-x-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transition-colors"
                     >
                       <Plus className="w-5 h-5" />
-                      <span>Buat Permintaan Pertama</span>
+                      <span>Buat Campaign Pertama</span>
                     </button>
                   )}
                 </div>
@@ -965,16 +1036,27 @@ const BloodRequestsPage: React.FC = () => {
         </div>
       </div>
       <Footer />
-      {selectedRequest && (
-        <EditBloodRequestModal
-          isOpen={editRequestModalOpen}
-          onClose={handleCloseEditRequestModal}
-          onSuccess={handleEditSuccess}
-          bloodRequest={selectedRequest}
-        />
+      
+      {/* Modals */}
+      {selectedCampaign && (
+        <>
+          <DonorConfirmationModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            campaign={selectedCampaign}
+            onConfirm={handleDonorRegistration}
+          />
+
+          <CryptoDonationModal
+            isOpen={isCryptoModalOpen}
+            onClose={() => setIsCryptoModalOpen(false)}
+            campaign={selectedCampaign}
+            onSuccess={handleCryptoDonationSuccess}
+          />
+        </>
       )}
     </>
   );
 };
 
-export default BloodRequestsPage;
+export default CampaignsPage; 

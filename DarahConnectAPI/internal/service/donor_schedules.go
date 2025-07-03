@@ -51,10 +51,10 @@ func (s *donorScheduleService) Create(ctx context.Context, req dto.DonorSchedule
 	donorSchedule.Description = req.Description
 	donorSchedule.Status = "upcoming"
 
-	if existing, _ := s.donorScheduleRepository.GetByRequestId(ctx, req.RequestId); existing != nil {
+	if existing, _ := s.donorScheduleRepository.Validate(ctx, req.RequestId, req.UserId); existing != nil {
 		return errors.New("Anda sudah pernah membuat jadwal donor")
 	}
-	
+
 	if err := s.donorScheduleRepository.Create(ctx, donorSchedule); err != nil {
 		return errors.New("Gagal membuat jadwal donor")
 	}

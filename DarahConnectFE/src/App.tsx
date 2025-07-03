@@ -40,6 +40,10 @@ const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const OAuthCallbackPage = lazy(() => import('./pages/OAuthCallbackPage'));
 const BloodDonationHistoryPage = lazy(() => import('./pages/BloodDonationHistoryPage'));
+const DonorRegistrationPage = lazy(() => import('./pages/DonorRegistrationPage'));
+
+// Lazy-loaded Pages
+const CampaignsPageFull = lazy(() => import('./pages/CampaignsPage'));
 
 // Lazy-loaded Admin Pages
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
@@ -99,13 +103,27 @@ const HomePage: React.FC = () => {
           duration: 5000
         });
       }
-    } catch (error) {
-      addNotification({
-        type: 'error',
-        title: 'Error',
-        message: 'Terjadi kesalahan sistem. Silakan coba lagi nanti.',
-        duration: 5000
-      });
+    } catch (error: any) {
+      // Check if error is related to missing health passport
+      const errorMessage = error?.message || error?.toString() || '';
+      if (errorMessage.includes('health passport') || errorMessage.includes('Health passport')) {
+        addNotification({
+          type: 'error',
+          title: 'Menyimpan Gagal',
+          message: 'Anda belum memiliki health passport, silahkan untuk mengisi health passport terlebih dahulu',
+          duration: 5000
+        });
+        setTimeout(() => {
+          navigate('/health-passport');
+        }, 5000);
+      } else {
+        addNotification({
+          type: 'error',
+          title: 'Error',
+          message: 'Terjadi kesalahan sistem. Silakan coba lagi nanti.',
+          duration: 5000
+        });
+      }
     }
   };
 
@@ -184,125 +202,7 @@ const HomePage: React.FC = () => {
   );
 };
 
-// Campaigns Page Component with Lazy Loading Support
-const CampaignsPage: React.FC = () => {
-  const navigate = useNavigate();
-  const campaignService = useCampaignService();
-  const { addNotification } = useNotification();
-  const [campaigns, setCampaigns] = useState<BloodCampaign[]>([]);
-  const [campaignsLoading, setCampaignsLoading] = useState(true);
-  const [selectedCampaign, setSelectedCampaign] = useState<BloodCampaign | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isCryptoModalOpen, setIsCryptoModalOpen] = useState(false);
 
-  const handleViewDetails = (campaign: BloodCampaign) => {
-    navigate(`/campaigns/${campaign.id}`);
-  };
-
-  const handleDonate = (campaign: BloodCampaign) => {
-    setSelectedCampaign(campaign);
-    setIsModalOpen(true);
-  };
-
-  const handleDonorRegistration = async (notes: string) => {
-    if (!selectedCampaign) return;
-
-    try {
-      const success = await campaignService.registerAsDonor(Number(selectedCampaign.id), notes);
-      if (success) {
-        addNotification({
-          type: 'success',
-          title: 'Pendaftaran Berhasil!',
-          message: 'Anda telah berhasil mendaftar sebagai donor. Tim akan menghubungi Anda segera.',
-          duration: 5000
-        });
-        // Refresh campaign data to update donor count
-        const campaignData = await campaignService.fetchCampaigns();
-        setCampaigns(campaignData);
-      } else {
-        addNotification({
-          type: 'error',
-          title: 'Pendaftaran Gagal',
-          message: 'Terjadi kesalahan saat mendaftar sebagai donor. Silakan coba lagi.',
-          duration: 5000
-        });
-      }
-    } catch (error) {
-      addNotification({
-        type: 'error',
-        title: 'Error',
-        message: 'Terjadi kesalahan sistem. Silakan coba lagi nanti.',
-        duration: 5000
-      });
-    }
-  };
-
-  const handleCryptoDonate = (campaign: BloodCampaign) => {
-    setSelectedCampaign(campaign);
-    setIsCryptoModalOpen(true);
-  };
-
-  const handleCryptoDonationSuccess = (txHash: string) => {
-    console.log('Crypto donation successful:', txHash);
-    alert(`Donasi crypto berhasil! Transaction Hash: ${txHash}`);
-    setIsCryptoModalOpen(false);
-  };
-
-  // Load campaigns from API
-  React.useEffect(() => {
-    const loadCampaigns = async () => {
-      setCampaignsLoading(true);
-      try {
-        const campaignData = await campaignService.fetchCampaigns();
-        setCampaigns(campaignData);
-      } catch (error) {
-        console.error('Failed to load campaigns:', error);
-      } finally {
-        setCampaignsLoading(false);
-      }
-    };
-
-    loadCampaigns();
-  }, []);
-
-  return (
-    <>
-      <WalletConnectBanner />
-      <Header />
-      <div className="min-h-screen bg-gray-50 pt-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Semua Campaign Donor Darah</h1>
-            <p className="text-gray-600">Temukan campaign yang membutuhkan bantuan Anda</p>
-          </div>
-          <Suspense fallback={<CampaignListLoader />}>
-            <CampaignsList
-              campaigns={campaigns}
-              onViewDetails={handleViewDetails}
-              onDonate={handleDonate}
-              onCryptoDonate={handleCryptoDonate}
-            />
-          </Suspense>
-        </div>
-      </div>
-      <Footer />
-
-      <DonorConfirmationModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        campaign={selectedCampaign}
-        onConfirm={handleDonorRegistration}
-      />
-
-      <CryptoDonationModal
-        isOpen={isCryptoModalOpen}
-        onClose={() => setIsCryptoModalOpen(false)}
-        campaign={selectedCampaign}
-        onSuccess={handleCryptoDonationSuccess}
-      />
-    </>
-  );
-};
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -364,7 +264,11 @@ function App() {
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<HomePage />} />
-              <Route path="/campaigns" element={<CampaignsPage />} />
+              <Route path="/campaigns" element={
+                <Suspense fallback={<PageLoader />}>
+                  <CampaignsPageFull />
+                </Suspense>
+              } />
               <Route path="/campaigns/:id" element={
                 <Layout>
                   <Suspense fallback={<PageLoader />}>
@@ -493,6 +397,13 @@ function App() {
                 <ProtectedRoute>
                   <Suspense fallback={<PageLoader />}>
                     <HealthPassportPage />
+                  </Suspense>
+                </ProtectedRoute>
+              } />
+              <Route path="/donor-registration" element={
+                <ProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <DonorRegistrationPage />
                   </Suspense>
                 </ProtectedRoute>
               } />

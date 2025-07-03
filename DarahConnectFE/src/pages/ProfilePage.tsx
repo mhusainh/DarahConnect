@@ -53,8 +53,8 @@ interface UserProfile {
 }
 
 interface EditableProfile {
-  name: string;
-  email: string;
+  name: string; // Read-only, not editable
+  email: string; // Read-only, not editable
   phone: string;
   blood_type: string;
   address: string;
@@ -173,7 +173,6 @@ const ProfilePage: React.FC = () => {
       
       // Prepare form data
       const formData = new FormData();
-      formData.append('name', editedProfile.name);
       formData.append('gender', editedProfile.gender);
       formData.append('phone', editedProfile.phone);
       formData.append('birth_date', formattedBirthDate);
@@ -566,16 +565,7 @@ const ProfilePage: React.FC = () => {
                             <User className="w-4 h-4 inline mr-2" />
                             Nama Lengkap
                           </label>
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              value={editedProfile.name}
-                              onChange={(e) => handleInputChange('name', e.target.value)}
-                              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
-                            />
-                          ) : (
-                            <p className="text-lg font-semibold text-gray-900">{profileData?.name || 'Loading...'}</p>
-                          )}
+                          <p className="text-lg font-semibold text-gray-900">{profileData?.name || 'Loading...'}</p>
                         </div>
 
                         <div>
@@ -583,16 +573,7 @@ const ProfilePage: React.FC = () => {
                             <Mail className="w-4 h-4 inline mr-2" />
                             Email
                           </label>
-                          {isEditing ? (
-                            <input
-                              type="email"
-                              value={editedProfile.email}
-                              onChange={(e) => handleInputChange('email', e.target.value)}
-                              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
-                            />
-                          ) : (
-                            <p className="text-gray-900">{profileData?.email || 'Loading...'}</p>
-                          )}
+                          <p className="text-gray-900">{profileData?.email || 'Loading...'}</p>
                         </div>
 
                         <div>
