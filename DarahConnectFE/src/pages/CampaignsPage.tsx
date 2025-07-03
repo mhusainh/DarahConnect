@@ -899,13 +899,13 @@ const CampaignsPage: React.FC = () => {
                         </button>
                       </div>
                       
-                      <button
+                      {/* <button
                         onClick={() => handleCryptoDonate(campaign)}
                         className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-2 px-4 rounded-xl font-semibold hover:from-purple-700 hover:to-purple-800 transition-colors flex items-center justify-center space-x-2 text-sm"
                       >
                         <Droplet className="w-4 h-4" />
                         <span>Donasi Crypto</span>
-                      </button>
+                      </button> */}
                     </div>
                   </div>
                 </HoverScale>
