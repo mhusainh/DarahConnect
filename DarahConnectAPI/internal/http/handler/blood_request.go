@@ -269,7 +269,7 @@ func (h *BloodRequestHandler) UpdateBloodRequest(ctx echo.Context) error {
 		if bloodRequest.Status == "Completed" || bloodRequest.Status == "Verified" {
 			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Permintaan Sudah tidak bisa diupdate"))
 		}
-		if req.Status != "Canceled" {
+		if req.Status != "" && req.Status != "Canceled" {
 			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Kamu hanya bisa membatalkan permintaan"))
 		}
 	}

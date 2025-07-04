@@ -26,9 +26,9 @@ func NewHospitalService(hospitalRepository repository.HospitalRepository) Hospit
 }
 
 func (s *hospitalService) GetAll(ctx context.Context, req dto.GetAllHospitalRequest) ([]entity.Hospital, int64, error) {
-	hospitals, total, err := s.hospitalRepository.GetAll(ctx, dto.GetAllHospitalRequest{})
+	hospitals, total, err := s.hospitalRepository.GetAll(ctx, req)
 	if err != nil {
-		return nil, 0, errors.New("Gagal mendapatkan daftar rumah sakit")
+		return nil, 0, errors.New("Gagal mendapatkan daftar rumah sakit" + err.Error())
 	}
 	return hospitals, total, nil
 }

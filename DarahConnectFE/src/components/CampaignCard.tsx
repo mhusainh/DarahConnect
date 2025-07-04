@@ -114,9 +114,9 @@ const CampaignCard: React.FC<CampaignCardProps> = ({
   return (
     <FadeIn direction="up" delay={0.1}>
       <HoverScale scale={1.02} duration={0.3}>
-        <div className="bg-white rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden h-full flex flex-col">
           {/* Image */}
-          <div className="relative h-48 overflow-hidden bg-gradient-to-br from-red-100 to-red-200">
+          <div className="relative h-48 overflow-hidden bg-gradient-to-br from-red-100 to-red-200 flex-shrink-0">
             {campaign.url_file ? (
               <img 
                 src={campaign.url_file} 
@@ -161,87 +161,69 @@ const CampaignCard: React.FC<CampaignCardProps> = ({
           </div>
 
           {/* Content */}
-          <div className="p-6">
+          <div className="p-6 flex-grow flex flex-col">
             {/* Title */}
-            <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 hover:text-primary-600 transition-colors">
+            <h3 className="text-lg font-bold text-gray-900 mb-3 overflow-hidden" style={{
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical'
+            }}>
               {campaign.title}
             </h3>
 
-            {/* Organizer */}
-            <div className="flex items-center mb-3">
-              <HoverScale scale={1.1} duration={0.2}>
-                <img 
-                  src={campaign.organizer.avatar} 
-                  alt={campaign.organizer.name}
-                  className="w-8 h-8 rounded-full mr-3"
-                />
-              </HoverScale>
-              <div>
-                <div className="flex items-center">
-                  <span className="text-sm font-medium text-gray-900">{campaign.organizer.name}</span>
-                  {campaign.organizer.verified && (
-                    <CheckCircleIcon className="w-4 h-4 text-blue-500 ml-1" />
-                  )}
-                </div>
-              </div>
-            </div>
+
 
             {/* Description */}
-            <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+            <p className="text-gray-600 text-sm mb-4 h-12 overflow-hidden" style={{
+              display: '-webkit-box',
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical'
+            }}>
               {campaign.description}
             </p>
 
             {/* Info */}
-            <div className="space-y-2 mb-4">
-              <div className="flex items-center text-sm text-gray-600 hover:text-gray-800 transition-colors">
-                <MapPinIcon className="w-4 h-4 mr-2 text-gray-400" />
-                {campaign.hospital}, {campaign.location}
+            <div className="space-y-2 mb-4 flex-grow">
+              <div className="flex items-center text-sm text-gray-600">
+                <MapPinIcon className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
+                <span className="truncate">{campaign.hospital}, {campaign.location}</span>
               </div>
-              <div className="flex items-center text-sm text-gray-600 hover:text-gray-800 transition-colors">
-                <PhoneIcon className="w-4 h-4 mr-2 text-gray-400" />
-                {campaign.contactPerson} - {campaign.contactPhone}
-              </div>
-              <div className="flex items-center text-sm text-gray-600 hover:text-gray-800 transition-colors">
-                <CalendarIcon className="w-4 h-4 mr-2 text-gray-400" />
-                Deadline: {new Date(campaign.deadline).toLocaleDateString('id-ID')}
+              <div className="flex items-center text-sm text-gray-600">
+                <CalendarIcon className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
+                <span>Deadline: {new Date(campaign.deadline).toLocaleDateString('id-ID')}</span>
               </div>
             </div>
 
             {/* Blood Types */}
-            <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-2">Golongan darah yang dibutuhkan:</p>
-              <div className="flex flex-wrap gap-2">
+            <div className="mb-4 flex-shrink-0">
+              <p className="text-sm text-gray-600 mb-2">Golongan darah:</p>
+              <div className="flex flex-wrap gap-1">
                 {campaign.bloodType.map((type, index) => (
-                  <HoverScale key={index} scale={1.05} duration={0.2}>
-                    <span className="bg-primary-100 text-primary-800 px-2 py-1 rounded-full text-xs font-medium hover:bg-primary-200 transition-colors cursor-default">
-                      {type}
-                    </span>
-                  </HoverScale>
+                  <span key={index} className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-medium">
+                    {type}
+                  </span>
                 ))}
               </div>
             </div>
 
             {/* Progress */}
-            <div className="mb-4">
+            <div className="mb-4 flex-shrink-0">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-medium text-gray-900">Progress Donor</span>
                 <span className="text-sm text-gray-600">
-                  {campaign.currentDonors}/{campaign.targetDonors} donor
+                  {campaign.currentDonors}/{campaign.targetDonors}
                 </span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+              <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
                 <div 
-                  className="bg-gradient-to-r from-primary-500 to-primary-600 h-3 rounded-full transition-all duration-1000 ease-out"
+                  className="bg-gradient-to-r from-red-500 to-red-600 h-2.5 rounded-full transition-all duration-1000 ease-out"
                   style={{ width: `${Math.min(progress, 100)}%` }}
                 ></div>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                {progress.toFixed(1)}% tercapai
-              </p>
             </div>
 
             {/* Actions */}
-            <div className="space-y-3">
+            <div className="space-y-3 mt-auto pt-4">
               {/* Primary Actions */}
               <div className="flex gap-3">
                 <RippleEffect 

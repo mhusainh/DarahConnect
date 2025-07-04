@@ -28,9 +28,11 @@ type HospitalGetByIdRequest struct {
 }
 
 type GetAllHospitalRequest struct {
-	Page   int64  `query:"page" `
-	Limit  int64  `query:"limit" `
-	Search string `query:"search"`
-	Sort   string `query:"sort"`
-	Order  string `query:"order"`
+	Page     int64  `query:"page" `
+	Limit    int64  `query:"limit" `
+	Search   string `query:"search"`
+	Sort     string `query:"sort"`
+	Order    string `query:"order"`
+	Province string `query:"province"`
+	City     string `query:"city"`
 }

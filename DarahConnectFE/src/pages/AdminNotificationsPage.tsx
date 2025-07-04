@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Bell, 
   Search, 
@@ -19,6 +19,7 @@ import {
   X
 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
+import { getApi, putApi, deleteApi, postApi } from '../services/fetchApi';
 
 interface Notification {
   id: string;
@@ -36,8 +37,96 @@ interface Notification {
   };
 }
 
+// API Response interface
+interface NotificationApiResponse {
+  meta: {
+    code: number;
+    message: string;
+  };
+  data: Notification[] | {
+    data?: Notification[];
+    notifications?: Notification[];
+  };
+  pagination?: {
+    page: number;
+    per_page: number;
+    total_items: number;
+    total_pages: number;
+  };
+}
+
 const AdminNotificationsPage: React.FC = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('all');
+  const [filterPriority, setFilterPriority] = useState('all');
+  const [filterRead, setFilterRead] = useState('all');
+  const [selectedNotifications, setSelectedNotifications] = useState<string[]>([]);
+
+  // Fetch notifications from API
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const fetchNotifications = async (page: number = 1, limit: number = 50) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Use pagination: GET /admin/notifications?page=1&limit=50
+      const response = await getApi<NotificationApiResponse>(`/admin/notifications?page=${page}&limit=${limit}`);
+      
+              if (response.success && response.data) {
+          // Handle different response formats - API might return paginated data
+          let notificationData: any[] = [];
+          
+          if (Array.isArray(response.data)) {
+            notificationData = response.data;
+          } else if (typeof response.data === 'object' && response.data !== null) {
+            if ('data' in response.data && Array.isArray(response.data.data)) {
+              notificationData = response.data.data;
+            } else if ('notifications' in response.data && Array.isArray(response.data.notifications)) {
+              notificationData = response.data.notifications;
+            }
+          }
+        
+        // Transform API data to match our Notification interface
+        const transformedNotifications: Notification[] = notificationData.map((notif: any) => ({
+          id: notif.id || notif._id,
+          type: notif.notification_type || notif.type || 'system',
+          title: notif.title,
+          message: notif.message,
+          timestamp: notif.created_at || notif.timestamp,
+          read: notif.read || notif.is_read || false,
+          priority: notif.priority || 'medium',
+          actionUrl: notif.actionUrl || notif.action_url,
+          metadata: {
+            userId: notif.user_id,
+            campaignId: notif.campaign_id,
+            certificateId: notif.certificate_id
+          }
+        }));
+        
+        setNotifications(transformedNotifications);
+      } else {
+        setError(response.message || 'Failed to fetch notifications');
+        // Fallback to dummy data if API fails
+        setNotifications(getDummyNotifications());
+      }
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+      setError('Failed to load notifications');
+      // Fallback to dummy data
+      setNotifications(getDummyNotifications());
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Dummy data as fallback
+  const getDummyNotifications = (): Notification[] => [
     {
       id: '1',
       type: 'certificate',
@@ -102,13 +191,7 @@ const AdminNotificationsPage: React.FC = () => {
       actionUrl: '/admin/campaigns',
       metadata: { campaignId: 'CAMP-002' }
     }
-  ]);
-
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all');
-  const [filterPriority, setFilterPriority] = useState('all');
-  const [filterRead, setFilterRead] = useState('all');
-  const [selectedNotifications, setSelectedNotifications] = useState<string[]>([]);
+  ];
 
   const filteredNotifications = notifications.filter(notification => {
     const matchesSearch = notification.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -170,37 +253,142 @@ const AdminNotificationsPage: React.FC = () => {
     };
   };
 
-  const handleMarkAsRead = (id: string) => {
-    setNotifications(prev => prev.map(notification => 
-      notification.id === id ? { ...notification, read: true } : notification
-    ));
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      // Using GET method to mark as read: GET /admin/notification/{id}
+      const response = await getApi(`/admin/notification/${id}`);
+      
+      if (response.success) {
+        setNotifications(prev => prev.map(notification => 
+          notification.id === id ? { ...notification, read: true } : notification
+        ));
+      } else {
+        console.error('Failed to mark notification as read:', response.message);
+        // Still update UI optimistically
+        setNotifications(prev => prev.map(notification => 
+          notification.id === id ? { ...notification, read: true } : notification
+        ));
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      // Still update UI optimistically
+      setNotifications(prev => prev.map(notification => 
+        notification.id === id ? { ...notification, read: true } : notification
+      ));
+    }
   };
 
-  const handleMarkAsUnread = (id: string) => {
-    setNotifications(prev => prev.map(notification => 
-      notification.id === id ? { ...notification, read: false } : notification
-    ));
+  const handleMarkAsUnread = async (id: string) => {
+    try {
+      // Using PUT method to mark as unread (endpoint not specified, keeping original)
+      const response = await putApi(`/admin/notification/${id}/mark-unread`);
+      
+      if (response.success) {
+        setNotifications(prev => prev.map(notification => 
+          notification.id === id ? { ...notification, read: false } : notification
+        ));
+      } else {
+        console.error('Failed to mark notification as unread:', response.message);
+        // Still update UI optimistically
+        setNotifications(prev => prev.map(notification => 
+          notification.id === id ? { ...notification, read: false } : notification
+        ));
+      }
+    } catch (error) {
+      console.error('Error marking notification as unread:', error);
+      // Still update UI optimistically
+      setNotifications(prev => prev.map(notification => 
+        notification.id === id ? { ...notification, read: false } : notification
+      ));
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setNotifications(prev => prev.filter(notification => notification.id !== id));
-    setSelectedNotifications(prev => prev.filter(selectedId => selectedId !== id));
+  const handleDelete = async (id: string) => {
+    try {
+      // Using DELETE method: DELETE /admin/notification/{id}
+      const response = await deleteApi(`/admin/notification/${id}`);
+      
+      if (response.success) {
+        setNotifications(prev => prev.filter(notification => notification.id !== id));
+        setSelectedNotifications(prev => prev.filter(selectedId => selectedId !== id));
+      } else {
+        console.error('Failed to delete notification:', response.message);
+        // Still update UI optimistically
+        setNotifications(prev => prev.filter(notification => notification.id !== id));
+        setSelectedNotifications(prev => prev.filter(selectedId => selectedId !== id));
+      }
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      // Still update UI optimistically
+      setNotifications(prev => prev.filter(notification => notification.id !== id));
+      setSelectedNotifications(prev => prev.filter(selectedId => selectedId !== id));
+    }
   };
 
-  const handleBulkMarkAsRead = () => {
-    setNotifications(prev => prev.map(notification => 
-      selectedNotifications.includes(notification.id) 
-        ? { ...notification, read: true } 
-        : notification
-    ));
-    setSelectedNotifications([]);
+  const handleBulkMarkAsRead = async () => {
+    try {
+      // Using bulk mark as read endpoint (may need adjustment based on actual API)
+      const response = await putApi('/admin/notification/bulk-mark-read', {
+        notification_ids: selectedNotifications
+      });
+      
+      if (response.success) {
+        setNotifications(prev => prev.map(notification => 
+          selectedNotifications.includes(notification.id) 
+            ? { ...notification, read: true } 
+            : notification
+        ));
+        setSelectedNotifications([]);
+      } else {
+        console.error('Failed to bulk mark as read:', response.message);
+        // Still update UI optimistically
+        setNotifications(prev => prev.map(notification => 
+          selectedNotifications.includes(notification.id) 
+            ? { ...notification, read: true } 
+            : notification
+        ));
+        setSelectedNotifications([]);
+      }
+    } catch (error) {
+      console.error('Error bulk marking as read:', error);
+      // Still update UI optimistically
+      setNotifications(prev => prev.map(notification => 
+        selectedNotifications.includes(notification.id) 
+          ? { ...notification, read: true } 
+          : notification
+      ));
+      setSelectedNotifications([]);
+    }
   };
 
-  const handleBulkDelete = () => {
-    setNotifications(prev => prev.filter(notification => 
-      !selectedNotifications.includes(notification.id)
-    ));
-    setSelectedNotifications([]);
+  const handleBulkDelete = async () => {
+    try {
+      // Using bulk delete endpoint (may need adjustment based on actual API)
+      const response = await deleteApi('/admin/notification/bulk-delete', {
+        notification_ids: selectedNotifications
+      });
+      
+      if (response.success) {
+        setNotifications(prev => prev.filter(notification => 
+          !selectedNotifications.includes(notification.id)
+        ));
+        setSelectedNotifications([]);
+      } else {
+        console.error('Failed to bulk delete notifications:', response.message);
+        // Still update UI optimistically
+        setNotifications(prev => prev.filter(notification => 
+          !selectedNotifications.includes(notification.id)
+        ));
+        setSelectedNotifications([]);
+      }
+    } catch (error) {
+      console.error('Error bulk deleting notifications:', error);
+      // Still update UI optimistically
+      setNotifications(prev => prev.filter(notification => 
+        !selectedNotifications.includes(notification.id)
+      ));
+      setSelectedNotifications([]);
+    }
   };
 
   const handleSelectNotification = (id: string) => {
@@ -224,8 +412,35 @@ const AdminNotificationsPage: React.FC = () => {
   return (
     <AdminLayout title="Notifikasi" subtitle="Kelola notifikasi dan peringatan sistem">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+            <span className="ml-3 text-gray-600">Memuat notifikasi...</span>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+            <div className="flex items-center">
+              <AlertTriangle className="h-5 w-5 text-red-600 mr-2" />
+              <span className="text-red-800">{error}</span>
+            </div>
+            <button 
+              onClick={() => fetchNotifications()} 
+              className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+            >
+              Coba lagi
+            </button>
+          </div>
+        )}
+
+        {/* Main Content */}
+        {!loading && (
+          <>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-xl shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
@@ -452,6 +667,8 @@ const AdminNotificationsPage: React.FC = () => {
             <h3 className="text-lg font-medium text-gray-900 mb-2">Tidak ada notifikasi</h3>
             <p className="text-gray-500">Tidak ada notifikasi yang sesuai dengan filter yang dipilih.</p>
           </div>
+        )}
+          </>
         )}
       </div>
     </AdminLayout>

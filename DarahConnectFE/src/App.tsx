@@ -34,6 +34,7 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const EmailVerificationPage = lazy(() => import('./pages/EmailVerificationPage'));
 const CreateBloodRequestPage = lazy(() => import('./pages/CreateBloodRequestPage'));
 const BloodRequestsPage = lazy(() => import('./pages/BloodRequestsPage'));
+const BloodRequestDetailPage = lazy(() => import('./pages/BloodRequestDetailPage'));
 const MyBloodRequestsPage = lazy(() => import('./pages/MyBloodRequestsPage'));
 const HealthPassportPage = lazy(() => import('./pages/HealthPassportPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
@@ -57,6 +58,7 @@ const AdminReportsPage = lazy(() => import('./pages/AdminReportsPage'));
 const AdminSettingsPage = lazy(() => import('./pages/AdminSettingsPage'));
 const AdminProfilePage = lazy(() => import('./pages/AdminProfilePage'));
 const AdminNotificationsPage = lazy(() => import('./pages/AdminNotificationsPage'));
+const AdminDonationsPage = lazy(() => import('./pages/AdminDonationsPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 
 // Homepage Component
@@ -296,6 +298,13 @@ function App() {
                   <BloodRequestsPage />
                 </Suspense>
               } />
+              <Route path="/blood-requests/:id" element={
+                <Layout>
+                  <Suspense fallback={<PageLoader />}>
+                    <BloodRequestDetailPage />
+                  </Suspense>
+                </Layout>
+              } />
               <Route path="/login" element={
                 <Suspense fallback={<PageLoader />}>
                   <LoginPage />
@@ -476,6 +485,13 @@ function App() {
                 <AdminProtectedRoute>
                   <Suspense fallback={<PageLoader />}>
                     <AdminNotificationsPage />
+                  </Suspense>
+                </AdminProtectedRoute>
+              } />
+              <Route path="/admin/donations" element={
+                <AdminProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <AdminDonationsPage />
                   </Suspense>
                 </AdminProtectedRoute>
               } />

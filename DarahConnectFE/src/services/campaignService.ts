@@ -3,11 +3,12 @@ import { CampaignApiResponse, BloodCampaign as ApiCampaign } from '../types/inde
 import { BloodCampaign } from '../types';
 import { adaptCampaignsFromApi, adaptCampaignFromApi } from './campaignAdapter';
 import { debugConsole } from '../config/api';
+import { useNavigate } from 'react-router-dom';
 
 
 export const useCampaignService = () => {
   const api = useApi();
-
+  const navigate = useNavigate();
   const fetchCampaigns = async (): Promise<BloodCampaign[]> => {
     try {
       const response = await api.get('/campaign');
@@ -161,7 +162,11 @@ export const useCampaignService = () => {
       });
       
       if (donorResponse.success) {
+        // Use window.location instead of navigate since this is a service
         debugConsole.success(`Successfully completed donor now with schedule for request ID: ${requestId}`);
+        setTimeout(() => {
+          navigate('/donor-registration');
+        }, 2000);
         return true;
       } else {
         debugConsole.error('Donor registration failed in donor now process', donorResponse.error);

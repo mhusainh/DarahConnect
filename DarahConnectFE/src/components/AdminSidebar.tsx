@@ -66,6 +66,12 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) => {
       path: '/admin/health-passports',
       description: 'Kelola Health Passport'
     },
+    {
+      title: 'Riwayat Donasi',
+      icon: CreditCard,
+      path: '/admin/donations',
+      description: 'Kelola Riwayat Donasi'
+    },
     
   ];
 

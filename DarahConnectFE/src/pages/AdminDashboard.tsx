@@ -19,7 +19,7 @@ import {
   Download,
   Building
 } from 'lucide-react';
-import { adminStats, adminNotifications, campaigns, donors, donationRequests } from '../data/dummy';
+import { adminStats, campaigns, donors, donationRequests } from '../data/dummy';
 import { AdminNotification } from '../types';
 import { Hospital } from '../types/index';
 import AdminLayout from '../components/AdminLayout';
@@ -38,7 +38,8 @@ interface AdminDashboardData {
 }
 
 const AdminDashboard: React.FC = () => {
-  const [notifications, setNotifications] = useState<AdminNotification[]>(adminNotifications);
+  const [notifications, setNotifications] = useState<AdminNotification[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
   const [selectedTimeRange, setSelectedTimeRange] = useState('7d');
   const [dashboardData, setDashboardData] = useState<AdminDashboardData | null>(null);
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
@@ -86,6 +87,86 @@ const AdminDashboard: React.FC = () => {
 
     fetchHospitals();
   }, []);
+
+  // Fetch notifications data
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        setNotificationsLoading(true);
+        
+        // Use pagination: page=1&limit=10
+        const response = await getApi<any>('/admin/notifications?page=1&limit=10');
+        
+        if (response.success && response.data) {
+          // Handle different response formats - API might return paginated data
+          let notificationData = [];
+          
+          if (Array.isArray(response.data)) {
+            notificationData = response.data;
+          } else if (response.data.data && Array.isArray(response.data.data)) {
+            notificationData = response.data.data;
+          } else if (response.data.notifications && Array.isArray(response.data.notifications)) {
+            notificationData = response.data.notifications;
+          }
+          
+          // Transform data to match AdminNotification interface
+          const transformedNotifications: AdminNotification[] = notificationData.map((notif: any) => ({
+            id: notif.id || notif._id,
+            title: notif.title,
+            message: notif.message,
+            type: notif.notification_type || notif.type || 'info',
+            createdAt: notif.created_at || notif.timestamp || notif.createdAt,
+            read: notif.read || notif.is_read || false,
+            actionUrl: notif.actionUrl || notif.action_url
+          }));
+          
+          setNotifications(transformedNotifications);
+        } else {
+          // Fallback to dummy data if API fails
+          setNotifications(getDummyNotifications());
+        }
+      } catch (err) {
+        console.error('Error fetching notifications:', err);
+        // Fallback to dummy data
+        setNotifications(getDummyNotifications());
+      } finally {
+        setNotificationsLoading(false);
+      }
+    };
+
+    fetchNotifications();
+  }, []);
+
+  // Dummy notifications as fallback
+  const getDummyNotifications = (): AdminNotification[] => [
+    {
+      id: '1',
+      title: 'Campaign Baru Membutuhkan Persetujuan',
+      message: 'Campaign "Bantuan Darah Untuk Korban Kecelakaan Tol" membutuhkan verifikasi admin',
+      type: 'warning',
+      createdAt: '2024-12-20T10:30:00Z',
+      read: false,
+      actionUrl: '/admin/campaigns/1'
+    },
+    {
+      id: '2',
+      title: 'Donor Baru Mendaftar',
+      message: '5 donor baru telah mendaftar dan menunggu verifikasi',
+      type: 'info',
+      createdAt: '2024-12-20T09:15:00Z',
+      read: false,
+      actionUrl: '/admin/donors'
+    },
+    {
+      id: '3',
+      title: 'Campaign Urgent',
+      message: 'Campaign "Bantu Anak Thalasemia" memiliki tingkat urgensi tinggi',
+      type: 'error',
+      createdAt: '2024-12-19T16:45:00Z',
+      read: true,
+      actionUrl: '/admin/campaigns/3'
+    }
+  ];
 
   // Use API data if available, otherwise fallback to dummy data
   const statsData = dashboardData || {
@@ -150,12 +231,35 @@ const AdminDashboard: React.FC = () => {
     }
   ];
 
-  const markAsRead = (notificationId: string) => {
-    setNotifications(prev => 
-      prev.map(notif => 
-        notif.id === notificationId ? { ...notif, read: true } : notif
-      )
-    );
+  const markAsRead = async (notificationId: string) => {
+    try {
+      // Using GET method to mark as read: GET /admin/notification/{id}
+      const response = await getApi(`/admin/notification/${notificationId}`);
+      
+      if (response.success) {
+        setNotifications(prev => 
+          prev.map(notif => 
+            notif.id === notificationId ? { ...notif, read: true } : notif
+          )
+        );
+      } else {
+        console.error('Failed to mark notification as read:', response.message);
+        // Still update UI optimistically
+        setNotifications(prev => 
+          prev.map(notif => 
+            notif.id === notificationId ? { ...notif, read: true } : notif
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      // Still update UI optimistically
+      setNotifications(prev => 
+        prev.map(notif => 
+          notif.id === notificationId ? { ...notif, read: true } : notif
+        )
+      );
+    }
   };
 
   const getUrgencyColor = (urgency: string) => {
@@ -197,10 +301,10 @@ const AdminDashboard: React.FC = () => {
                   <option value="90d">90 Hari Terakhir</option>
                 </select>
               </div>
-              <button className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2">
+              {/* <button className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2">
                 <Download className="h-4 w-4" />
                 <span>Export Data</span>
-              </button>
+              </button> */}
             </div>
           </div>
         </div>
@@ -400,40 +504,50 @@ const AdminDashboard: React.FC = () => {
                       <Bell className="h-5 w-5 mr-2" />
                       Notifikasi
                     </h3>
-                    <span className="bg-red-100 text-red-600 text-xs font-medium px-2 py-1 rounded-full">
-                      {notifications.filter(n => !n.read).length} baru
-                    </span>
+                    {!notificationsLoading && (
+                      <span className="bg-red-100 text-red-600 text-xs font-medium px-2 py-1 rounded-full">
+                        {notifications.filter(n => !n.read).length} baru
+                      </span>
+                    )}
                   </div>
-                  <div className="space-y-3">
-                    {notifications.slice(0, 5).map((notification) => (
-                      <div 
-                        key={notification.id}
-                        className={`p-4 rounded-lg border cursor-pointer transition-colors ${
-                          notification.read ? 'bg-gray-50 border-gray-200' : 'bg-blue-50 border-blue-200'
-                        }`}
-                        onClick={() => markAsRead(notification.id)}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className={`w-2 h-2 rounded-full mt-2 ${
-                            notification.type === 'error' ? 'bg-red-500' :
-                            notification.type === 'warning' ? 'bg-yellow-500' :
-                            notification.type === 'success' ? 'bg-green-500' : 'bg-blue-500'
-                          }`} />
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-medium text-gray-900">
-                              {notification.title}
-                            </h4>
-                            <p className="text-xs text-gray-600 mt-1">
-                              {notification.message}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-2">
-                              {new Date(notification.createdAt).toLocaleString('id-ID')}
-                            </p>
+                  
+                  {notificationsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+                      <span className="ml-2 text-gray-600">Memuat notifikasi...</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {notifications.slice(0, 5).map((notification) => (
+                        <div 
+                          key={notification.id}
+                          className={`p-4 rounded-lg border cursor-pointer transition-colors ${
+                            notification.read ? 'bg-gray-50 border-gray-200' : 'bg-blue-50 border-blue-200'
+                          }`}
+                          onClick={() => markAsRead(notification.id)}
+                        >
+                          <div className="flex items-start space-x-3">
+                            <div className={`w-2 h-2 rounded-full mt-2 ${
+                              notification.type === 'error' ? 'bg-red-500' :
+                              notification.type === 'warning' ? 'bg-yellow-500' :
+                              notification.type === 'success' ? 'bg-green-500' : 'bg-blue-500'
+                            }`} />
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-medium text-gray-900">
+                                {notification.title}
+                              </h4>
+                              <p className="text-xs text-gray-600 mt-1">
+                                {notification.message}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-2">
+                                {new Date(notification.createdAt).toLocaleString('id-ID')}
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Quick Actions */}

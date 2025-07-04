@@ -146,7 +146,7 @@ const CampaignsList: React.FC<CampaignsListProps> = ({
 
       {/* Campaign Grid */}
       {filteredCampaigns.length > 0 ? (
-        <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" staggerDelay={0.1}>
+        <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-fr" staggerDelay={0.1}>
           {filteredCampaigns.map((campaign, index) => (
             <StaggerItem key={campaign.id}>
               <CampaignCard
