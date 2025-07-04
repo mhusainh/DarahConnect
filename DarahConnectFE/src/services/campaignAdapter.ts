@@ -33,7 +33,7 @@ export const adaptCampaignFromApi = (apiCampaign: ApiCampaign): ComponentCampaig
     description: apiCampaign.diagnosis || 'Bantuan donor darah dibutuhkan',
     hospital: apiCampaign.hospital?.name || 'Rumah Sakit',
     location: location,
-    targetDonors: apiCampaign.quantity || 1,
+    targetDonors: apiCampaign.slots_available || 1,
     currentDonors: apiCampaign.slots_booked || 0,
     bloodType: apiCampaign.blood_type ? [apiCampaign.blood_type as BloodType] : ['O+' as BloodType], // Convert single string to array, default to O+
     urgencyLevel: mapUrgencyLevel(apiCampaign.urgency_level || 'medium'),

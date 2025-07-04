@@ -24,13 +24,6 @@ import { useNotification } from '../hooks/useNotification';
 import { Hospital } from '../types/index';
 import AddHospitalModal from '../components/AddHospitalModal';
 
-// Declare global window interface for Google Maps
-declare global {
-  interface Window {
-    google: any;
-  }
-}
-
 // Interface untuk response API
 interface HospitalsResponse {
   meta: {
@@ -64,9 +57,6 @@ const AdminHospitalsPage: React.FC = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [perPage] = useState(10); // 3x3 grid
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [detailMap, setDetailMap] = useState<any>(null);
-  const [detailMarker, setDetailMarker] = useState<any>(null);
-  const [isMapLoaded, setIsMapLoaded] = useState(false);
   const { addNotification } = useNotification();
 
   // Fetch hospitals from API with search and pagination
@@ -199,57 +189,6 @@ const AdminHospitalsPage: React.FC = () => {
       setDetailLoading(false);
     }
   };
-
-  // Load Google Maps JavaScript API
-  useEffect(() => {
-    if (!window.google && !isMapLoaded) {
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}&libraries=places`;
-      script.async = true;
-      script.defer = true;
-      script.onload = () => setIsMapLoaded(true);
-      script.onerror = () => {
-        console.error('Failed to load Google Maps API');
-        setIsMapLoaded(false);
-      };
-      document.head.appendChild(script);
-    } else if (window.google) {
-      setIsMapLoaded(true);
-    }
-  }, []);
-
-  // Initialize detail map when modal opens and Google Maps is loaded
-  useEffect(() => {
-    if (isMapLoaded && showDetailModal && hospitalDetail && hospitalDetail.latitude && hospitalDetail.longitude && !detailMap) {
-      const mapElement = document.getElementById(`hospital-detail-map-${hospitalDetail.id}`);
-      if (mapElement && window.google) {
-        const googleMap = new window.google.maps.Map(mapElement, {
-          center: { lat: hospitalDetail.latitude, lng: hospitalDetail.longitude },
-          zoom: 15,
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: false,
-        });
-
-        const mapMarker = new window.google.maps.Marker({
-          position: { lat: hospitalDetail.latitude, lng: hospitalDetail.longitude },
-          map: googleMap,
-          title: hospitalDetail.name
-        });
-
-        setDetailMap(googleMap);
-        setDetailMarker(mapMarker);
-      }
-    }
-  }, [isMapLoaded, showDetailModal, hospitalDetail, detailMap]);
-
-  // Clean up map when modal closes
-  useEffect(() => {
-    if (!showDetailModal) {
-      setDetailMap(null);
-      setDetailMarker(null);
-    }
-  }, [showDetailModal]);
 
   // Initial data fetch
   useEffect(() => {
@@ -786,49 +725,45 @@ const AdminHospitalsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Google Maps Integration - Using JavaScript API like AddHospitalModal */}
+                  {/* Google Maps Integration */}
                   {(hospitalDetail?.latitude && hospitalDetail?.longitude) && (
                     <div className="bg-gray-50 rounded-lg p-4">
                       <h5 className="text-sm font-medium text-gray-900 mb-3 flex items-center">
                         <MapPin className="h-4 w-4 mr-2" />
                         Lokasi di Peta
                       </h5>
-                      
-                      {/* Google Maps Container - JavaScript API */}
-                      <div className="bg-white rounded-lg overflow-hidden shadow-sm mb-4">
-                        {isMapLoaded ? (
-                          <div 
-                            id={`hospital-detail-map-${hospitalDetail.id}`}
-                            className="w-full h-64"
-                            style={{ minHeight: '250px' }}
-                          ></div>
-                        ) : (
-                          <div className="w-full h-64 flex items-center justify-center bg-gray-100">
-                            <div className="text-center">
-                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-2"></div>
-                              <p className="text-sm text-gray-600">Memuat peta...</p>
-                            </div>
+                          {/* Embedded Google Map */}
+                          <div className="bg-white rounded-lg overflow-hidden shadow-sm mb-4">
+                            <iframe
+                              src={`https://www.google.com/maps/embed/v1/place?key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}&q=${hospitalDetail.latitude},${hospitalDetail.longitude}&zoom=15`}
+                              width="100%"
+                              height="250"
+                              style={{ border: 0 }}
+                              allowFullScreen
+                              loading="lazy"
+                              referrerPolicy="no-referrer-when-downgrade"
+                              title={`Lokasi ${hospitalDetail.name}`}
+                            ></iframe>
                           </div>
-                        )}
-                      </div>
-                      
-                      {/* Map Actions */}
-                      <div className="flex space-x-3">
-                        <button
-                          onClick={() => openGoogleMaps(hospitalDetail.latitude, hospitalDetail.longitude, hospitalDetail.name)}
-                          className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                          <span>Buka di Google Maps</span>
-                        </button>
-                        <button
-                          onClick={() => getDirections(hospitalDetail.latitude, hospitalDetail.longitude)}
-                          className="flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
-                        >
-                          <Navigation className="h-4 w-4" />
-                          <span>Rute ke Sini</span>
-                        </button>
-                      </div>
+                          
+                          {/* Map Actions */}
+                          <div className="flex space-x-3">
+                            <button
+                              onClick={() => openGoogleMaps(hospitalDetail.latitude, hospitalDetail.longitude, hospitalDetail.name)}
+                              className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                              <span>Buka di Google Maps</span>
+                            </button>
+                            <button
+                              onClick={() => getDirections(hospitalDetail.latitude, hospitalDetail.longitude)}
+                              className="flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                            >
+                              <Navigation className="h-4 w-4" />
+                              <span>Rute ke Sini</span>
+                            </button>
+                          </div>
+                        
                     </div>
                   )}
 

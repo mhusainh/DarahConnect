@@ -375,7 +375,7 @@ const CreateBloodRequestPage: React.FC = () => {
                   id="quantity"
                   type="number"
                   min="1"
-                  max="100"
+                  max="1000000"
                   value={formData.quantity}
                   onChange={(e) => handleInputChange('quantity', e.target.value === '' ? 1 : parseInt(e.target.value) || 1)}
                   className={`w-full px-3 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors ${

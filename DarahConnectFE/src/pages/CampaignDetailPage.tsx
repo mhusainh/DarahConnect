@@ -10,11 +10,13 @@ import {
   UsersIcon,
   ClockIcon,
   ShareIcon,
-  HeartIcon
+  HeartIcon,
+  Building2Icon
 } from 'lucide-react';
 import { BloodCampaign } from '../types';
 import { useCampaignService } from '../services/campaignService';
 import DonorOptionModal from '../components/DonorOptionModal';
+import HospitalDetailModal from '../components/HospitalDetailModal';
 import { useNotification } from '../hooks/useNotification';
 
 const CampaignDetailPage: React.FC = () => {
@@ -24,6 +26,7 @@ const CampaignDetailPage: React.FC = () => {
   const { addNotification } = useNotification();
   const [campaign, setCampaign] = useState<BloodCampaign | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isHospitalModalOpen, setIsHospitalModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -167,6 +170,57 @@ const CampaignDetailPage: React.FC = () => {
 
   const progress = (campaign.currentDonors / campaign.targetDonors) * 100;
   const daysLeft = Math.ceil((new Date(campaign.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+  
+  // Get campaign status based on progress and deadline
+  const getCampaignStatus = () => {
+    const now = new Date();
+    const deadline = new Date(campaign.deadline);
+    
+    // Check if campaign is completed (100% donors reached)
+    if (progress >= 100) {
+      return {
+        text: 'Selesai - Target Terpenuhi',
+        color: 'bg-blue-100 text-blue-800 border-blue-200',
+        disabled: true
+      };
+    }
+    
+    // Check if deadline has passed
+    if (now > deadline) {
+      return {
+        text: 'Berakhir - Deadline Terlewat',
+        color: 'bg-gray-100 text-gray-800 border-gray-200',
+        disabled: true
+      };
+    }
+    
+    // Check urgency level for active campaigns
+    if (campaign.urgencyLevel === 'critical') {
+      return {
+        text: 'Sangat Mendesak',
+        color: 'bg-red-100 text-red-800 border-red-200',
+        disabled: false
+      };
+    }
+    
+    if (campaign.urgencyLevel === 'high') {
+      return {
+        text: 'Mendesak',
+        color: 'bg-orange-100 text-orange-800 border-orange-200',
+        disabled: false
+      };
+    }
+    
+    // Default active status
+    return {
+      text: 'Aktif - Membutuhkan Donor',
+      color: 'bg-green-100 text-green-800 border-green-200',
+      disabled: false
+    };
+  };
+  
+  const campaignStatus = getCampaignStatus();
+  const isDisabled = campaignStatus.disabled;
 
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
@@ -252,6 +306,24 @@ const CampaignDetailPage: React.FC = () => {
                   <p className="text-red-600 font-semibold text-lg">Kampanye Donor Darah</p>
                 </div>
               </div>
+
+              {/* Completion Overlay */}
+              {isDisabled && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <div className="text-center text-white">
+                    <div className="text-4xl mb-2">
+                      {progress >= 100 ? '✅' : '⏰'}
+                    </div>
+                    <div className="text-lg font-bold">
+                      {progress >= 100 ? 'SELESAI' : 'BERAKHIR'}
+                    </div>
+                    <div className="text-sm opacity-90">
+                      {progress >= 100 ? 'Target donor tercapai' : 'Deadline terlewat'}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="absolute top-4 left-4">
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(campaign.urgencyLevel)}`}>
                   <AlertTriangleIcon className="w-3 h-3 mr-1" />
@@ -301,6 +373,32 @@ const CampaignDetailPage: React.FC = () => {
                   ))}
                 </div>
               </div>
+
+              {/* Image Section */}
+              {campaign.url_file && campaign.url_file !== 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80' && (
+                <div className="mb-6">
+                  <h3 className="font-semibold text-gray-900 mb-3">Dokumentasi Campaign</h3>
+                  <div className="relative h-64 md:h-80 rounded-xl overflow-hidden bg-gray-100">
+                    <img 
+                      src={campaign.url_file} 
+                      alt={campaign.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        target.nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                    {/* Fallback */}
+                    <div className="hidden w-full h-full flex items-center justify-center bg-gray-100">
+                      <div className="text-center text-gray-500">
+                        <HeartIcon className="w-12 h-12 mx-auto mb-2" />
+                        <p className="text-sm">Gambar tidak dapat dimuat</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Description */}
               <div className="mb-6">
@@ -378,13 +476,39 @@ const CampaignDetailPage: React.FC = () => {
               <div className="mb-6">
                 <div className="w-full bg-gray-200 rounded-full h-4 mb-2">
                   <div 
-                    className="bg-primary-600 h-4 rounded-full transition-all duration-300"
+                    className={`h-4 rounded-full transition-all duration-300 ${
+                      progress >= 100
+                        ? 'bg-gradient-to-r from-green-500 to-green-600'
+                        : 'bg-primary-600'
+                    }`}
                     style={{ width: `${Math.min(progress, 100)}%` }}
                   ></div>
                 </div>
                 <div className="flex justify-between text-sm text-gray-600">
                   <span>{progress.toFixed(1)}% tercapai</span>
                   <span>{campaign.targetDonors - campaign.currentDonors} donor lagi</span>
+                </div>
+                {progress >= 100 && (
+                  <p className="text-xs text-green-600 font-medium mt-1">
+                    🎉 Target donor telah tercapai!
+                  </p>
+                )}
+              </div>
+
+              {/* Status Banner */}
+              <div className={`mb-6 p-4 rounded-lg border ${campaignStatus.color}`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-semibold">Status Campaign</h4>
+                    <p className="text-sm">{campaignStatus.text}</p>
+                  </div>
+                  {isDisabled && (
+                    <div className="text-right">
+                      <span className="text-xs font-medium">
+                        {progress >= 100 ? 'Target Tercapai' : 'Tidak Aktif'}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -402,14 +526,32 @@ const CampaignDetailPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Hospital Detail Button */}
+              <button
+                onClick={() => setIsHospitalModalOpen(true)}
+                className="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700 transition-all duration-200 transform hover:scale-105 shadow-lg flex items-center justify-center space-x-2 mb-3"
+              >
+                <Building2Icon className="w-5 h-5" />
+                <span>Lihat Detail Rumah Sakit</span>
+              </button>
+
               {/* Action Buttons */}
               <div className="space-y-3">
                 <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="w-full bg-primary-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-primary-700 transition-colors flex items-center justify-center"
+                  onClick={isDisabled ? undefined : () => setIsModalOpen(true)}
+                  disabled={isDisabled}
+                  className={`w-full py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center ${
+                    isDisabled
+                      ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                      : 'bg-primary-600 text-white hover:bg-primary-700'
+                  }`}
+                  title={isDisabled ? 'Campaign sudah selesai atau berakhir' : 'Klik untuk donor'}
                 >
                   <HeartIcon className="w-5 h-5 mr-2" />
-                  Donor Sekarang
+                  {isDisabled 
+                    ? (progress >= 100 ? 'Target Tercapai' : 'Tidak Dapat Donor') 
+                    : 'Donor Sekarang'
+                  }
                 </button>
                 
                 <button
@@ -421,8 +563,28 @@ const CampaignDetailPage: React.FC = () => {
                 </button>
               </div>
 
+              {/* Disabled Info */}
+              {isDisabled && (
+                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <AlertTriangleIcon className="w-5 h-5 text-yellow-600" />
+                    <div>
+                      <p className="text-sm font-medium text-yellow-800">
+                        {progress >= 100 ? 'Campaign Selesai' : 'Campaign Berakhir'}
+                      </p>
+                      <p className="text-xs text-yellow-700">
+                        {progress >= 100 
+                          ? 'Target donor sudah tercapai. Terima kasih!' 
+                          : 'Deadline campaign sudah terlewat.'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Emergency Notice */}
-              {campaign.urgencyLevel === 'critical' && (
+              {campaign.urgencyLevel === 'critical' && !isDisabled && (
                 <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                   <div className="flex items-start">
                     <AlertTriangleIcon className="w-5 h-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" />
@@ -470,6 +632,23 @@ const CampaignDetailPage: React.FC = () => {
         campaign={campaign}
         onDonorNow={handleDonorNow}
         onScheduleOnly={handleScheduleOnly}
+      />
+
+      {/* Hospital Detail Modal */}
+      <HospitalDetailModal
+        isOpen={isHospitalModalOpen}
+        onClose={() => setIsHospitalModalOpen(false)}
+        hospital={{
+          id: 1,
+          name: campaign.hospital,
+          address: campaign.location,
+          city: campaign.location.split(',')[0] || '',
+          province: campaign.location.split(',')[1] || '',
+          latitude: -6.2088,
+          longitude: 106.8456,
+          created_at: '',
+          updated_at: ''
+        }}
       />
     </div>
   );
