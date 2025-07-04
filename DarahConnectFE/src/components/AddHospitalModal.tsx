@@ -83,6 +83,10 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, on
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [mapsStatus, setMapsStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [hospitalSearchResults, setHospitalSearchResults] = useState<any[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState<boolean>(false);
+  const [autocompleteService, setAutocompleteService] = useState<any>(null);
+  const [placesService, setPlacesService] = useState<any>(null);
   
   const { post, put, loading } = useApi();
 
@@ -100,43 +104,19 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, on
     }
   }, [isOpen]);
 
-  // Initialize autocomplete when map is loaded
+  // Initialize Google Places services when map is loaded
   useEffect(() => {
-    if (isMapLoaded && isOpen && window.google) {
-      const searchInput = document.getElementById('location-search-input') as HTMLInputElement;
-      if (searchInput) {
-        const autocomplete = new window.google.maps.places.Autocomplete(searchInput, {
-          types: ['establishment', 'geocode'],
-          componentRestrictions: { country: 'id' },
-          fields: ['formatted_address', 'geometry', 'name']
-        });
-
-        autocomplete.addListener('place_changed', () => {
-          const place = autocomplete.getPlace();
-          if (place.geometry && place.geometry.location) {
-            const lat = place.geometry.location.lat();
-            const lng = place.geometry.location.lng();
-            
-            setFormData(prev => ({ 
-              ...prev, 
-              latitude: lat, 
-              longitude: lng,
-              address: place.formatted_address || prev.address,
-              name: place.name || prev.name
-            }));
-            
-            if (map) {
-              map.setCenter({ lat, lng });
-              marker.setPosition({ lat, lng });
-              map.setZoom(16);
-            }
-            
-            setSearchQuery(place.formatted_address || '');
-          }
-        });
-      }
+    if (isMapLoaded && isOpen && window.google && !autocompleteService) {
+      const autoCompleteService = new window.google.maps.places.AutocompleteService();
+      setAutocompleteService(autoCompleteService);
+      
+      // Create a dummy map for PlacesService
+      const dummyDiv = document.createElement('div');
+      const dummyMap = new window.google.maps.Map(dummyDiv);
+      const placesServiceInstance = new window.google.maps.places.PlacesService(dummyMap);
+      setPlacesService(placesServiceInstance);
     }
-  }, [isMapLoaded, isOpen, map, marker]);
+  }, [isMapLoaded, isOpen, autocompleteService]);
 
   // Initialize map
   useEffect(() => {
@@ -263,37 +243,123 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, on
     });
   }, [formData.name, formData.address, map, marker]);
 
-  const searchLocationByQuery = useCallback(() => {
-    if (!window.google || !map || !searchQuery.trim()) return;
+  // Function to search hospitals using Google Places API
+  const searchHospitals = useCallback((query: string) => {
+    if (!autocompleteService || !query.trim()) {
+      setHospitalSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
 
     setIsSearching(true);
-    const geocoder = new window.google.maps.Geocoder();
     
-    geocoder.geocode({ address: searchQuery }, (results: any[], status: string) => {
+    const request = {
+      input: query,
+      types: ['hospital', 'health'],
+      componentRestrictions: { country: 'id' },
+    };
+
+    autocompleteService.getPlacePredictions(request, (predictions: any[], status: any) => {
       setIsSearching(false);
       
-      if (status === 'OK' && results[0]) {
-        const location = results[0].geometry.location;
-        const lat = location.lat();
-        const lng = location.lng();
-        
-        setFormData(prev => ({ 
-          ...prev, 
-          latitude: lat, 
-          longitude: lng,
-          address: results[0].formatted_address 
-        }));
-        
-        map.setCenter({ lat, lng });
-        marker.setPosition({ lat, lng });
-        
-        // Update map zoom to show the area better
-        map.setZoom(16);
+      if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+        setHospitalSearchResults(predictions);
+        setShowSearchResults(true);
       } else {
-        alert('Lokasi tidak ditemukan. Silakan coba dengan kata kunci yang lebih spesifik.');
+        setHospitalSearchResults([]);
+        setShowSearchResults(false);
       }
     });
-  }, [searchQuery, map, marker]);
+  }, [autocompleteService]);
+
+  // Function to parse address and find matching province/city
+  const parseAddressToProvinceCity = (address: string) => {
+    const addressLower = address.toLowerCase();
+    
+    // Find province
+    let matchedProvince = '';
+    let matchedCity = '';
+    
+    for (const provinsi of provinsiData) {
+      const provinsiName = provinsi.nama.toLowerCase();
+      if (addressLower.includes(provinsiName)) {
+        matchedProvince = provinsi.id;
+        break;
+      }
+    }
+    
+    // Find city
+    const cities = matchedProvince ? getKotaByProvinsi(matchedProvince) : kotaData;
+    for (const kota of cities) {
+      const kotaName = kota.nama.toLowerCase().replace(/^kota |kabupaten /, '');
+      if (addressLower.includes(kotaName)) {
+        matchedCity = kota.id;
+        break;
+      }
+    }
+    
+    return { province: matchedProvince, city: matchedCity };
+  };
+
+  // Function to handle hospital selection from search results
+  const handleHospitalSelect = useCallback((placeId: string) => {
+    if (!placesService) return;
+
+    setIsSearching(true);
+    setShowSearchResults(false);
+
+    const request = {
+      placeId: placeId,
+      fields: ['name', 'formatted_address', 'geometry', 'address_components']
+    };
+
+    placesService.getDetails(request, (place: any, status: any) => {
+      setIsSearching(false);
+      
+      if (status === window.google.maps.places.PlacesServiceStatus.OK && place) {
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        
+        // Parse address to get province and city
+        const { province, city } = parseAddressToProvinceCity(place.formatted_address);
+        
+        // Update form data
+        setFormData(prev => ({
+          ...prev,
+          name: place.name || prev.name,
+          address: place.formatted_address || prev.address,
+          latitude: lat,
+          longitude: lng,
+          province: province || prev.province,
+          city: city || prev.city
+        }));
+        
+        // Update map
+        if (map && marker) {
+          map.setCenter({ lat, lng });
+          marker.setPosition({ lat, lng });
+          map.setZoom(16);
+        }
+        
+        // Clear search
+        setSearchQuery('');
+      }
+    });
+  }, [placesService, map, marker]);
+
+  // Debounced search function
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.length > 2) {
+        searchHospitals(searchQuery);
+      } else {
+        setHospitalSearchResults([]);
+        setShowSearchResults(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, searchHospitals]);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<HospitalFormData> = {};
@@ -355,8 +421,24 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, on
     setSearchQuery('');
     setIsSearching(false);
     setMapsStatus('loading');
+    setHospitalSearchResults([]);
+    setShowSearchResults(false);
+    setAutocompleteService(null);
+    setPlacesService(null);
     onClose();
   };
+
+  // Close search results when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowSearchResults(false);
+    };
+
+    if (showSearchResults) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showSearchResults]);
 
   const handleExampleClick = (example: typeof hospitalExamples[0]) => {
     setFormData(prev => ({
@@ -367,8 +449,10 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, on
       address: example.address,
     }));
     setSearchQuery(example.search);
-    // Jika ingin langsung search di map:
-    setTimeout(() => searchLocationByQuery(), 200); // delay agar state update dulu
+    
+    // Update cities when province changes
+    const cities = getKotaByProvinsi(example.province);
+    setAvailableCities(cities);
   };
 
   if (!isOpen) return null;
@@ -397,6 +481,61 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, on
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Form Section */}
             <div className="space-y-4">
+              {/* Hospital Search */}
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  🔍 Cari Rumah Sakit (Opsional)
+                </label>
+                <div className="relative" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => {
+                      if (hospitalSearchResults.length > 0) {
+                        setShowSearchResults(true);
+                      }
+                    }}
+                    className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    placeholder="Ketik nama rumah sakit (contoh: RS Cipto Jakarta)"
+                  />
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    {isSearching ? (
+                      <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                    ) : (
+                      <Search className="h-5 w-5 text-gray-400" />
+                    )}
+                  </div>
+                </div>
+                
+                {/* Search Results Dropdown */}
+                {showSearchResults && hospitalSearchResults.length > 0 && (
+                  <div 
+                    className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {hospitalSearchResults.map((result, index) => (
+                      <button
+                        key={result.place_id}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleHospitalSelect(result.place_id);
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                      >
+                        <div className="font-medium text-gray-900">{result.structured_formatting?.main_text}</div>
+                        <div className="text-sm text-gray-600">{result.structured_formatting?.secondary_text}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                
+                <p className="mt-1 text-xs text-gray-500">
+                  Ketik minimal 3 karakter untuk mencari rumah sakit. Data akan otomatis terisi.
+                </p>
+              </div>
+
               {/* Hospital Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -377,15 +377,13 @@ const DashboardPage: React.FC = () => {
     createdAt: req.created_at,
     donors: req.donors || [],
   }));
-
-
-
+  
   const quickStats = {
-    totalDonor: dashboardData?.total_donor || 0,
+    totalDonor: dashboardData?.total_donor ?? 0,
     lastDonation: dashboardData?.last_donation || null,
     totalSertifikat: dashboardData?.total_sertifikat || 0,
   };
-
+  
   const handleBloodRequestRespond = (requestId: string) => {
     alert(
       `Terima kasih! Anda akan dihubungi untuk koordinasi donor darah (Request ID: ${requestId})`
@@ -701,6 +699,7 @@ const DashboardPage: React.FC = () => {
                       <div>
                         <p className="text-red-100 text-sm">Total Donor</p>
                         <p className="text-3xl font-bold">
+                          
                           <CountUp
                             end={quickStats.totalDonor}
                             duration={0}

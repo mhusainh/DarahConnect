@@ -4,6 +4,7 @@ import { ArrowLeftIcon, MapPinIcon, PhoneIcon, CalendarIcon, AlertTriangleIcon, 
 import { BloodType, UrgencyLevel } from '../types';
 import LocationPicker from '../components/LocationPicker';
 import AddHospitalModal from '../components/AddHospitalModal';
+import SearchableHospitalDropdown from '../components/SearchableHospitalDropdown';
 import { useApi } from '../hooks/useApi';
 import { useQuickNotifications } from '../contexts/NotificationContext';
 
@@ -79,12 +80,10 @@ const CreateCampaignPage: React.FC = () => {
     slots_booked: 50
   });
   const [errors, setErrors] = useState<FormErrors>({});
-  const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [isAddHospitalModalOpen, setIsAddHospitalModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   
-  const hospitalsApi = useApi<Hospital[]>();
   const campaignApi = useApi();
   const notifications = useQuickNotifications();
 
@@ -96,17 +95,7 @@ const CreateCampaignPage: React.FC = () => {
     { value: 'critical', label: 'Sangat Mendesak', color: 'text-red-600' }
   ];
 
-  // Fetch hospitals on component mount
-  useEffect(() => {
-    hospitalsApi.get('/hospital');
-  }, []);
 
-  // Update hospitals when API call completes
-  useEffect(() => {
-    if (hospitalsApi.data) {
-      setHospitals(Array.isArray(hospitalsApi.data) ? hospitalsApi.data : []);
-    }
-  }, [hospitalsApi.data]);
 
   const handleInputChange = (field: keyof CreateCampaignForm, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -189,7 +178,6 @@ const CreateCampaignPage: React.FC = () => {
   };
 
   const handleHospitalAdded = (newHospital: Hospital) => {
-    setHospitals(prev => [...prev, newHospital]);
     setFormData(prev => ({ ...prev, hospital_id: newHospital.id }));
     setIsAddHospitalModalOpen(false);
     notifications.success('Berhasil!', 'Rumah sakit baru telah ditambahkan');
@@ -295,21 +283,13 @@ const CreateCampaignPage: React.FC = () => {
               <label htmlFor="hospital_id" className="block text-sm font-medium text-gray-700 mb-2">
                 Rumah Sakit / Institusi *
               </label>
-              <select
-                id="hospital_id"
+              <SearchableHospitalDropdown
                 value={formData.hospital_id}
-                onChange={(e) => handleInputChange('hospital_id', parseInt(e.target.value))}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.hospital_id ? 'border-red-500' : 'border-gray-300'}`}
-                required
-              >
-                <option value="">Pilih Rumah Sakit</option>
-                {hospitals.map((hospital) => (
-                  <option key={hospital.id} value={hospital.id}>
-                    {hospital.name} - {hospital.city}, {hospital.province}
-                  </option>
-                ))}
-              </select>
-              {errors.hospital_id && <p className="mt-1 text-sm text-red-600">{errors.hospital_id}</p>}
+                onChange={(hospitalId) => handleInputChange('hospital_id', hospitalId)}
+                onAddHospital={() => setIsAddHospitalModalOpen(true)}
+                error={errors.hospital_id}
+                placeholder="Pilih Rumah Sakit"
+              />
             </div>
 
             {/* Event Name */}

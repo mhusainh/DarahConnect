@@ -20,7 +20,8 @@ import {
   SortAsc,
   SortDesc,
   X,
-  Eye
+  Eye,
+  Target
 } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 import { useNotification } from '../hooks/useNotification';
@@ -384,6 +385,60 @@ const BloodRequestsPage: React.FC = () => {
     });
   };
 
+  const getProgress = (current: number, target: number) => {
+    if (!target || target === 0) return 0;
+    return Math.min((current / target) * 100, 100);
+  };
+
+  // Get blood request status based on progress and deadline
+  const getBloodRequestStatus = (request: BloodRequest) => {
+    const now = new Date();
+    const deadline = new Date(request.event_date);
+    const progress = getProgress(request.slots_booked || 0, request.slots_available || 1);
+    
+    // Check if request is completed (100% donors reached)
+    if (progress >= 100) {
+      return {
+        text: 'Selesai',
+        color: 'bg-blue-100 text-blue-800 border-blue-200',
+        disabled: true
+      };
+    }
+    
+    // Check if deadline has passed
+    if (now > deadline) {
+      return {
+        text: 'Berakhir',
+        color: 'bg-gray-100 text-gray-800 border-gray-200',
+        disabled: true
+      };
+    }
+    
+    // Check urgency level for active requests
+    if (request.urgency_level === 'critical') {
+      return {
+        text: 'Sangat Mendesak',
+        color: 'bg-red-100 text-red-800 border-red-200',
+        disabled: false
+      };
+    }
+    
+    if (request.urgency_level === 'high') {
+      return {
+        text: 'Mendesak',
+        color: 'bg-orange-100 text-orange-800 border-orange-200',
+        disabled: false
+      };
+    }
+    
+    // Default active status
+    return {
+      text: 'Aktif',
+      color: 'bg-green-100 text-green-800 border-green-200',
+      disabled: false
+    };
+  };
+
   const handleRefresh = () => {
     fetchBloodRequests();
   };
@@ -403,8 +458,8 @@ const BloodRequestsPage: React.FC = () => {
       hospital: request.hospital.name,
       location: `${request.hospital.city}, ${request.hospital.province}`,
       bloodType: [request.blood_type as any],
-      targetDonors: request.quantity || 1,
-      currentDonors: 0,
+      targetDonors: request.slots_available || 1,
+      currentDonors: request.slots_booked || 0,
       urgencyLevel: request.urgency_level as any,
       contactPerson: request.user.name,
       contactPhone: request.user.phone,
@@ -664,13 +719,13 @@ const BloodRequestsPage: React.FC = () => {
                   <option value="canceled">Dibatalkan</option>
                 </select> */}
 
-                <button
+                {/* <button
                   onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
                   className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors text-sm"
                 >
                   <Filter className="w-4 h-4" />
                   <span>Filter Lanjutan</span>
-                </button>
+                </button> */}
               </div>
 
               {/* Advanced Filters */}
@@ -792,10 +847,14 @@ const BloodRequestsPage: React.FC = () => {
 
           {/* Blood Requests Grid */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {bloodRequests.map((request, index) => (
+            {bloodRequests.map((request, index) => {
+              const requestStatus = getBloodRequestStatus(request);
+              const isDisabled = requestStatus.disabled;
+              
+              return (
               <FadeIn key={request.id} direction="up" delay={0.1 * index}>
                 <HoverScale scale={1.02}>
-                  <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-all duration-300">
+                  <div className={`bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-all duration-300 ${isDisabled ? 'opacity-75' : ''}`}>
                     {/* Image Section */}
                     <div className="relative h-48 bg-gradient-to-br from-red-100 to-red-200">
                       {request.url_file ? (
@@ -817,6 +876,20 @@ const BloodRequestsPage: React.FC = () => {
                         </div>
                       </div>
                       
+                      {/* Completion Overlay */}
+                      {isDisabled && (
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                          <div className="text-center text-white">
+                            <div className="text-3xl mb-2">
+                              {getProgress(request.slots_booked || 0, request.slots_available || 1) >= 100 ? '✅' : '⏰'}
+                            </div>
+                            <div className="text-sm font-semibold">
+                              {getProgress(request.slots_booked || 0, request.slots_available || 1) >= 100 ? 'SELESAI' : 'BERAKHIR'}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
                       {/* Urgency Badge Overlay */}
                       <div className="absolute top-3 right-3">
                         <div className={`px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg ${getUrgencyColor(request.urgency_level)}`}>
@@ -831,10 +904,14 @@ const BloodRequestsPage: React.FC = () => {
                         </div>
                       </div>
                       
-                      {/* Quantity Badge Overlay */}
+                      {/* Progress Badge Overlay */}
                       <div className="absolute bottom-3 left-3">
-                        <div className="bg-black/70 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                          {request.quantity} Kantong
+                        <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                          getProgress(request.slots_booked || 0, request.slots_available || 1) >= 100
+                            ? 'bg-green-600/90 text-white'
+                            : 'bg-black/70 text-white'
+                        }`}>
+                          {request.slots_booked || 0}/{request.slots_available || 0} Donor
                         </div>
                       </div>
                     </div>
@@ -852,6 +929,66 @@ const BloodRequestsPage: React.FC = () => {
                           }}>
                             {request.description}
                           </p>
+                        )}
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Progress Donor</span>
+                          <span className={`font-semibold ${
+                            getProgress(request.slots_booked || 0, request.slots_available || 1) >= 100 
+                              ? 'text-green-600' 
+                              : 'text-gray-900'
+                          }`}>
+                            {request.slots_booked || 0}/{request.slots_available || 0}
+                            {getProgress(request.slots_booked || 0, request.slots_available || 1) >= 100 && (
+                              <span className="text-xs text-green-600 ml-1">✓ Terpenuhi</span>
+                            )}
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                          <div 
+                            className={`h-2.5 rounded-full transition-all duration-300 ${
+                              getProgress(request.slots_booked || 0, request.slots_available || 1) >= 100
+                                ? 'bg-gradient-to-r from-green-500 to-green-600'
+                                : 'bg-gradient-to-r from-red-500 to-red-600'
+                            }`}
+                            style={{ 
+                              width: `${getProgress(
+                                request.slots_booked || 0, 
+                                request.slots_available || 1
+                              )}%` 
+                            }}
+                          ></div>
+                        </div>
+                        {getProgress(request.slots_booked || 0, request.slots_available || 1) >= 100 && (
+                          <div className="text-xs text-green-600 font-medium">
+                            🎉 Target donor telah tercapai!
+                          </div>
+                        )}
+                        
+                        {/* Request Completion Notice */}
+                        {isDisabled && (
+                          <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <div className="flex items-center space-x-2">
+                              <AlertTriangle className="w-4 h-4 text-yellow-600 flex-shrink-0" />
+                              <div>
+                                <p className="text-xs font-medium text-yellow-800">
+                                  {getProgress(request.slots_booked || 0, request.slots_available || 1) >= 100 
+                                    ? 'Permintaan Selesai' 
+                                    : 'Permintaan Berakhir'
+                                  }
+                                </p>
+                                <p className="text-xs text-yellow-700">
+                                  {getProgress(request.slots_booked || 0, request.slots_available || 1) >= 100 
+                                    ? 'Target donor tercapai' 
+                                    : 'Deadline terlewat'
+                                  }
+                                </p>
+                              </div>
+                            </div>
+                          </div>
                         )}
                       </div>
 
@@ -901,12 +1038,18 @@ const BloodRequestsPage: React.FC = () => {
                             {formatDate(request.event_date)}
                           </span>
                         </div>
+                        <div className="flex items-center space-x-2">
+                          <Target className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                          <span className="text-sm text-gray-600">
+                            Target: {request.slots_available || 0} donor
+                          </span>
+                        </div>
                       </div>
 
                       {/* Status */}
                       <div className="flex items-center justify-between">
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(request.status)}`}>
-                          {getStatusText(request.status)}
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium border ${requestStatus.color}`}>
+                          {requestStatus.text}
                         </span>
                         <span className="text-xs text-gray-500">
                           {formatDate(request.created_at)}
@@ -927,15 +1070,18 @@ const BloodRequestsPage: React.FC = () => {
                         </button>
                         
                         <button
-                          onClick={() => handleDonate(request)}
-                          disabled={request.status === 'completed' || request.status === 'canceled'}
-                          className="bg-red-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2 text-sm"
+                          onClick={isDisabled ? undefined : () => handleDonate(request)}
+                          disabled={isDisabled}
+                          className={`py-2.5 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 text-sm ${
+                            isDisabled 
+                              ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                              : 'bg-red-600 text-white hover:bg-red-700'
+                          }`}
+                          title={isDisabled ? 'Permintaan sudah selesai atau berakhir' : 'Klik untuk donor'}
                         >
                           <Heart className="w-4 h-4" />
                           <span>
-                            {request.status === 'completed' ? 'Selesai' :
-                             request.status === 'canceled' ? 'Dibatalkan' :
-                             'Saya Bisa Donor'}
+                            {isDisabled ? 'Selesai' : 'Saya Bisa Donor'}
                           </span>
                         </button>
                       </div>
@@ -943,15 +1089,18 @@ const BloodRequestsPage: React.FC = () => {
                       {/* Edit Button - Only show if user is the request owner */}
                       {request.user_id === parseInt(localStorage.getItem('userId') || '0') && (
                         <button
-                          onClick={() => handleOpenEditRequestModal(request)}
-                          disabled={request.status === 'completed' || request.status === 'canceled'}
-                          className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2 text-sm"
+                          onClick={isDisabled ? undefined : () => handleOpenEditRequestModal(request)}
+                          disabled={isDisabled}
+                          className={`w-full py-2 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 text-sm ${
+                            isDisabled 
+                              ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                              : 'bg-green-600 text-white hover:bg-green-700'
+                          }`}
+                          title={isDisabled ? 'Permintaan sudah selesai atau berakhir' : 'Klik untuk edit'}
                         >
                           <Edit className="w-4 h-4" />
                           <span>
-                            {request.status === 'completed' ? 'Tidak Dapat Diedit' :
-                             request.status === 'canceled' ? 'Tidak Dapat Diedit' :
-                             'Edit Permintaan'}
+                            {isDisabled ? 'Tidak Dapat Diedit' : 'Edit Permintaan'}
                           </span>
                         </button>
                       )}
@@ -959,7 +1108,8 @@ const BloodRequestsPage: React.FC = () => {
                   </div>
                 </HoverScale>
               </FadeIn>
-            ))}
+            );
+          })}
           </div>
 
           {/* Pagination */}
