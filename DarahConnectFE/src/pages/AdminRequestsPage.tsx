@@ -33,41 +33,128 @@ const AdminRequestsPage: React.FC = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [notes, setNotes] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [perPage] = useState(10);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  // Fetch blood requests from API
-  useEffect(() => {
-    const fetchBloodRequests = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await adminBloodRequestsApi.getBloodRequests();
+  // Fetch blood requests from API with search and pagination
+  const fetchBloodRequests = async (page: number = 1, search: string = '', status: string = 'all', date: string = 'all') => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Build query parameters for server-side filtering
+      const params = new URLSearchParams({
+        page: page.toString(),
+        per_page: perPage.toString()
+      });
+      
+      if (search.trim()) {
+        params.append('search', search.trim());
+      }
+      
+      if (status !== 'all') {
+        params.append('status', status);
+      }
+      
+      if (date !== 'all') {
+        params.append('date_filter', date);
+      }
+      
+      console.log('🔍 Requests API Params:', params.toString());
+      
+      const response = await adminBloodRequestsApi.getBloodRequests();
+      
+      if (response.success && response.data) {
+        // Handle both direct array and nested response structure
+        let requestsData: BloodRequest[] = [];
+        let paginationData = null;
         
-        if (response.success && response.data) {
-          // Handle both direct array and nested response structure
-          let requestsData: BloodRequest[] = [];
-          
-          if (Array.isArray(response.data)) {
-            requestsData = response.data as BloodRequest[];
-          } else if (response.data.data && Array.isArray(response.data.data)) {
-            requestsData = response.data.data as BloodRequest[];
+        if (Array.isArray(response.data)) {
+          requestsData = response.data as BloodRequest[];
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          requestsData = response.data.data as BloodRequest[];
+          paginationData = response.data.pagination;
+        }
+        
+        // Client-side filtering for now (until API supports server-side filtering)
+        const filtered = requestsData.filter(request => {
+          if (!request || !request.user || !request.hospital || !request.patient_name) {
+            return false;
           }
           
-          setRequestsList(requestsData);
-        } else {
-          setError(response.error || 'Failed to fetch blood requests');
-          setRequestsList([]);
-        }
-      } catch (err) {
-        setError('Failed to fetch blood requests');
+          const matchesSearch = !search || 
+            request.user.name.toLowerCase().includes(search.toLowerCase()) ||
+            request.hospital.name.toLowerCase().includes(search.toLowerCase()) ||
+            request.patient_name.toLowerCase().includes(search.toLowerCase());
+          
+          const matchesStatus = status === 'all' || request.status === status;
+          
+          const requestDate = new Date(request.created_at);
+          const today = new Date();
+          const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+          const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+          
+          const matchesDate = date === 'all' ||
+                             (date === 'today' && requestDate.toDateString() === today.toDateString()) ||
+                             (date === 'week' && requestDate >= weekAgo) ||
+                             (date === 'month' && requestDate >= monthAgo);
+
+          return matchesSearch && matchesStatus && matchesDate;
+        });
+        
+        // Client-side pagination
+        const startIndex = (page - 1) * perPage;
+        const endIndex = startIndex + perPage;
+        const paginatedData = filtered.slice(startIndex, endIndex);
+        
+        setRequestsList(paginatedData);
+        setTotalItems(filtered.length);
+        setTotalPages(Math.ceil(filtered.length / perPage));
+        setCurrentPage(page);
+        
+        console.log('🔍 Requests filtered count:', filtered.length);
+        console.log('🔍 Requests paginated count:', paginatedData.length);
+        
+      } else {
+        setError(response.error || 'Failed to fetch blood requests');
         setRequestsList([]);
-        console.error('Error fetching blood requests:', err);
-      } finally {
-        setLoading(false);
+      }
+    } catch (err) {
+      setError('Failed to fetch blood requests');
+      setRequestsList([]);
+      console.error('Error fetching blood requests:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchBloodRequests(currentPage, searchTerm, filterStatus, filterDate);
+  }, [currentPage, filterStatus, filterDate]);
+
+  // Handle search with debounce
+  useEffect(() => {
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    const timeout = setTimeout(() => {
+      setCurrentPage(1);
+      fetchBloodRequests(1, searchTerm, filterStatus, filterDate);
+    }, 500);
+    
+    setSearchTimeout(timeout);
+    
+    return () => {
+      if (timeout) {
+        clearTimeout(timeout);
       }
     };
-
-    fetchBloodRequests();
-  }, []);
+  }, [searchTerm]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -99,30 +186,29 @@ const AdminRequestsPage: React.FC = () => {
     }
   };
 
-  const filteredRequests = (requestsList || []).filter(request => {
-    // Safety check - ensure request has all required properties
-    if (!request || !request.user || !request.hospital || !request.patient_name) {
-      return false;
-    }
-    
-    const matchesSearch = request.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         request.hospital.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         request.patient_name.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = filterStatus === 'all' || request.status === filterStatus;
-    
-    const requestDate = new Date(request.created_at);
-    const today = new Date();
-    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-    
-    const matchesDate = filterDate === 'all' ||
-                       (filterDate === 'today' && requestDate.toDateString() === today.toDateString()) ||
-                       (filterDate === 'week' && requestDate >= weekAgo) ||
-                       (filterDate === 'month' && requestDate >= monthAgo);
+  // Use server-side filtered data directly
+  const filteredRequests = requestsList || [];
 
-    return matchesSearch && matchesStatus && matchesDate;
-  });
+  // Handler functions
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+      setCurrentPage(page);
+    }
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+  };
+
+  const handleStatusFilter = (status: string) => {
+    setFilterStatus(status);
+    setCurrentPage(1);
+  };
+
+  const handleDateFilter = (date: string) => {
+    setFilterDate(date);
+    setCurrentPage(1);
+  };
 
   const handleApproveRequest = async (id: number) => {
     try {

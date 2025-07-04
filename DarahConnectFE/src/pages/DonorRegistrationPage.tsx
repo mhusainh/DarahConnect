@@ -303,114 +303,128 @@ const DonorRegistrationPage: React.FC = () => {
             </FadeIn>
           ) : (
             <>
-              <div className="grid gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {registrations.map((registration, index) => (
                   <SlideIn key={registration.id} direction="up" delay={index * 0.1}>
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-                      <div className="p-6">
-                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-                          <div className="flex-1">
-                            {/* Event Info */}
-                            <div className="flex items-center space-x-3 mb-3">
-                              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                                <HeartHandshakeIcon className="w-5 h-5 text-red-600" />
-                              </div>
-                              <div>
-                                <h3 className="text-lg font-semibold text-gray-900">
-                                  {registration.BloodRequest?.event_name || 'Event Donor Darah'}
-                                </h3>
-                                <p className="text-sm text-gray-500">
-                                  ID: #{registration.id}
-                                </p>
-                              </div>
-                            </div>
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:scale-105 h-full flex flex-col">
+                      {/* Header */}
+                      <div className="bg-gradient-to-r from-red-500 to-red-600 p-4 text-white">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                            <HeartHandshakeIcon className="w-4 h-4 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-sm font-semibold text-white truncate">
+                              {registration.BloodRequest?.event_name || 'Event Donor Darah'}
+                            </h3>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-red-100">
+                            ID: #{registration.id}
+                          </span>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(registration.status)} bg-white/90`}>
+                            {getStatusText(registration.status)}
+                          </span>
+                        </div>
+                      </div>
 
-                            {/* Event Details */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                              {registration.BloodRequest?.patient_name && (
-                                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                                  <UserIcon className="w-4 h-4" />
-                                  <span>Pasien: {registration.BloodRequest.patient_name}</span>
-                                </div>
-                              )}
-                              
-                              {registration.BloodRequest?.blood_type && (
-                                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                                  <DropletIcon className="w-4 h-4" />
-                                  <span>Golongan Darah: {registration.BloodRequest.blood_type}</span>
-                                </div>
-                              )}
+                      {/* Content */}
+                      <div className="p-4 flex-1 flex flex-col">
+                        {/* Patient Info */}
+                        {registration.BloodRequest?.patient_name && (
+                          <div className="flex items-center space-x-2 mb-3">
+                            <UserIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                            <span className="text-sm text-gray-700 truncate">
+                              {registration.BloodRequest.patient_name}
+                            </span>
+                          </div>
+                        )}
 
-                              {registration.BloodRequest?.event_date && (
-                                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                                  <CalendarIcon className="w-4 h-4" />
-                                  <span>{formatDate(registration.BloodRequest.event_date)}</span>
-                                </div>
-                              )}
-
-                              {registration.BloodRequest?.start_time && (
-                                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                                  <ClockIcon className="w-4 h-4" />
-                                  <span>
-                                    {formatTime(registration.BloodRequest.start_time)}
-                                    {registration.BloodRequest.end_time && 
-                                      ` - ${formatTime(registration.BloodRequest.end_time)}`
-                                    }
-                                  </span>
-                                </div>
-                              )}
-
-                              {registration.BloodRequest?.urgency_level && (
-                                <div className="flex items-center space-x-2 text-sm">
-                                  <AlertCircleIcon className="w-4 h-4" />
-                                  <span className={getUrgencyColor(registration.BloodRequest.urgency_level)}>
-                                    Prioritas: {registration.BloodRequest.urgency_level}
-                                  </span>
-                                </div>
-                              )}
-
-                              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                                <CalendarIcon className="w-4 h-4" />
-                                <span>Didaftar: {formatDate(registration.created_at)}</span>
-                              </div>
-                            </div>
-
-                            {/* Notes */}
-                            {registration.notes && (
-                              <div className="mb-4">
-                                <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">
-                                  <span className="font-medium">Catatan:</span> {registration.notes}
-                                </p>
-                              </div>
-                            )}
-
-                            {/* Diagnosis */}
-                            {registration.BloodRequest?.diagnosis && (
-                              <div className="mb-4">
-                                <p className="text-sm text-gray-700 bg-blue-50 p-3 rounded-lg">
-                                  <span className="font-medium">Diagnosis:</span> {registration.BloodRequest.diagnosis}
-                                </p>
-                              </div>
+                        {/* Blood Type */}
+                        {registration.BloodRequest?.blood_type && (
+                          <div className="flex items-center space-x-2 mb-3">
+                            <DropletIcon className="w-4 h-4 text-red-500 flex-shrink-0" />
+                            <span className="text-sm font-medium text-gray-900">
+                              {registration.BloodRequest.blood_type}
+                            </span>
+                            {registration.BloodRequest?.urgency_level && (
+                              <span className={`ml-auto text-xs px-2 py-1 rounded-full ${
+                                registration.BloodRequest.urgency_level === 'urgent' || registration.BloodRequest.urgency_level === 'critical' 
+                                  ? 'bg-red-100 text-red-700' 
+                                  : registration.BloodRequest.urgency_level === 'high'
+                                  ? 'bg-orange-100 text-orange-700'
+                                  : 'bg-yellow-100 text-yellow-700'
+                              }`}>
+                                {registration.BloodRequest.urgency_level}
+                              </span>
                             )}
                           </div>
+                        )}
 
-                          {/* Status and Actions */}
-                          <div className="lg:ml-6 mt-4 lg:mt-0">
-                            <div className="flex flex-col space-y-3">
-                              <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(registration.status)}`}>
-                                {getStatusText(registration.status)}
-                              </span>
-                              
-                              {registration.BloodRequest?.event_type && (
-                                <span className="inline-flex px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
-                                  {registration.BloodRequest.event_type}
-                                </span>
-                              )}
+                        {/* Event Date */}
+                        {registration.BloodRequest?.event_date && (
+                          <div className="flex items-center space-x-2 mb-3">
+                            <CalendarIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                            <span className="text-sm text-gray-600">
+                              {formatDate(registration.BloodRequest.event_date)}
+                            </span>
+                          </div>
+                        )}
 
-                              <div className="text-xs text-gray-500 text-right">
-                                <p>Request ID: #{registration.request_id}</p>
-                              </div>
+                        {/* Time */}
+                        {registration.BloodRequest?.start_time && (
+                          <div className="flex items-center space-x-2 mb-3">
+                            <ClockIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                            <span className="text-sm text-gray-600">
+                              {formatTime(registration.BloodRequest.start_time)}
+                              {registration.BloodRequest.end_time && 
+                                ` - ${formatTime(registration.BloodRequest.end_time)}`
+                              }
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Diagnosis */}
+                        {registration.BloodRequest?.diagnosis && (
+                          <div className="mb-3 flex-1">
+                            <div className="bg-blue-50 p-2 rounded-lg border border-blue-100">
+                              <p className="text-xs text-blue-800">
+                                <span className="font-medium">Diagnosis:</span>
+                              </p>
+                              <p className="text-xs text-blue-700 mt-1 line-clamp-2">
+                                {registration.BloodRequest.diagnosis}
+                              </p>
                             </div>
+                          </div>
+                        )}
+
+                        {/* Notes */}
+                        {registration.notes && (
+                          <div className="mb-3">
+                            <div className="bg-gray-50 p-2 rounded-lg border border-gray-100">
+                              <p className="text-xs text-gray-800">
+                                <span className="font-medium">Catatan:</span>
+                              </p>
+                              <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                                {registration.notes}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Footer */}
+                        <div className="mt-auto pt-3 border-t border-gray-100">
+                          <div className="flex items-center justify-between text-xs text-gray-500">
+                            <span>Daftar: {formatDate(registration.created_at)}</span>
+                            {registration.BloodRequest?.event_type && (
+                              <span className="px-2 py-1 rounded-full bg-purple-100 text-purple-700 font-medium">
+                                {registration.BloodRequest.event_type}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-400 mt-1">
+                            Request ID: #{registration.request_id}
                           </div>
                         </div>
                       </div>

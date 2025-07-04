@@ -58,36 +58,90 @@ const AdminDonorsPage: React.FC = () => {
   const [filterRole, setFilterRole] = useState('all');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [perPage, setPerPage] = useState(10);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const { addNotification } = useNotification();
 
-  // Fetch users from API
-  const fetchUsers = async () => {
+  // Fetch users from API with search and pagination
+  const fetchUsers = async (page: number = 1, search: string = '', verified: string = 'all', bloodType: string = 'all', role: string = 'all') => {
     try {
       setLoading(true);
-      const response = await getApi<any>('/admin/users');
+      
+      // Build query parameters for server-side filtering
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: perPage.toString()
+      });
+      if (search.trim()) {
+        params.append('search', search.trim());
+      }
+      
+      if (verified !== 'all') {
+        params.append('verified', verified === 'verified' ? 'true' : 'false');
+      }
+      
+      if (bloodType !== 'all') {
+        params.append('blood_type', bloodType);
+      }
+      
+      if (role !== 'all') {
+        params.append('role', role);
+      }
+      
+      console.log('🔍 Users API Params:', params.toString());
+      const endpoint = `/admin/users?${params.toString()}`;
+      const response = await getApi<any>(endpoint);
       
       console.log('🔍 Full API Response:', response);
       
       if (response.success && response.data) {
         // Handle different response structures
         let usersData: User[] = [];
+        let paginationData = null;
         
         if (Array.isArray(response.data)) {
           // If response.data is directly an array
           usersData = response.data;
+          paginationData = response.pagination;
         } else if (response.data.data && Array.isArray(response.data.data)) {
           // If response.data has nested data array
           usersData = response.data.data;
+          paginationData = response.pagination;
         } else {
           console.warn('⚠️ Unexpected response structure:', response.data);
           usersData = [];
         }
         
-        console.log('📋 Users data to set:', usersData);
-        console.log('📋 Is array?', Array.isArray(usersData));
-        console.log('📋 Array length:', usersData.length);
+        // Client-side filtering for now (until API supports server-side filtering)
+        const filtered = usersData.filter(user => {
+          if (!user) return false;
+          
+          const matchesSearch = !search || 
+            (user.name || '').toLowerCase().includes(search.toLowerCase()) ||
+            (user.email || '').toLowerCase().includes(search.toLowerCase()) ||
+            (user.phone || '').includes(search) ||
+            (user.address || '').toLowerCase().includes(search.toLowerCase());
+          
+          const matchesVerified = verified === 'all' || 
+                                 (verified === 'verified' && user.is_verified) ||
+                                 (verified === 'unverified' && !user.is_verified);
+          
+          const matchesBloodType = bloodType === 'all' || user.blood_type === bloodType;
+          
+          const matchesRole = role === 'all' || user.role === role;
+
+          return matchesSearch && matchesVerified && matchesBloodType && matchesRole;
+        });
+        
         
         setUsersList(usersData);
+        setTotalItems(paginationData.total_items);
+        setTotalPages(paginationData.total_pages);
+        setCurrentPage(page);
+        
       } else {
         throw new Error(response.message || 'Failed to fetch users');
       }
@@ -103,9 +157,30 @@ const AdminDonorsPage: React.FC = () => {
     }
   };
 
+  // Initial data fetch
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    fetchUsers(currentPage, searchTerm, filterVerified, filterBloodType, filterRole);
+  }, [currentPage, filterVerified, filterBloodType, filterRole]);
+
+  // Handle search with debounce
+  useEffect(() => {
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    const timeout = setTimeout(() => {
+      setCurrentPage(1);
+      fetchUsers(1, searchTerm, filterVerified, filterBloodType, filterRole);
+    }, 500);
+    
+    setSearchTimeout(timeout);
+    
+    return () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    };
+  }, [searchTerm]);
 
   // Debug usersList changes
   useEffect(() => {
@@ -154,22 +229,34 @@ const AdminDonorsPage: React.FC = () => {
       .slice(0, 2) || 'U';
   };
 
-  const filteredUsers = usersList?.filter(user => {
-    const matchesSearch = (user.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (user.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (user.phone || '').includes(searchTerm) ||
-                         (user.address || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesVerified = filterVerified === 'all' || 
-                           (filterVerified === 'verified' && user.is_verified) ||
-                           (filterVerified === 'unverified' && !user.is_verified);
-    
-    const matchesBloodType = filterBloodType === 'all' || user.blood_type === filterBloodType;
-    
-    const matchesRole = filterRole === 'all' || user.role === filterRole;
+  // Use server-side filtered data directly
+  const filteredUsers = usersList || [];
 
-    return matchesSearch && matchesVerified && matchesBloodType && matchesRole;
-  }) || [];
+  // Handler functions
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+      setCurrentPage(page);
+    }
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+  };
+
+  const handleVerifiedFilter = (verified: string) => {
+    setFilterVerified(verified);
+    setCurrentPage(1);
+  };
+
+  const handleBloodTypeFilter = (bloodType: string) => {
+    setFilterBloodType(bloodType);
+    setCurrentPage(1);
+  };
+
+  const handleRoleFilter = (role: string) => {
+    setFilterRole(role);
+    setCurrentPage(1);
+  };
 
   // Debug filtered users
   console.log('🎯 Filtered users:', filteredUsers);
@@ -200,7 +287,7 @@ const AdminDonorsPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <button 
-              onClick={fetchUsers}
+              onClick={() => fetchUsers(currentPage, searchTerm, filterVerified, filterBloodType, filterRole)}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
             >
               <Users className="h-4 w-4" />
@@ -220,8 +307,14 @@ const AdminDonorsPage: React.FC = () => {
           <div className="bg-white p-6 rounded-xl shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Pengguna</p>
-                <p className="text-2xl font-bold text-gray-900">{usersList?.length || 0}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  {searchTerm || filterVerified !== 'all' || filterBloodType !== 'all' || filterRole !== 'all' 
+                    ? 'Hasil Filter' : 'Total Pengguna'}
+                </p>
+                <p className="text-2xl font-bold text-gray-900">{totalItems}</p>
+                {(searchTerm || filterVerified !== 'all' || filterBloodType !== 'all' || filterRole !== 'all') && (
+                  <p className="text-xs text-gray-500">halaman ini</p>
+                )}
               </div>
               <Users className="h-8 w-8 text-blue-500" />
             </div>
@@ -231,6 +324,7 @@ const AdminDonorsPage: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Terverifikasi</p>
                 <p className="text-2xl font-bold text-gray-900">{usersList?.filter(u => u.is_verified).length || 0}</p>
+                <p className="text-xs text-gray-500">halaman ini</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-500" />
             </div>
@@ -240,6 +334,7 @@ const AdminDonorsPage: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Admin</p>
                 <p className="text-2xl font-bold text-gray-900">{usersList?.filter(u => u.role === 'Administrator').length || 0}</p>
+                <p className="text-xs text-gray-500">halaman ini</p>
               </div>
               <Shield className="h-8 w-8 text-purple-500" />
             </div>
@@ -249,6 +344,7 @@ const AdminDonorsPage: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Dengan Wallet</p>
                 <p className="text-2xl font-bold text-gray-900">{usersList?.filter(u => u.wallet_address).length || 0}</p>
+                <p className="text-xs text-gray-500">halaman ini</p>
               </div>
               <Wallet className="h-8 w-8 text-yellow-500" />
             </div>
@@ -265,13 +361,26 @@ const AdminDonorsPage: React.FC = () => {
                   type="text"
                   placeholder="Cari pengguna..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent w-full sm:w-64"
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className="pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent w-full sm:w-64"
                 />
+                {!loading && searchTerm && (
+                  <button
+                    onClick={() => handleSearch('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+                {loading && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="animate-spin h-4 w-4 border-2 border-red-500 border-t-transparent rounded-full"></div>
+                  </div>
+                )}
               </div>
               <select
                 value={filterVerified}
-                onChange={(e) => setFilterVerified(e.target.value)}
+                onChange={(e) => handleVerifiedFilter(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
               >
                 <option value="all">Semua Status</option>
@@ -280,7 +389,7 @@ const AdminDonorsPage: React.FC = () => {
               </select>
               <select
                 value={filterBloodType}
-                onChange={(e) => setFilterBloodType(e.target.value)}
+                onChange={(e) => handleBloodTypeFilter(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
               >
                 <option value="all">Semua Golongan Darah</option>
@@ -295,7 +404,7 @@ const AdminDonorsPage: React.FC = () => {
               </select>
               <select
                 value={filterRole}
-                onChange={(e) => setFilterRole(e.target.value)}
+                onChange={(e) => handleRoleFilter(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
               >
                 <option value="all">Semua Role</option>
@@ -304,7 +413,15 @@ const AdminDonorsPage: React.FC = () => {
               </select>
             </div>
             <div className="text-sm text-gray-600">
-              Menampilkan {filteredUsers?.length || 0} dari {usersList?.length || 0} pengguna
+              {searchTerm || filterVerified !== 'all' || filterBloodType !== 'all' || filterRole !== 'all' ? (
+                <>
+                  Menampilkan {filteredUsers.length} hasil dari {totalItems} total pengguna
+                </>
+              ) : (
+                <>
+                  Menampilkan {((currentPage - 1) * perPage) + 1} - {Math.min(currentPage * perPage, totalItems)} dari {totalItems} pengguna
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -426,7 +543,145 @@ const AdminDonorsPage: React.FC = () => {
           <div className="text-center py-12">
             <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Tidak ada pengguna ditemukan</h3>
-            <p className="text-gray-600">Coba ubah filter atau kata kunci pencarian</p>
+            <p className="text-gray-600">
+              {searchTerm || filterVerified !== 'all' || filterBloodType !== 'all' || filterRole !== 'all' 
+                ? 'Coba ubah filter atau kata kunci pencarian'
+                : 'Belum ada pengguna yang tersedia'
+              }
+            </p>
+            {searchTerm && (
+              <button
+                onClick={() => handleSearch('')}
+                className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Hapus Pencarian
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {filteredUsers.length > 0 && (
+          <div className="mt-8 bg-white px-4 py-3 flex items-center justify-between border border-gray-200 rounded-lg sm:px-6">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="relative ml-3 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Menampilkan{' '}
+                  <span className="font-medium">
+                    {((currentPage - 1) * perPage) + 1}
+                  </span>{' '}
+                  sampai{' '}
+                  <span className="font-medium">
+                    {Math.min(currentPage * perPage, totalItems)}
+                  </span>{' '}
+                  dari{' '}
+                  <span className="font-medium">{totalItems}</span> total pengguna
+                </p>
+              </div>
+              <div>
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  {(() => {
+                    const pages = [];
+                    const maxPages = 5;
+                    let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
+                    let endPage = Math.min(totalPages, startPage + maxPages - 1);
+                    
+                    if (endPage - startPage + 1 < maxPages) {
+                      startPage = Math.max(1, endPage - maxPages + 1);
+                    }
+                    
+                    // Add first page if not in range
+                    if (startPage > 1) {
+                      pages.push(
+                        <button
+                          key={1}
+                          onClick={() => handlePageChange(1)}
+                          className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                        >
+                          1
+                        </button>
+                      );
+                      if (startPage > 2) {
+                        pages.push(
+                          <span key="ellipsis1" className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500">
+                            ...
+                          </span>
+                        );
+                      }
+                    }
+                    
+                    // Add page numbers in range
+                    for (let i = startPage; i <= endPage; i++) {
+                      pages.push(
+                        <button
+                          key={i}
+                          onClick={() => handlePageChange(i)}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                            i === currentPage
+                              ? 'z-10 bg-red-50 border-red-500 text-red-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          {i}
+                        </button>
+                      );
+                    }
+                    
+                    // Add last page if not in range
+                    if (endPage < totalPages) {
+                      if (endPage < totalPages - 1) {
+                        pages.push(
+                          <span key="ellipsis2" className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500">
+                            ...
+                          </span>
+                        );
+                      }
+                      pages.push(
+                        <button
+                          key={totalPages}
+                          onClick={() => handlePageChange(totalPages)}
+                          className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                        >
+                          {totalPages}
+                        </button>
+                      );
+                    }
+                    
+                    return pages;
+                  })()}
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </nav>
+              </div>
+            </div>
           </div>
         )}
       </div>

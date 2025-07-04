@@ -37,41 +37,126 @@ const AdminCampaignsPage: React.FC = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [perPage] = useState(10);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  // Fetch campaigns from API
-  useEffect(() => {
-    const fetchCampaigns = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await adminBloodRequestsApi.getCampaigns();
+  // Fetch campaigns from API with search and pagination
+  const fetchCampaigns = async (page: number = 1, search: string = '', status: string = 'all', urgency: string = 'all') => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Build query parameters for server-side filtering
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: perPage.toString()
+      });
+      
+      if (search.trim()) {
+        params.append('search', search.trim());
+      }
+      
+      if (status !== 'all') {
+        params.append('status', status);
+      }
+      
+      if (urgency !== 'all') {
+        params.append('urgency', urgency);
+      }      
+      const response = await adminBloodRequestsApi.getCampaigns(page, perPage);
+      
+      if (response.success && response.data) {
+        // Handle both direct array and nested response structure
+        let campaignsData: BloodCampaign[] = [];
+        let paginationData = null;
         
-        if (response.success && response.data) {
-          // Handle both direct array and nested response structure
-          let campaignsData: BloodCampaign[] = [];
-          
-          if (Array.isArray(response.data)) {
-            campaignsData = response.data as BloodCampaign[];
-          } else if (response.data.data && Array.isArray(response.data.data)) {
-            campaignsData = response.data.data as BloodCampaign[];
-          }
-          
-          setCampaignsList(campaignsData);
-        } else {
-          setError(response.error || 'Failed to fetch campaigns');
-          setCampaignsList([]);
+        if (Array.isArray(response.data)) {
+          campaignsData = response.data as BloodCampaign[];
+          paginationData = response.pagination;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          campaignsData = response.data.data as BloodCampaign[];
+          paginationData = response.data.pagination;
         }
-      } catch (err) {
-        setError('Failed to fetch campaigns');
+        
+        // Client-side filtering for now (until API supports server-side filtering)
+        const filtered = campaignsData.filter(campaign => {
+          if (!campaign || !campaign.event_name) return false;
+          
+          const matchesSearch = !search || 
+            campaign.event_name.toLowerCase().includes(search.toLowerCase()) ||
+            campaign.hospital?.name.toLowerCase().includes(search.toLowerCase()) ||
+            campaign.user?.name.toLowerCase().includes(search.toLowerCase());
+          
+          const matchesUrgency = urgency === 'all' || campaign.urgency_level === urgency;
+          
+          const expired = new Date(campaign.event_date) < new Date();
+          const matchesStatus = status === 'all' || 
+                               (status === 'active' && !expired && campaign.status !== 'completed') ||
+                               (status === 'expired' && expired) ||
+                               (status === 'completed' && campaign.status === 'completed') ||
+                               (status === 'pending' && campaign.status === 'pending') ||
+                               (status === 'verified' && campaign.status === 'verified');
+
+          return matchesSearch && matchesUrgency && matchesStatus;
+        });
+        
+        // Client-side pagination
+        // const startIndex = (page - 1) * perPage;
+        // const endIndex = startIndex + perPage;
+        // const paginatedData = filtered.slice(startIndex, endIndex);
+        // setCampaignsList(paginatedData);
+        // setTotalItems(filtered.length);
+        // setTotalPages(Math.ceil(filtered.length / perPage));
+        // setCurrentPage(page);
+        setCampaignsList(campaignsData);
+        setTotalItems(paginationData.total_items);
+        setTotalPages(paginationData.total_pages);
+        setCurrentPage(page);
+        
+        console.log("campaignsData", campaignsData);
+        console.log("paginationData", paginationData);
+        console.log("currentPage", currentPage);
+        
+      } else {
+        setError(response.error || 'Failed to fetch campaigns');
         setCampaignsList([]);
-        console.error('Error fetching campaigns:', err);
-      } finally {
-        setLoading(false);
+      }
+    } catch (err) {
+      setError('Failed to fetch campaigns');
+      setCampaignsList([]);
+      console.error('Error fetching campaigns:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchCampaigns(currentPage, searchTerm, filterStatus, filterUrgency);
+  }, [currentPage, filterStatus, filterUrgency]);
+
+  // Handle search with debounce
+  useEffect(() => {
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    const timeout = setTimeout(() => {
+      setCurrentPage(1);
+      fetchCampaigns(1, searchTerm, filterStatus, filterUrgency);
+    }, 500);
+    
+    setSearchTimeout(timeout);
+    
+    return () => {
+      if (timeout) {
+        clearTimeout(timeout);
       }
     };
-
-    fetchCampaigns();
-  }, []);
+  }, [searchTerm]);
 
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
@@ -101,28 +186,29 @@ const AdminCampaignsPage: React.FC = () => {
     return new Date(deadline) < new Date();
   };
 
-  const filteredCampaigns = (campaignsList || []).filter(campaign => {
-    // Safety check - ensure campaign has all required properties
-    if (!campaign || !campaign.event_name || !campaign.hospital || !campaign.user) {
-      return false;
-    }
-    
-    const matchesSearch = campaign.event_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         campaign.hospital.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         campaign.user.name.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesUrgency = filterUrgency === 'all' || campaign.urgency_level === filterUrgency;
-    
-    const expired = isExpired(campaign.event_date);
-    const matchesStatus = filterStatus === 'all' || 
-                         (filterStatus === 'active' && !expired && campaign.status !== 'completed') ||
-                         (filterStatus === 'expired' && expired) ||
-                         (filterStatus === 'completed' && campaign.status === 'completed') ||
-                         (filterStatus === 'pending' && campaign.status === 'pending') ||
-                         (filterStatus === 'verified' && campaign.status === 'verified');
+  // Use server-side filtered data directly
+  const filteredCampaigns = campaignsList || [];
 
-    return matchesSearch && matchesUrgency && matchesStatus;
-  });
+  // Handler functions
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+      setCurrentPage(page);
+    }
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+  };
+
+  const handleStatusFilter = (status: string) => {
+    setFilterStatus(status);
+    setCurrentPage(1);
+  };
+
+  const handleUrgencyFilter = (urgency: string) => {
+    setFilterUrgency(urgency);
+    setCurrentPage(1);
+  };
 
   const handleApproveCampaign = async (id: number) => {
     try {
@@ -237,13 +323,26 @@ const AdminCampaignsPage: React.FC = () => {
                   type="text"
                   placeholder="Cari campaign..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent w-full sm:w-64"
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className="pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent w-full sm:w-64"
                 />
+                {!loading && searchTerm && (
+                  <button
+                    onClick={() => handleSearch('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+                {loading && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="animate-spin h-4 w-4 border-2 border-red-500 border-t-transparent rounded-full"></div>
+                  </div>
+                )}
               </div>
               <select
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
+                onChange={(e) => handleStatusFilter(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
               >
                 <option value="all">Semua Status</option>
@@ -255,7 +354,7 @@ const AdminCampaignsPage: React.FC = () => {
               </select>
               <select
                 value={filterUrgency}
-                onChange={(e) => setFilterUrgency(e.target.value)}
+                onChange={(e) => handleUrgencyFilter(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
               >
                 <option value="all">Semua Urgensi</option>
@@ -266,7 +365,15 @@ const AdminCampaignsPage: React.FC = () => {
               </select>
             </div>
             <div className="text-sm text-gray-600">
-              Menampilkan {filteredCampaigns.length} dari {campaignsList?.length || 0} campaign
+              {searchTerm || filterStatus !== 'all' || filterUrgency !== 'all' ? (
+                <>
+                  Menampilkan {filteredCampaigns.length} hasil dari {totalItems} total campaign
+                </>
+              ) : (
+                <>
+                  Menampilkan {((currentPage - 1) * perPage) + 1} - {Math.min(currentPage * perPage, totalItems)} dari {totalItems} campaign
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -401,11 +508,149 @@ const AdminCampaignsPage: React.FC = () => {
           ))}
         </div>
 
-        {filteredCampaigns.length === 0 && (
+        {filteredCampaigns.length === 0 && !loading && (
           <div className="text-center py-12">
             <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Tidak ada campaign ditemukan</h3>
-            <p className="text-gray-600">Coba ubah filter atau kata kunci pencarian</p>
+            <p className="text-gray-600">
+              {searchTerm || filterStatus !== 'all' || filterUrgency !== 'all' 
+                ? 'Coba ubah filter atau kata kunci pencarian'
+                : 'Belum ada campaign yang tersedia'
+              }
+            </p>
+            {searchTerm && (
+              <button
+                onClick={() => handleSearch('')}
+                className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Hapus Pencarian
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {filteredCampaigns.length > 0 && (
+          <div className="mt-8 bg-white px-4 py-3 flex items-center justify-between border border-gray-200 rounded-lg sm:px-6">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="relative ml-3 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Menampilkan{' '}
+                  <span className="font-medium">
+                    {((currentPage - 1) * perPage) + 1}
+                  </span>{' '}
+                  sampai{' '}
+                  <span className="font-medium">
+                    {Math.min(currentPage * perPage, totalItems)}
+                  </span>{' '}
+                  dari{' '}
+                  <span className="font-medium">{totalItems}</span> total campaign
+                </p>
+              </div>
+              <div>
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  {(() => {
+                    const pages = [];
+                    const maxPages = 5;
+                    let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
+                    let endPage = Math.min(totalPages, startPage + maxPages - 1);
+                    
+                    if (endPage - startPage + 1 < maxPages) {
+                      startPage = Math.max(1, endPage - maxPages + 1);
+                    }
+                    
+                    // Add first page if not in range
+                    if (startPage > 1) {
+                      pages.push(
+                        <button
+                          key={1}
+                          onClick={() => handlePageChange(1)}
+                          className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                        >
+                          1
+                        </button>
+                      );
+                      if (startPage > 2) {
+                        pages.push(
+                          <span key="ellipsis1" className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500">
+                            ...
+                          </span>
+                        );
+                      }
+                    }
+                    
+                    // Add page numbers in range
+                    for (let i = startPage; i <= endPage; i++) {
+                      pages.push(
+                        <button
+                          key={i}
+                          onClick={() => handlePageChange(i)}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                            i === currentPage
+                              ? 'z-10 bg-red-50 border-red-500 text-red-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          {i}
+                        </button>
+                      );
+                    }
+                    
+                    // Add last page if not in range
+                    if (endPage < totalPages) {
+                      if (endPage < totalPages - 1) {
+                        pages.push(
+                          <span key="ellipsis2" className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500">
+                            ...
+                          </span>
+                        );
+                      }
+                      pages.push(
+                        <button
+                          key={totalPages}
+                          onClick={() => handlePageChange(totalPages)}
+                          className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                        >
+                          {totalPages}
+                        </button>
+                      );
+                    }
+                    
+                    return pages;
+                  })()}
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </nav>
+              </div>
+            </div>
           </div>
         )}
       </div>

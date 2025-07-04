@@ -93,6 +93,7 @@ export const useApi = <T = any>(initialData: T | null = null) => {
         success: false,
         error: errorMessage,
         status: 0,
+        pagination: null,
       };
     }
   }, []);
@@ -207,6 +208,7 @@ export const useMultipleApi = () => {
             success: false,
             error: response.reason?.message || 'Unknown error',
             status: 0,
+            pagination: null,
           });
         }
       });
@@ -230,6 +232,7 @@ export const useMultipleApi = () => {
         success: false,
         error: errorMessage,
         status: 0,
+        pagination: null,
       }));
     }
   }, []);

@@ -27,6 +27,8 @@ import {
   Phone,
 } from "lucide-react";
 import { useApi } from "../hooks/useApi";
+import { useNotification } from "../hooks/useNotification";
+import { useCampaignService } from "../services/campaignService";
 import {
   FadeIn,
   StaggerContainer,
@@ -35,6 +37,7 @@ import {
   Floating,
   HoverScale,
 } from "../components/ui/AnimatedComponents";
+import DonorOptionModal from "../components/DonorOptionModal";
 import {
   MorphingShape,
   GradientBackground,
@@ -135,6 +138,8 @@ interface BloodRequest {
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const { addNotification } = useNotification();
+  const campaignService = useCampaignService();
   
   // All hooks must be called at the top level
   const [userName] = useState(localStorage.getItem("userName") || "Donor");
@@ -171,6 +176,10 @@ const DashboardPage: React.FC = () => {
   const [certError, setCertError] = useState<string | null>(null);
 
   const [schedules, setSchedules] = useState<any[]>([]);
+  
+  // Modal state for blood request donor option
+  const [isBloodRequestModalOpen, setIsBloodRequestModalOpen] = useState(false);
+  const [selectedBloodRequest, setSelectedBloodRequest] = useState<BloodRequest | null>(null);
 
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   
@@ -472,18 +481,100 @@ const DashboardPage: React.FC = () => {
     });
   };
 
-  const handleDonateToRequest = (request: BloodRequest) => {
-    // Navigate to donor registration with pre-filled data
-    navigate("/donor-register", {
-      state: {
-        bloodRequest: request,
-        prefilledData: {
-          blood_type: request.blood_type,
-          hospital_id: request.hospital_id,
-          event_name: request.event_name,
-        },
+  // Convert BloodRequest to BloodCampaign format for modal
+  const convertBloodRequestToCampaign = (request: BloodRequest): BloodCampaign => {
+    return {
+      id: request.id.toString(),
+      title: request.event_name,
+      description: request.diagnosis,
+      organizer: {
+        name: request.user.name,
+        avatar: request.user.url_file || '/api/placeholder/32/32',
+        verified: request.user.is_verified,
+        role: request.user.role
       },
-    });
+      hospital: request.hospital.name,
+      location: `${request.hospital.city}, ${request.hospital.province}`,
+      bloodType: [request.blood_type as any],
+      targetDonors: request.quantity || 1,
+      currentDonors: 0,
+      urgencyLevel: request.urgency_level as any,
+      contactPerson: request.user.name,
+      contactPhone: request.user.phone,
+      deadline: request.event_date,
+      createdAt: request.created_at,
+      imageUrl: '',
+      url_file: ''
+    };
+  };
+
+  const handleDonateToRequest = (request: BloodRequest) => {
+    setSelectedBloodRequest(request);
+    setIsBloodRequestModalOpen(true);
+  };
+
+  const handleBloodRequestDonorNow = async (notes: string, hospitalId: number, description: string) => {
+    if (!selectedBloodRequest) return;
+    
+    try {
+      const success = await campaignService.donorNowWithSchedule(selectedBloodRequest.id, hospitalId, description, notes);
+      if (success) {
+        addNotification({
+          type: 'success',
+          title: 'Pendaftaran dan Jadwal Berhasil!',
+          message: 'Anda telah berhasil mendaftar sebagai donor untuk permintaan darah ini. Tim akan menghubungi Anda segera.',
+          duration: 5000
+        });
+        setIsBloodRequestModalOpen(false);
+        setSelectedBloodRequest(null);
+      } else {
+        addNotification({
+          type: 'error',
+          title: 'Pendaftaran Gagal',
+          message: 'Terjadi kesalahan saat mendaftar sebagai donor dan membuat jadwal. Silakan coba lagi.',
+          duration: 5000
+        });
+      }
+    } catch (error: any) {
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Terjadi kesalahan sistem. Silakan coba lagi nanti.',
+        duration: 5000
+      });
+    }
+  };
+
+  const handleBloodRequestScheduleOnly = async (hospitalId: number, description: string) => {
+    if (!selectedBloodRequest) return;
+    
+    try {
+      const success = await campaignService.createSchedule(selectedBloodRequest.id, hospitalId, description);
+      if (success) {
+        addNotification({
+          type: 'success',
+          title: 'Jadwal Berhasil Dibuat!',
+          message: 'Jadwal donor darah untuk permintaan ini telah berhasil dibuat. Tim akan menghubungi Anda untuk konfirmasi.',
+          duration: 5000
+        });
+        setIsBloodRequestModalOpen(false);
+        setSelectedBloodRequest(null);
+      } else {
+        addNotification({
+          type: 'error',
+          title: 'Pembuatan Jadwal Gagal',
+          message: 'Terjadi kesalahan saat membuat jadwal. Silakan coba lagi.',
+          duration: 5000
+        });
+      }
+    } catch (error: any) {
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Terjadi kesalahan sistem. Silakan coba lagi nanti.',
+        duration: 5000
+      });
+    }
   };
 
   const handleViewAllRequests = () => {
@@ -1188,7 +1279,7 @@ const DashboardPage: React.FC = () => {
                         </button>
                       </div>
                     ) : (
-                      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
                         {bloodRequests.slice(0, 6).map((request, index) => (
                           <FadeIn
                             key={request.id}
@@ -1196,9 +1287,9 @@ const DashboardPage: React.FC = () => {
                             delay={0.1 * index}
                           >
                             <HoverScale scale={1.02}>
-                              <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-all duration-300">
+                              <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-all duration-300 h-full flex flex-col">
                                 {/* Header */}
-                                <div className="bg-gradient-to-r from-red-500 to-red-600 p-4 text-white">
+                                <div className="bg-gradient-to-r from-red-500 to-red-600 p-4 text-white flex-shrink-0">
                                   <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center space-x-2">
                                       <div
@@ -1226,7 +1317,7 @@ const DashboardPage: React.FC = () => {
                                 </div>
 
                                 {/* Content */}
-                                <div className="p-4 space-y-4">
+                                <div className="p-4 space-y-4 flex-grow flex flex-col">
                                   {/* Patient Info */}
                                   <div className="space-y-2">
                                     <div className="flex items-center space-x-2">
@@ -1278,7 +1369,7 @@ const DashboardPage: React.FC = () => {
                                   </div>
 
                                   {/* Status */}
-                                  <div className="flex items-center justify-between">
+                                  <div className="flex items-center justify-between mt-auto pt-2">
                                     <span
                                       className={`px-3 py-1 rounded-full text-sm font-medium border ${'bg-gray-100 text-gray-800'}`}
                                     >
@@ -1291,7 +1382,7 @@ const DashboardPage: React.FC = () => {
                                 </div>
 
                                 {/* Actions */}
-                                <div className="p-4 bg-gray-50 border-t">
+                                <div className="p-4 bg-gray-50 border-t flex-shrink-0">
                                   <button
                                     onClick={() =>
                                       handleDonateToRequest(request)
@@ -1356,6 +1447,20 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
       </FadeIn>
+
+      {/* DonorOptionModal for Blood Requests */}
+      {selectedBloodRequest && (
+        <DonorOptionModal
+          isOpen={isBloodRequestModalOpen}
+          onClose={() => {
+            setIsBloodRequestModalOpen(false);
+            setSelectedBloodRequest(null);
+          }}
+          campaign={convertBloodRequestToCampaign(selectedBloodRequest)}
+          onDonorNow={handleBloodRequestDonorNow}
+          onScheduleOnly={handleBloodRequestScheduleOnly}
+        />
+      )}
 
       {/* Modal untuk detail notifikasi */}
       {notifDetail && (
