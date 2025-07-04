@@ -28,6 +28,14 @@ func SuccessResponse(message string, data interface{}) Response {
 }
 
 func SuccessResponseWithPagi(message string, data interface{}, page, perPage, totalItems int64) Response {
+	if perPage == 0 {
+		perPage = 10
+	}
+
+	if page == 0 {
+		page = 1
+	}
+	
 	totalPages := calculateTotalPages(totalItems, perPage)
 	return Response{
 		Meta:           Meta{Code: http.StatusOK, Message: message},

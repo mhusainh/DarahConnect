@@ -99,13 +99,6 @@ func (h	 *DonationHandler) GetDonations(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan data donasi: "+err.Error()))
 	}
 
-	if req.Limit == 0 {
-		req.Limit = 1
-	}
-
-	if req.Page == 0 {
-		req.Page = 10
-	}
 	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("berhasil menampilkan semua donasi", donations, req.Page, req.Limit, total))
 }
 

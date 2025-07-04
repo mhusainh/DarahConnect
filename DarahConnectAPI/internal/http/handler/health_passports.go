@@ -32,7 +32,7 @@ func (h *HealthPassportHandler) GetHealthPassports(ctx echo.Context) error {
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan data health passport: "+err.Error()))
 	}
-	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("berhasil mendapatkan health passport", healthPassport, total, req.Page, req.Limit))
+	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("berhasil mendapatkan health passport", healthPassport, req.Page, req.Limit, total))
 }
 
 func (h *HealthPassportHandler) GetHealthPassport(ctx echo.Context) error {
