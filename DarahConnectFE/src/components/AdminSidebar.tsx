@@ -49,10 +49,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) => {
       description: 'Kelola Data Rumah Sakit'
     },
     {
-      title: 'Permintaan',
+      title: 'Permintaan darah',
       icon: FileText,
       path: '/admin/requests',
-      description: 'Kelola Permintaan Donasi'
+      description: 'Kelola Permintaan Darah'
     },
     {
       title: 'Sertifikat',

@@ -6,11 +6,12 @@ import { useQuickNotifications } from '../contexts/NotificationContext';
 import { getUserData } from '../utils/jwt';
 import { formatDateForBackend, formatDateForDisplay, isDateInFuture, EXAMPLE_FORMATTED_DATE } from '../utils/dateUtils';
 import AddHospitalModal from '../components/AddHospitalModal';
+import SearchableHospitalDropdown from '../components/SearchableHospitalDropdown';
 import Header from '../components/Header';
 
 interface CreateBloodRequestForm {
   user_id: number;
-  hospital_id: number | string;
+  hospital_id: number;
   patient_name: string;
   event_date: string;
   blood_type: string;
@@ -43,7 +44,6 @@ interface Hospital {
 const CreateBloodRequestPage: React.FC = () => {
   const navigate = useNavigate();
   const createRequestApi = useApi();
-  const hospitalsApi = useApi<Hospital[]>();
   const notifications = useQuickNotifications();
   
   const [formData, setFormData] = useState<CreateBloodRequestForm>({
@@ -58,7 +58,6 @@ const CreateBloodRequestPage: React.FC = () => {
   });
   
   const [errors, setErrors] = useState<FormErrors>({});
-  const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [isAddHospitalModalOpen, setIsAddHospitalModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -71,23 +70,13 @@ const CreateBloodRequestPage: React.FC = () => {
     { value: 'critical', label: 'Sangat Mendesak', color: 'text-red-600', bgColor: 'bg-red-50 border-red-200' }
   ];
 
-  // Set user_id from localStorage and fetch hospitals on component mount
+  // Set user_id from localStorage on component mount
   useEffect(() => {
     const userData = getUserData();
     if (userData?.id) {
       setFormData(prev => ({ ...prev, user_id: userData.id }));
     }
-    
-    // Fetch hospitals from API
-    hospitalsApi.get('/hospital');
   }, []);
-
-  // Update hospitals when API call completes
-  useEffect(() => {
-    if (hospitalsApi.data) {
-      setHospitals(Array.isArray(hospitalsApi.data) ? hospitalsApi.data : []);
-    }
-  }, [hospitalsApi.data]);
 
   const handleInputChange = (field: keyof CreateBloodRequestForm, value: any) => {
     // Special handling for hospital selection
@@ -108,7 +97,6 @@ const CreateBloodRequestPage: React.FC = () => {
   };
 
   const handleHospitalAdded = (newHospital: Hospital) => {
-    setHospitals(prev => [...prev, newHospital]);
     setFormData(prev => ({ ...prev, hospital_id: newHospital.id }));
     setIsAddHospitalModalOpen(false);
     notifications.success('Berhasil!', 'Rumah sakit baru telah ditambahkan');
@@ -174,7 +162,7 @@ const CreateBloodRequestPage: React.FC = () => {
     if (!formData.diagnosis.trim()) newErrors.diagnosis = 'Diagnosis wajib diisi';
     if (formData.diagnosis.length < 10) newErrors.diagnosis = 'Diagnosis minimal 10 karakter';
     
-    if (!formData.hospital_id || formData.hospital_id === 'add-new') newErrors.hospital_id = 'Rumah sakit wajib dipilih';
+    if (!formData.hospital_id) newErrors.hospital_id = 'Rumah sakit wajib dipilih';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -237,7 +225,6 @@ const CreateBloodRequestPage: React.FC = () => {
     }
   };
 
-  const selectedHospital = hospitals.find(h => h.id === formData.hospital_id && typeof formData.hospital_id === 'number');
   const selectedUrgency = urgencyLevels.find(u => u.value === formData.urgency_level);
 
   return (
@@ -318,28 +305,13 @@ const CreateBloodRequestPage: React.FC = () => {
               <label htmlFor="hospital_id" className="block text-sm font-medium text-gray-700 mb-2">
                 Rumah Sakit *
               </label>
-              <div className="relative">
-                <BuildingIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                <select
-                  id="hospital_id"
-                  value={formData.hospital_id}
-                  onChange={(e) => handleInputChange('hospital_id', e.target.value === 'add-new' ? 'add-new' : parseInt(e.target.value))}
-                  className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors ${
-                    errors.hospital_id ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                >
-                  <option value="">Pilih Rumah Sakit</option>
-                  {hospitals.map((hospital) => (
-                    <option key={hospital.id} value={hospital.id}>
-                      {hospital.name} - {hospital.city}, {hospital.province}
-                    </option>
-                  ))}
-                  <option value="add-new" className="font-medium text-blue-600">
-                    + Tambah Rumah Sakit Baru
-                  </option>
-                </select>
-              </div>
-              {errors.hospital_id && <p className="mt-1 text-sm text-red-600">{errors.hospital_id}</p>}
+              <SearchableHospitalDropdown
+                value={formData.hospital_id}
+                onChange={(hospitalId) => handleInputChange('hospital_id', hospitalId)}
+                onAddHospital={() => setIsAddHospitalModalOpen(true)}
+                error={errors.hospital_id}
+                placeholder="Pilih Rumah Sakit"
+              />
             </div>
 
             {/* Blood Type & Quantity */}
@@ -477,40 +449,44 @@ const CreateBloodRequestPage: React.FC = () => {
             </div>
 
             {/* Preview */}
-            {formData.patient_name && formData.blood_type && (
-              <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+            {formData.patient_name && formData.blood_type && formData.hospital_id && (
+              <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
                 <h3 className="font-medium text-gray-900 mb-3">Preview Request</h3>
-                <div className="bg-white rounded-lg p-4 border">
+                <div className="bg-white rounded-xl p-4 border shadow-sm" style={{ minHeight: '200px' }}>
                   <div className="flex items-start justify-between mb-3">
-                    <h4 className="font-semibold text-gray-900">Pasien: {formData.patient_name}</h4>
+                    <h4 className="font-bold text-base text-gray-900">Pasien: {formData.patient_name}</h4>
                     {selectedUrgency && (
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center ${selectedUrgency.bgColor} ${selectedUrgency.color} border`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-bold flex items-center ${selectedUrgency.bgColor} ${selectedUrgency.color} border`}>
                         <AlertTriangleIcon className="w-3 h-3 mr-1" />
                         {selectedUrgency.label}
                       </span>
                     )}
                   </div>
                   <div className="space-y-2 text-sm text-gray-600">
+                    {formData.hospital_id && (
+                      <p className="flex items-center">
+                        <BuildingIcon className="w-4 h-4 mr-2 text-gray-400" />
+                        Rumah Sakit ID: {formData.hospital_id}
+                      </p>
+                    )}
                     <p className="flex items-center">
-                      <BuildingIcon className="w-4 h-4 mr-2" />
-                      {selectedHospital?.name} - {selectedHospital?.city}, {selectedHospital?.province}
+                      <HeartIcon className="w-4 h-4 mr-2 text-gray-400" />
+                      Golongan Darah: <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded ml-1 font-bold text-xs">{formData.blood_type}</span>
                     </p>
                     <p className="flex items-center">
-                      <HeartIcon className="w-4 h-4 mr-2" />
-                      Golongan Darah: <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded ml-1 font-medium">{formData.blood_type}</span>
-                    </p>
-                    <p className="flex items-center">
-                      <UserIcon className="w-4 h-4 mr-2" />
+                      <UserIcon className="w-4 h-4 mr-2 text-gray-400" />
                       Jumlah: {formData.quantity} kantong
                     </p>
                     {formData.event_date && (
                       <p className="flex items-center">
-                        <ClockIcon className="w-4 h-4 mr-2" />
+                        <ClockIcon className="w-4 h-4 mr-2 text-gray-400" />
                         Dibutuhkan: {formatDateForDisplay(formData.event_date)}
                       </p>
                     )}
                     {formData.diagnosis && (
-                      <p className="mt-2 italic">"{formData.diagnosis.substring(0, 100)}{formData.diagnosis.length > 100 ? '...' : ''}"</p>
+                      <p className="mt-3 p-3 bg-gray-50 rounded-lg text-sm italic border-l-4 border-red-400">
+                        "{formData.diagnosis.substring(0, 150)}{formData.diagnosis.length > 150 ? '...' : ''}"
+                      </p>
                     )}
                   </div>
                   

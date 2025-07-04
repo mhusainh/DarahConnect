@@ -40,17 +40,37 @@ const AdminCertificatesPage: React.FC = () => {
   const [selectedCertificate, setSelectedCertificate] = useState<Certificate | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [perPage] = useState(10);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    fetchCertificates();
-    // eslint-disable-next-line
-  }, []);
-
-  const fetchCertificates = async () => {
+  // Fetch certificates with search and pagination
+  const fetchCertificates = async (page: number = 1, search: string = '', status: string = 'all') => {
     setLoading(true);
     setError('');
-    const res = await get('/blood-donations');
+    
+    // Build query parameters for server-side filtering
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: perPage.toString()
+    });
+    
+    if (search.trim()) {
+      params.append('search', search.trim());
+    }
+    
+    if (status !== 'all') {
+      params.append('status', status);
+    }
+    
+    const endpoint = `/blood-donations?${params.toString()}`;
+    console.log('🔍 Certificates API Endpoint:', endpoint);
+    
+    const res = await get(endpoint);
     if (res.success && Array.isArray(res.data)) {
+      let paginationData = null;
       const mapped = res.data.map((item: any) => ({
         id: String(item.id),
         donorName: item.registration?.user?.name || '-',
@@ -60,26 +80,88 @@ const AdminCertificatesPage: React.FC = () => {
         hospitalName: item.hospital?.name || '-',
         urlFile: item.url_file || '',
       }));
+      paginationData = res.pagination;
+      
+      // Client-side filtering for now (until API supports server-side filtering)
+      const filtered = mapped.filter(cert => {
+        const matchesSearch = !search || 
+          cert.donorName.toLowerCase().includes(search.toLowerCase()) ||
+          cert.id.toLowerCase().includes(search.toLowerCase()) ||
+          cert.hospitalName.toLowerCase().includes(search.toLowerCase());
+        
+        const matchesStatus = status === 'all' || cert.status === status;
+        
+        return matchesSearch && matchesStatus;
+      });
+      
+      // Client-side pagination
+      // const startIndex = (page - 1) * perPage;
+      // const endIndex = startIndex + perPage;
+      // const paginatedData = filtered.slice(startIndex, endIndex);
+      
       setCertificates(mapped);
+      setTotalItems(paginationData?.total_items || 0);
+      setTotalPages(paginationData?.total_pages || 1);
+      setCurrentPage(page);
+      
+      
+      
     } else {
       setError(res.error || 'Gagal memuat data');
     }
     setLoading(false);
   };
 
-  const filteredCertificates = certificates.filter(cert => {
-    const matchesSearch = cert.donorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         cert.id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || cert.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
+  // Initial data fetch
+  useEffect(() => {
+    fetchCertificates(currentPage, searchTerm, filterStatus);
+  }, [currentPage, filterStatus]);
+
+  // Handle search with debounce
+  useEffect(() => {
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    const timeout = setTimeout(() => {
+      setCurrentPage(1);
+      fetchCertificates(1, searchTerm, filterStatus);
+    }, 500);
+    
+    setSearchTimeout(timeout);
+    
+    return () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    };
+  }, [searchTerm]);
+
+  // Use server-side filtered data directly
+  const filteredCertificates = certificates || [];
+
+  // Handler functions
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+      setCurrentPage(page);
+    }
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+  };
+
+  const handleStatusFilter = (status: string) => {
+    setFilterStatus(status);
+    setCurrentPage(1);
+  };
 
   const getStatusStats = () => {
     return {
-      total: certificates.length,
-      pending: certificates.filter(c => c.status === 'pending').length,
-      approved: certificates.filter(c => c.status === 'completed').length,
-      rejected: certificates.filter(c => c.status === 'rejected').length,
+      total: totalItems,
+      pending: filteredCertificates.filter(c => c.status === 'pending').length,
+      approved: filteredCertificates.filter(c => c.status === 'completed').length,
+      rejected: filteredCertificates.filter(c => c.status === 'rejected').length,
     };
   };
 
@@ -90,7 +172,7 @@ const AdminCertificatesPage: React.FC = () => {
     setApprovingId(id);
     await put(`/blood-donation/${id}/status`, { status: 'completed' });
     setApprovingId(null);
-    fetchCertificates();
+    fetchCertificates(currentPage, searchTerm, filterStatus);
   };
 
   return (
@@ -146,7 +228,7 @@ const AdminCertificatesPage: React.FC = () => {
                   type="text"
                   placeholder="Cari donor atau ID sertifikat..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => handleSearch(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 />
               </div>
@@ -154,7 +236,7 @@ const AdminCertificatesPage: React.FC = () => {
             <div className="flex space-x-4">
               <select
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
+                onChange={(e) => handleStatusFilter(e.target.value)}
                 className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500"
               >
                 <option value="all">Semua Status</option>
@@ -162,6 +244,9 @@ const AdminCertificatesPage: React.FC = () => {
                 <option value="completed">Disetujui</option>
                 <option value="rejected">Ditolak</option>
               </select>
+            </div>
+            <div className="text-sm text-gray-600">
+              Menampilkan {filteredCertificates.length} dari {totalItems} sertifikat
             </div>
           </div>
         </div>
@@ -213,6 +298,131 @@ const AdminCertificatesPage: React.FC = () => {
                 <Award className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">Tidak ada sertifikat</h3>
                 <p className="text-gray-500">Tidak ada sertifikat yang sesuai dengan filter yang dipilih.</p>
+              </div>
+            )}
+
+            {/* Pagination */}
+            {filteredCertificates.length > 0 && (
+              <div className="mt-8 bg-white px-4 py-3 flex items-center justify-between border border-gray-200 rounded-lg sm:px-6">
+                <div className="flex-1 flex justify-between sm:hidden">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="relative ml-3 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm text-gray-700">
+                      Menampilkan{' '}
+                      <span className="font-medium">
+                        {((currentPage - 1) * perPage) + 1}
+                      </span>{' '}
+                      sampai{' '}
+                      <span className="font-medium">
+                        {Math.min(currentPage * perPage, totalItems)}
+                      </span>{' '}
+                      dari{' '}
+                      <span className="font-medium">{totalItems}</span> total sertifikat
+                    </p>
+                  </div>
+                  <div>
+                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Previous
+                      </button>
+                      {(() => {
+                        const pages = [];
+                        const maxPages = 5;
+                        let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
+                        let endPage = Math.min(totalPages, startPage + maxPages - 1);
+                        
+                        if (endPage - startPage + 1 < maxPages) {
+                          startPage = Math.max(1, endPage - maxPages + 1);
+                        }
+                        
+                        // Add first page if not in range
+                        if (startPage > 1) {
+                          pages.push(
+                            <button
+                              key={1}
+                              onClick={() => handlePageChange(1)}
+                              className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                            >
+                              1
+                            </button>
+                          );
+                          if (startPage > 2) {
+                            pages.push(
+                              <span key="ellipsis1" className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500">
+                                ...
+                              </span>
+                            );
+                          }
+                        }
+                        
+                        // Add page numbers in range
+                        for (let i = startPage; i <= endPage; i++) {
+                          pages.push(
+                            <button
+                              key={i}
+                              onClick={() => handlePageChange(i)}
+                              className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                                i === currentPage
+                                  ? 'z-10 bg-red-50 border-red-500 text-red-600'
+                                  : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                              }`}
+                            >
+                              {i}
+                            </button>
+                          );
+                        }
+                        
+                        // Add last page if not in range
+                        if (endPage < totalPages) {
+                          if (endPage < totalPages - 1) {
+                            pages.push(
+                              <span key="ellipsis2" className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500">
+                                ...
+                              </span>
+                            );
+                          }
+                          pages.push(
+                            <button
+                              key={totalPages}
+                              onClick={() => handlePageChange(totalPages)}
+                              className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                            >
+                              {totalPages}
+                            </button>
+                          );
+                        }
+                        
+                        return pages;
+                      })()}
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Next
+                      </button>
+                    </nav>
+                  </div>
+                </div>
               </div>
             )}
           </>

@@ -825,10 +825,10 @@ const ProfilePage: React.FC = () => {
                   </h3>
                   
                   <div className="space-y-4">
-                    <div className="text-center p-4 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl text-white">
+                    {/* <div className="text-center p-4 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl text-white">
                       <p className="text-3xl font-bold">{profileData?.donation_count || 0}</p>
                       <p className="text-sm opacity-90">Total Donasi</p>
-                    </div>
+                    </div> */}
                     
                     <div className="space-y-3">
                       <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
@@ -866,7 +866,7 @@ const ProfilePage: React.FC = () => {
                   <div className="space-y-3">
                     <HoverScale scale={1.02}>
                       <button
-                        onClick={() => navigate('/donor-register')}
+                        onClick={() => navigate('/campaigns')}
                         className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-red-600 to-red-700 text-white py-3 rounded-2xl font-semibold hover:from-red-700 hover:to-red-800 transition-all duration-300 shadow-lg"
                       >
                         <Heart className="w-4 h-4" />

@@ -399,6 +399,8 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({ isOpen, onClose, on
       if (response.success && response.data) {
         onHospitalAdded(response.data);
         handleClose();
+        // reload halaman ini 
+        window.location.reload();
       }
     } catch (error) {
       console.error('Error saving hospital:', error);

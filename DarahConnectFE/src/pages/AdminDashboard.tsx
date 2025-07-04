@@ -99,7 +99,7 @@ const AdminDashboard: React.FC = () => {
         
         if (response.success && response.data) {
           // Handle different response formats - API might return paginated data
-          let notificationData = [];
+          let notificationData: any[] = [];
           
           if (Array.isArray(response.data)) {
             notificationData = response.data;
@@ -346,15 +346,7 @@ const AdminDashboard: React.FC = () => {
                     <div>
                       <p className="text-sm font-medium text-gray-600">{stat.title}</p>
                       <p className="text-3xl font-bold text-gray-900 mt-1">{stat.value}</p>
-                      <div className="flex items-center mt-2">
-                        <span className={`text-sm font-medium ${
-                          stat.changeType === 'positive' ? 'text-green-600' : 
-                          stat.changeType === 'negative' ? 'text-red-600' : 'text-gray-600'
-                        }`}>
-                          {stat.change}
-                        </span>
-                        <span className="text-sm text-gray-500 ml-1">vs bulan lalu</span>
-                      </div>
+                     
                     </div>
                     <div className={`${stat.color} p-3 rounded-full`}>
                       <stat.icon className="h-6 w-6 text-white" />
@@ -368,7 +360,7 @@ const AdminDashboard: React.FC = () => {
               {/* Recent Activities */}
               <div className="lg:col-span-2 space-y-8">
                 {/* Recent Campaigns */}
-                <div className="bg-white p-6 rounded-xl shadow-sm border">
+                {/* <div className="bg-white p-6 rounded-xl shadow-sm border">
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-lg font-semibold text-gray-900">Campaign Terbaru</h3>
                     <button className="text-red-600 hover:text-red-700 text-sm font-medium">
@@ -378,11 +370,22 @@ const AdminDashboard: React.FC = () => {
                   <div className="space-y-4">
                     {campaigns.slice(0, 3).map((campaign) => (
                       <div key={campaign.id} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                        <img 
-                          src={campaign.imageUrl} 
-                          alt={campaign.title}
-                          className="w-16 h-16 rounded-lg object-cover"
-                        />
+                        {campaign.imageUrl ? (
+                          <img 
+                            src={campaign.imageUrl} 
+                            alt={campaign.title}
+                            className="w-16 h-16 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 rounded-lg bg-blue-200 flex items-center justify-center text-2xl font-bold text-white select-none">
+                            {campaign.title
+                              .split(' ')
+                              .map(word => word[0])
+                              .join('')
+                              .slice(0, 2)
+                              .toUpperCase()}
+                          </div>
+                        )}
                         <div className="flex-1 min-w-0">
                           <h4 className="text-sm font-medium text-gray-900 truncate">
                             {campaign.title}
@@ -406,7 +409,7 @@ const AdminDashboard: React.FC = () => {
                       </div>
                     ))}
                   </div>
-                </div>
+                </div> */}
 
                 {/* Recent Hospitals */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border">
@@ -517,26 +520,26 @@ const AdminDashboard: React.FC = () => {
                       <span className="ml-2 text-gray-600">Memuat notifikasi...</span>
                     </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
                       {notifications.slice(0, 5).map((notification) => (
                         <div 
                           key={notification.id}
-                          className={`p-4 rounded-lg border cursor-pointer transition-colors ${
+                          className={`p-3 rounded-lg border cursor-pointer transition-colors ${
                             notification.read ? 'bg-gray-50 border-gray-200' : 'bg-blue-50 border-blue-200'
                           }`}
                           onClick={() => markAsRead(notification.id)}
                         >
                           <div className="flex items-start space-x-3">
-                            <div className={`w-2 h-2 rounded-full mt-2 ${
+                            <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
                               notification.type === 'error' ? 'bg-red-500' :
                               notification.type === 'warning' ? 'bg-yellow-500' :
                               notification.type === 'success' ? 'bg-green-500' : 'bg-blue-500'
                             }`} />
                             <div className="flex-1 min-w-0">
-                              <h4 className="text-sm font-medium text-gray-900">
+                              <h4 className="text-sm font-medium text-gray-900 truncate">
                                 {notification.title}
                               </h4>
-                              <p className="text-xs text-gray-600 mt-1">
+                              <p className="text-xs text-gray-600 mt-1 line-clamp-2">
                                 {notification.message}
                               </p>
                               <p className="text-xs text-gray-500 mt-2">

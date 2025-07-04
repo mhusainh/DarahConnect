@@ -469,6 +469,40 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "pending":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "verified":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "completed":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "rejected":
+        return "bg-red-100 text-red-800 border-red-200";
+      case "active":
+        return "bg-green-100 text-green-800 border-green-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "pending":
+        return "Menunggu Verifikasi";
+      case "verified":
+        return "Terverifikasi";
+      case "completed":
+        return "Selesai";
+      case "rejected":
+        return "Ditolak";
+      case "active":
+        return "Aktif";
+      default:
+        return status;
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("id-ID", {
       year: "numeric",
@@ -742,8 +776,8 @@ const DashboardPage: React.FC = () => {
                         <p className="text-3xl font-bold">
                           <CountUp
                             end={quickStats.totalSertifikat}
-                            duration={2}
-                            delay={0.6}
+                            duration={0}
+                            delay={0}
                           />
                         </p>
                       </div>
@@ -774,11 +808,11 @@ const DashboardPage: React.FC = () => {
                       label: "Sertifikat",
                       icon: <Database className="w-5 h-5" />,
                     },
-                    {
-                      key: "requests",
-                      label: "Request Darah",
-                      icon: <AlertTriangle className="w-5 h-5" />,
-                    },
+                    // {
+                    //   key: "requests",
+                    //   label: "Request Darah",
+                    //   icon: <AlertTriangle className="w-5 h-5" />,
+                    // },
                     {
                       key: "health-passport",
                       label: "Health Passport",
@@ -1071,7 +1105,7 @@ const DashboardPage: React.FC = () => {
                       <div className="text-center py-12 text-gray-400">Belum ada sertifikat donor darah.</div>
                     ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {certificates.slice(0,2).map((cert) => (
+                      {certificates.slice(0,3).map((cert) => (
                         <FadeIn key={cert.id} direction="up">
                           <CertificateCard
                             donorName={cert.name}
@@ -1367,16 +1401,30 @@ const DashboardPage: React.FC = () => {
                                     </div>
                                   </div>
 
-                                  {/* Status */}
-                                  <div className="flex items-center justify-between mt-auto pt-2">
-                                    <span
-                                      className={`px-3 py-1 rounded-full text-sm font-medium border ${'bg-gray-100 text-gray-800'}`}
-                                    >
-                                      {request.status}
-                                    </span>
-                                    <span className="text-xs text-gray-500">
-                                      {formatDate(request.created_at)}
-                                    </span>
+                                  {/* Urgency Level and Status */}
+                                  <div className="space-y-2 mt-auto pt-2">
+                                    <div className="flex justify-between items-center">
+                                      <div className="flex flex-col space-y-1">
+                                        <span className="text-xs text-gray-600">Urgency Level:</span>
+                                        <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getUrgencyColor(request.urgency_level)} inline-flex items-center`}>
+                                          <span className="w-2 h-2 rounded-full mr-2 bg-current opacity-60"></span>
+                                          {getUrgencyText(request.urgency_level)}
+                                        </span>
+                                      </div>
+                                      <div className="text-right">
+                                        <div className="text-xs text-gray-500">Dibuat:</div>
+                                        <span className="text-xs text-gray-700 font-medium">
+                                          {formatDate(request.created_at)}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="flex flex-col space-y-1">
+                                      <span className="text-xs text-gray-600">Status:</span>
+                                      <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(request.status)} inline-flex items-center`}>
+                                        <span className="w-2 h-2 rounded-full mr-2 bg-current opacity-60"></span>
+                                        {getStatusText(request.status)}
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
 
@@ -1387,18 +1435,30 @@ const DashboardPage: React.FC = () => {
                                       handleDonateToRequest(request)
                                     }
                                     disabled={
-                                      request.status === "completed" ||
-                                      request.status === "canceled"
+                                      request.status !== "verified"
                                     }
-                                    className="w-full bg-red-600 text-white py-2 px-4 rounded-xl font-semibold hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                                    className={`w-full py-2 px-4 rounded-xl font-semibold transition-colors flex items-center justify-center space-x-2 ${
+                                      request.status === "verified"
+                                        ? "bg-red-600 text-white hover:bg-red-700"
+                                        : "bg-gray-400 text-gray-200 cursor-not-allowed"
+                                    }`}
+                                    title={
+                                      request.status !== "verified"
+                                        ? `Tidak dapat donor: ${getStatusText(request.status)}`
+                                        : "Klik untuk mendaftar donor"
+                                    }
                                   >
                                     <HeartIcon className="w-4 h-4" />
                                     <span>
                                       {request.status === "completed"
                                         ? "Sudah Selesai"
-                                        : request.status === "canceled"
-                                        ? "Dibatalkan"
-                                        : "Saya Bisa Donor"}
+                                        : request.status === "rejected"
+                                        ? "Ditolak"
+                                        : request.status === "pending"
+                                        ? "Menunggu Verifikasi"
+                                        : request.status === "verified"
+                                        ? "Saya Bisa Donor"
+                                        : getStatusText(request.status)}
                                     </span>
                                   </button>
                                 </div>

@@ -21,8 +21,34 @@ import {
   Trash2
 } from 'lucide-react';
 import { HealthPassport, HealthPassportResponse } from '../types/index';
-import { adminBloodRequestsApi } from '../services/fetchApi';
+import { adminBloodRequestsApi, getApi } from '../services/fetchApi';
 import AdminLayout from '../components/AdminLayout';
+
+function Avatar({ name, src }: { name: string; src?: string }) {
+  const [imgError, setImgError] = React.useState(false);
+  if (src && !imgError) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        className="w-10 h-10 rounded-full object-cover border"
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+  // Ambil inisial (maksimal 2 huruf)
+  const initials = name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+  return (
+    <div className="w-10 h-10 rounded-full bg-gray-400 flex items-center justify-center font-bold text-white border">
+      {initials}
+    </div>
+  );
+}
 
 const AdminHealthPassportPage: React.FC = () => {
   const [passportsList, setPassportsList] = useState<HealthPassport[]>([]);
@@ -34,41 +60,129 @@ const AdminHealthPassportPage: React.FC = () => {
   const [selectedPassport, setSelectedPassport] = useState<HealthPassport | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [perPage] = useState(10);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  // Fetch health passports from API
-  useEffect(() => {
-    const fetchHealthPassports = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await adminBloodRequestsApi.getHealthPassports();
+  // Fetch health passports from API with search and pagination
+  const fetchHealthPassports = async (page: number = 1, search: string = '', status: string = 'all', date: string = 'all') => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Build query parameters for server-side filtering
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: perPage.toString()
+      });
+      
+      if (search.trim()) {
+        params.append('search', search.trim());
+      }
+      
+      if (status !== 'all') {
+        params.append('status', status);
+      }
+      
+      if (date !== 'all') {
+        params.append('date_filter', date);
+      }
+      
+             const endpoint = `/admin/health-passports?${params.toString()}`;
+       console.log('🔍 Health Passports API Endpoint:', endpoint);
+       
+       const response = await getApi(endpoint);
+      
+      if (response.success && response.data) {
+        // Handle both direct array and nested response structure
+        let passportsData: HealthPassport[] = [];
+        let paginationData = null;
         
-        if (response.success && response.data) {
-          // Handle both direct array and nested response structure
-          let passportsData: HealthPassport[] = [];
-          
-          if (Array.isArray(response.data)) {
-            passportsData = response.data as HealthPassport[];
-          } else if (response.data.data && Array.isArray(response.data.data)) {
-            passportsData = response.data.data as HealthPassport[];
+        if (Array.isArray(response.data)) {
+          passportsData = response.data as HealthPassport[];
+          paginationData = response.pagination;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          passportsData = response.data.data as HealthPassport[];
+          paginationData = response.data.pagination;
+        }
+        
+        // Client-side filtering for now (until API supports server-side filtering)
+        const filtered = passportsData.filter(passport => {
+          if (!passport || !passport.user || !passport.passport_number) {
+            return false;
           }
           
-          setPassportsList(passportsData);
-        } else {
-          setError(response.error || 'Failed to fetch health passports');
-          setPassportsList([]);
-        }
-      } catch (err) {
-        setError('Failed to fetch health passports');
+          const matchesSearch = !search || 
+            passport.user.name.toLowerCase().includes(search.toLowerCase()) ||
+            passport.user.email.toLowerCase().includes(search.toLowerCase()) ||
+            passport.passport_number.toLowerCase().includes(search.toLowerCase());
+          
+          const matchesStatus = status === 'all' || passport.status === status;
+          
+          const passportDate = new Date(passport.created_at);
+          const today = new Date();
+          const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+          const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+          
+          const matchesDate = date === 'all' ||
+                             (date === 'today' && passportDate.toDateString() === today.toDateString()) ||
+                             (date === 'week' && passportDate >= weekAgo) ||
+                             (date === 'month' && passportDate >= monthAgo);
+
+          return matchesSearch && matchesStatus && matchesDate;
+        });
+        
+        // Client-side pagination
+        // const startIndex = (page - 1) * perPage;
+        // const endIndex = startIndex + perPage;
+        // const paginatedData = filtered.slice(startIndex, endIndex);
+        
+        setPassportsList(passportsData);
+        setTotalItems(paginationData?.total_items || 0);
+        setTotalPages(paginationData?.total_pages || 1);
+        setCurrentPage(page);
+        
+        
+        
+      } else {
+        setError(response.error || 'Failed to fetch health passports');
         setPassportsList([]);
-        console.error('Error fetching health passports:', err);
-      } finally {
-        setLoading(false);
+      }
+    } catch (err) {
+      setError('Failed to fetch health passports');
+      setPassportsList([]);
+      console.error('Error fetching health passports:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchHealthPassports(currentPage, searchTerm, filterStatus, filterDate);
+  }, [currentPage, filterStatus, filterDate]);
+
+  // Handle search with debounce
+  useEffect(() => {
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    const timeout = setTimeout(() => {
+      setCurrentPage(1);
+      fetchHealthPassports(1, searchTerm, filterStatus, filterDate);
+    }, 500);
+    
+    setSearchTimeout(timeout);
+    
+    return () => {
+      if (timeout) {
+        clearTimeout(timeout);
       }
     };
-
-    fetchHealthPassports();
-  }, []);
+  }, [searchTerm]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -100,30 +214,29 @@ const AdminHealthPassportPage: React.FC = () => {
     return diffDays;
   };
 
-  const filteredPassports = (passportsList || []).filter(passport => {
-    // Safety check - ensure passport has all required properties
-    if (!passport || !passport.user || !passport.passport_number) {
-      return false;
-    }
-    
-    const matchesSearch = passport.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         passport.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         passport.passport_number.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = filterStatus === 'all' || passport.status === filterStatus;
-    
-    const passportDate = new Date(passport.created_at);
-    const today = new Date();
-    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-    
-    const matchesDate = filterDate === 'all' ||
-                       (filterDate === 'today' && passportDate.toDateString() === today.toDateString()) ||
-                       (filterDate === 'week' && passportDate >= weekAgo) ||
-                       (filterDate === 'month' && passportDate >= monthAgo);
+  // Use server-side filtered data directly
+  const filteredPassports = passportsList || [];
 
-    return matchesSearch && matchesStatus && matchesDate;
-  });
+  // Handler functions
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+      setCurrentPage(page);
+    }
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+  };
+
+  const handleStatusFilter = (status: string) => {
+    setFilterStatus(status);
+    setCurrentPage(1);
+  };
+
+  const handleDateFilter = (date: string) => {
+    setFilterDate(date);
+    setCurrentPage(1);
+  };
 
   const handleUpdateStatus = async (id: number, status: string) => {
     try {
@@ -163,12 +276,11 @@ const AdminHealthPassportPage: React.FC = () => {
   };
 
   const getStatusStats = () => {
-    const list = passportsList || [];
     return {
-      total: list.length,
-      active: list.filter(p => p.status === 'active').length,
-      expired: list.filter(p => p.status === 'expired').length,
-      suspended: list.filter(p => p.status === 'suspended').length,
+      total: totalItems,
+      active: filteredPassports.filter(p => p.status === 'active').length,
+      expired: filteredPassports.filter(p => p.status === 'expired').length,
+      suspended: filteredPassports.filter(p => p.status === 'suspended').length,
     };
   };
 
@@ -319,11 +431,7 @@ const AdminHealthPassportPage: React.FC = () => {
                     <tr key={passport.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-4">
-                          <img 
-                            src={passport.user.url_file || '/api/placeholder/40/40'} 
-                            alt={passport.user.name}
-                            className="w-10 h-10 rounded-full object-cover border"
-                          />
+                          <Avatar name={passport.user.name} src={passport.user.url_file} />
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium text-gray-900 truncate">
                               {passport.user.name}
@@ -434,6 +542,131 @@ const AdminHealthPassportPage: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {filteredPassports.length > 0 && (
+          <div className="mt-8 bg-white px-4 py-3 flex items-center justify-between border border-gray-200 rounded-lg sm:px-6">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="relative ml-3 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Menampilkan{' '}
+                  <span className="font-medium">
+                    {((currentPage - 1) * perPage) + 1}
+                  </span>{' '}
+                  sampai{' '}
+                  <span className="font-medium">
+                    {Math.min(currentPage * perPage, totalItems)}
+                  </span>{' '}
+                  dari{' '}
+                  <span className="font-medium">{totalItems}</span> total health passport
+                </p>
+              </div>
+              <div>
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  {(() => {
+                    const pages = [];
+                    const maxPages = 5;
+                    let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
+                    let endPage = Math.min(totalPages, startPage + maxPages - 1);
+                    
+                    if (endPage - startPage + 1 < maxPages) {
+                      startPage = Math.max(1, endPage - maxPages + 1);
+                    }
+                    
+                    // Add first page if not in range
+                    if (startPage > 1) {
+                      pages.push(
+                        <button
+                          key={1}
+                          onClick={() => handlePageChange(1)}
+                          className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                        >
+                          1
+                        </button>
+                      );
+                      if (startPage > 2) {
+                        pages.push(
+                          <span key="ellipsis1" className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500">
+                            ...
+                          </span>
+                        );
+                      }
+                    }
+                    
+                    // Add page numbers in range
+                    for (let i = startPage; i <= endPage; i++) {
+                      pages.push(
+                        <button
+                          key={i}
+                          onClick={() => handlePageChange(i)}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                            i === currentPage
+                              ? 'z-10 bg-red-50 border-red-500 text-red-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          {i}
+                        </button>
+                      );
+                    }
+                    
+                    // Add last page if not in range
+                    if (endPage < totalPages) {
+                      if (endPage < totalPages - 1) {
+                        pages.push(
+                          <span key="ellipsis2" className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500">
+                            ...
+                          </span>
+                        );
+                      }
+                      pages.push(
+                        <button
+                          key={totalPages}
+                          onClick={() => handlePageChange(totalPages)}
+                          className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                        >
+                          {totalPages}
+                        </button>
+                      );
+                    }
+                    
+                    return pages;
+                  })()}
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </nav>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Detail Modal */}
@@ -458,11 +691,7 @@ const AdminHealthPassportPage: React.FC = () => {
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Informasi User</h3>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="flex items-center space-x-4 mb-4">
-                      <img 
-                        src={selectedPassport.user.url_file || '/api/placeholder/60/60'} 
-                        alt={selectedPassport.user.name}
-                        className="w-16 h-16 rounded-full object-cover border"
-                      />
+                      <Avatar name={selectedPassport.user.name} src={selectedPassport.user.url_file} />
                       <div>
                         <h4 className="text-lg font-medium text-gray-900">{selectedPassport.user.name}</h4>
                         <div className="flex items-center space-x-2 mt-1">

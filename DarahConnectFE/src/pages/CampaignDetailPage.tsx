@@ -171,10 +171,13 @@ const CampaignDetailPage: React.FC = () => {
   const progress = (campaign.currentDonors / campaign.targetDonors) * 100;
   const daysLeft = Math.ceil((new Date(campaign.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
   
-  // Get campaign status based on progress and deadline
+  // Get campaign status based on progress, deadline, and verification status
   const getCampaignStatus = () => {
     const now = new Date();
     const deadline = new Date(campaign.deadline);
+    // Note: We would need to get actual status from API response
+    // For now, assuming verified status since detail page usually shows verified campaigns
+    const status = 'verified'; // This should come from API
     
     // Check if campaign is completed (100% donors reached)
     if (progress >= 100) {
@@ -194,7 +197,16 @@ const CampaignDetailPage: React.FC = () => {
       };
     }
     
-    // Check urgency level for active campaigns
+    // Check if status is not verified
+    if (status !== 'verified') {
+      return {
+        text: 'Tidak Dapat Donor - Belum Terverifikasi',
+        color: 'bg-gray-100 text-gray-800 border-gray-200',
+        disabled: true
+      };
+    }
+    
+    // Check urgency level for active verified campaigns
     if (campaign.urgencyLevel === 'critical') {
       return {
         text: 'Sangat Mendesak',
@@ -375,31 +387,7 @@ const CampaignDetailPage: React.FC = () => {
               </div>
 
               {/* Image Section */}
-              {campaign.url_file && campaign.url_file !== 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80' && (
-                <div className="mb-6">
-                  <h3 className="font-semibold text-gray-900 mb-3">Dokumentasi Campaign</h3>
-                  <div className="relative h-64 md:h-80 rounded-xl overflow-hidden bg-gray-100">
-                    <img 
-                      src={campaign.url_file} 
-                      alt={campaign.title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        target.nextElementSibling?.classList.remove('hidden');
-                      }}
-                    />
-                    {/* Fallback */}
-                    <div className="hidden w-full h-full flex items-center justify-center bg-gray-100">
-                      <div className="text-center text-gray-500">
-                        <HeartIcon className="w-12 h-12 mx-auto mb-2" />
-                        <p className="text-sm">Gambar tidak dapat dimuat</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
+            
               {/* Description */}
               <div className="mb-6">
                 <h3 className="font-semibold text-gray-900 mb-3">Deskripsi Campaign</h3>
@@ -495,20 +483,56 @@ const CampaignDetailPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Status Banner */}
-              <div className={`mb-6 p-4 rounded-lg border ${campaignStatus.color}`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-semibold">Status Campaign</h4>
-                    <p className="text-sm">{campaignStatus.text}</p>
-                  </div>
-                  {isDisabled && (
-                    <div className="text-right">
-                      <span className="text-xs font-medium">
-                        {progress >= 100 ? 'Target Tercapai' : 'Tidak Aktif'}
-                      </span>
+                            {/* Urgency Level and Status Banner */}
+              <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Urgency Level */}
+                <div className={`p-4 rounded-lg border-2 shadow-sm ${getUrgencyColor(campaign.urgencyLevel)}`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-lg flex items-center">
+                        <span className="w-3 h-3 rounded-full mr-2 bg-current opacity-60"></span>
+                        Urgency Level
+                      </h4>
+                      <p className="text-sm font-medium">{getUrgencyText(campaign.urgencyLevel)}</p>
                     </div>
-                  )}
+                  </div>
+                </div>
+                
+                {/* Status */}
+                <div className={`p-4 rounded-lg border-2 shadow-sm ${
+                  isDisabled 
+                    ? (progress >= 100 ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-gray-100 text-gray-800 border-gray-200')
+                    : 'bg-green-100 text-green-800 border-green-200'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-lg flex items-center">
+                        <span className="w-3 h-3 rounded-full mr-2 bg-current opacity-60"></span>
+                        Status Campaign
+                      </h4>
+                      <p className="text-sm font-medium">
+                        {isDisabled 
+                          ? (progress >= 100 ? 'Selesai' : 'Berakhir')
+                          : 'Aktif'
+                        }
+                      </p>
+                      {isDisabled && (
+                        <p className="text-xs mt-1 opacity-75">
+                          {progress >= 100 ? 'Target donor telah tercapai' : 'Periode campaign telah berakhir'}
+                        </p>
+                      )}
+                    </div>
+                    {isDisabled && (
+                      <div className="text-right">
+                        <div className="text-2xl">
+                          {progress >= 100 ? '✅' : '⏰'}
+                        </div>
+                        <span className="text-xs font-medium">
+                          {progress >= 100 ? 'Selesai' : 'Berakhir'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

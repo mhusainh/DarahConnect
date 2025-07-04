@@ -43,6 +43,13 @@ interface Notification {
   is_read: boolean;
 }
 
+interface PaginationInfo {
+  current_page: number;
+  per_page: number;
+  total_items: number;
+  total_pages: number;
+}
+
 const NotificationsPage: React.FC = () => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -53,6 +60,14 @@ const NotificationsPage: React.FC = () => {
   const [selectedNotifications, setSelectedNotifications] = useState<Set<string | number>>(new Set());
   const [unreadCount, setUnreadCount] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Pagination state
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    current_page: 1,
+    per_page: 10,
+    total_items: 0,
+    total_pages: 1
+  });
 
   // API hooks
   const { get: getNotifications } = useApi<any>();
@@ -74,13 +89,45 @@ const NotificationsPage: React.FC = () => {
     }
   }, [isLoggedIn, navigate]);
 
-  // Fetch notifications
-  const fetchNotifications = async () => {
+  // Fetch notifications with pagination
+  const fetchNotifications = async (page: number = 1, limit: number = 10) => {
     try {
       setLoading(true);
-      const response = await getNotifications('/user/notifications/');
-      if (response && response.data && Array.isArray(response.data)) {
-        const mappedNotifications = response.data.map((n: any) => ({
+      const response = await getNotifications(`/user/notifications/?page=${page}&limit=${limit}`);
+      if (response && response.data) {
+        let notificationData: any[] = [];
+        let paginationData: PaginationInfo = {
+          current_page: page,
+          per_page: limit,
+          total_items: 0,
+          total_pages: 1
+        };
+
+        // Handle different response structures
+        if (Array.isArray(response.data)) {
+          notificationData = response.data;
+        } else if (typeof response.data === 'object' && response.data !== null) {
+          if ('data' in response.data && Array.isArray(response.data.data)) {
+            notificationData = response.data.data;
+            if (response.data.pagination) {
+              paginationData = response.data.pagination;
+            }
+          } else if ('notifications' in response.data && Array.isArray(response.data.notifications)) {
+            notificationData = response.data.notifications;
+          }
+        }
+
+        // Handle pagination info from response
+        if (response.pagination) {
+          paginationData = {
+            current_page: response.pagination.page || response.pagination.current_page,
+            per_page: response.pagination.per_page,
+            total_items: response.pagination.total_items,
+            total_pages: response.pagination.total_pages
+          };
+        }
+
+        const mappedNotifications = notificationData.map((n: any) => ({
           id: n.id,
           title: n.title,
           message: n.message,
@@ -90,8 +137,10 @@ const NotificationsPage: React.FC = () => {
           created_at: n.created_at,
           is_read: n.is_read,
         }));
+
         setNotifications(mappedNotifications);
         setFilteredNotifications(mappedNotifications);
+        setPagination(paginationData);
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -117,7 +166,7 @@ const NotificationsPage: React.FC = () => {
   // Refresh notifications
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await Promise.all([fetchNotifications(), fetchUnreadCount()]);
+    await Promise.all([fetchNotifications(pagination.current_page), fetchUnreadCount()]);
     setIsRefreshing(false);
   };
 
@@ -377,7 +426,6 @@ const NotificationsPage: React.FC = () => {
                         <MailOpenIcon className="w-4 h-4" />
                         <span>Tandai Dibaca</span>
                       </button>
-                    
                     </div>
                   </div>
                 )}
@@ -524,6 +572,59 @@ const NotificationsPage: React.FC = () => {
                 </StaggerContainer>
               )}
             </div>
+
+            {/* Pagination */}
+            {pagination.total_pages > 1 && (
+              <FadeIn direction="up" delay={0.3}>
+                <div className="mt-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="text-sm text-gray-600">
+                      Menampilkan {((pagination.current_page - 1) * pagination.per_page) + 1} - {Math.min(pagination.current_page * pagination.per_page, pagination.total_items)} dari {pagination.total_items} notifikasi
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Halaman {pagination.current_page} dari {pagination.total_pages}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-center space-x-2">
+                    <button
+                      onClick={() => fetchNotifications(pagination.current_page - 1)}
+                      disabled={pagination.current_page === 1}
+                      className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Sebelumnya
+                    </button>
+                    
+                    <div className="flex space-x-1">
+                      {Array.from({ length: Math.min(pagination.total_pages, 10) }, (_, i) => {
+                        const page = i + 1;
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => fetchNotifications(page)}
+                            className={`px-3 py-2 rounded-lg transition-colors ${
+                              page === pagination.current_page
+                                ? 'bg-red-600 text-white'
+                                : 'text-gray-700 border border-gray-300 hover:bg-gray-50'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    
+                    <button
+                      onClick={() => fetchNotifications(pagination.current_page + 1)}
+                      disabled={pagination.current_page === pagination.total_pages}
+                      className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Selanjutnya
+                    </button>
+                  </div>
+                </div>
+              </FadeIn>
+            )}
 
             {/* Back to Dashboard */}
             <FadeIn direction="up" delay={0.4}>

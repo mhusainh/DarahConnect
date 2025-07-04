@@ -181,10 +181,13 @@ const BloodRequestDetailPage: React.FC = () => {
   const progress = (bloodRequest.currentDonors / bloodRequest.targetDonors) * 100;
   const daysLeft = Math.ceil((new Date(bloodRequest.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
   
-  // Get blood request status based on progress and deadline
+  // Get blood request status based on progress, deadline, and verification status
   const getBloodRequestStatus = () => {
     const now = new Date();
     const deadline = new Date(bloodRequest.deadline);
+    // Note: We would need to get actual status from API response
+    // For now, assuming verified status since detail page usually shows verified requests
+    const status = 'verified'; // This should come from API
     
     // Check if request is completed (100% donors reached)
     if (progress >= 100) {
@@ -204,7 +207,16 @@ const BloodRequestDetailPage: React.FC = () => {
       };
     }
     
-    // Check urgency level for active requests
+    // Check if status is not verified
+    if (status !== 'verified') {
+      return {
+        text: 'Tidak Dapat Donor - Belum Terverifikasi',
+        color: 'bg-gray-100 text-gray-800 border-gray-200',
+        disabled: true
+      };
+    }
+    
+    // Check urgency level for active verified requests
     if (bloodRequest.urgencyLevel === 'critical') {
       return {
         text: 'Sangat Mendesak',
@@ -386,20 +398,56 @@ const BloodRequestDetailPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Status Banner */}
-                  <div className={`mb-6 p-4 rounded-lg border ${requestStatus.color}`}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-semibold">Status Permintaan</h4>
-                        <p className="text-sm">{requestStatus.text}</p>
-                      </div>
-                      {isDisabled && (
-                        <div className="text-right">
-                          <span className="text-xs font-medium">
-                            {progress >= 100 ? 'Target Tercapai' : 'Tidak Aktif'}
-                          </span>
+                  {/* Urgency Level and Status Banner */}
+                  <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Urgency Level */}
+                    <div className={`p-4 rounded-lg border-2 shadow-sm ${getUrgencyColor(bloodRequest.urgencyLevel)}`}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-semibold text-lg flex items-center">
+                            <span className="w-3 h-3 rounded-full mr-2 bg-current opacity-60"></span>
+                            Urgency Level
+                          </h4>
+                          <p className="text-sm font-medium">{getUrgencyText(bloodRequest.urgencyLevel)}</p>
                         </div>
-                      )}
+                      </div>
+                    </div>
+                    
+                    {/* Status */}
+                    <div className={`p-4 rounded-lg border-2 shadow-sm ${
+                      isDisabled 
+                        ? (progress >= 100 ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-gray-100 text-gray-800 border-gray-200')
+                        : 'bg-green-100 text-green-800 border-green-200'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-semibold text-lg flex items-center">
+                            <span className="w-3 h-3 rounded-full mr-2 bg-current opacity-60"></span>
+                            Status Permintaan
+                          </h4>
+                          <p className="text-sm font-medium">
+                            {isDisabled 
+                              ? (progress >= 100 ? 'Selesai' : 'Berakhir')
+                              : 'Aktif'
+                            }
+                          </p>
+                          {isDisabled && (
+                            <p className="text-xs mt-1 opacity-75">
+                              {progress >= 100 ? 'Target donor telah tercapai' : 'Periode permintaan telah berakhir'}
+                            </p>
+                          )}
+                        </div>
+                        {isDisabled && (
+                          <div className="text-right">
+                            <div className="text-2xl">
+                              {progress >= 100 ? '✅' : '⏰'}
+                            </div>
+                            <span className="text-xs font-medium">
+                              {progress >= 100 ? 'Selesai' : 'Berakhir'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 

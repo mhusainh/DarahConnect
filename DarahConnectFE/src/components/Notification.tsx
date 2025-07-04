@@ -7,7 +7,9 @@ import {
   X,
   Bell,
   Volume2,
-  VolumeX
+  VolumeX,
+  ExternalLink,
+  Link
 } from 'lucide-react';
 
 export type NotificationType = 'success' | 'error' | 'warning' | 'info';
@@ -29,9 +31,75 @@ export interface NotificationProps {
   dismissible?: boolean;
   persistent?: boolean;
   sound?: boolean;
+  allowHtml?: boolean;
+  links?: { text: string; url: string; external?: boolean }[];
   onClose: (id: string) => void;
   onAction?: (actionIndex: number) => void;
 }
+
+// Utility function to detect and render links in text
+const renderMessageWithLinks = (text: string, allowHtml: boolean = false): React.ReactNode => {
+  if (!text) return null;
+  
+  // URL regex pattern
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  
+  if (allowHtml) {
+    // If HTML is allowed, check for links and render them
+    const parts = text.split(urlRegex);
+    return parts.map((part, index) => {
+      if (urlRegex.test(part)) {
+        const isExternal = !part.includes(window.location.hostname);
+        return (
+          <a
+            key={index}
+            href={part}
+            target={isExternal ? '_blank' : '_self'}
+            rel={isExternal ? 'noopener noreferrer' : undefined}
+            className="text-blue-600 hover:text-blue-800 underline decoration-2 underline-offset-2 transition-colors duration-200 inline-flex items-center gap-1"
+          >
+            {part}
+            {isExternal && <ExternalLink className="h-3 w-3" />}
+          </a>
+        );
+      }
+      return part;
+    });
+  }
+  
+  return text;
+};
+
+// Component for rendering custom links
+const NotificationLinks: React.FC<{
+  links: { text: string; url: string; external?: boolean }[];
+  textColor: string;
+}> = ({ links, textColor }) => {
+  if (!links || links.length === 0) return null;
+  
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {links.map((link, index) => (
+        <a
+          key={index}
+          href={link.url}
+          target={link.external ? '_blank' : '_self'}
+          rel={link.external ? 'noopener noreferrer' : undefined}
+          className={`
+            inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md
+            ${textColor} bg-white bg-opacity-60 hover:bg-opacity-80 
+            transition-all duration-200 shadow-sm hover:shadow-md
+            border border-current border-opacity-20
+          `}
+        >
+          <Link className="h-3 w-3" />
+          {link.text}
+          {link.external && <ExternalLink className="h-3 w-3" />}
+        </a>
+      ))}
+    </div>
+  );
+};
 
 export const Notification: React.FC<NotificationProps> = ({
   id,
@@ -44,6 +112,8 @@ export const Notification: React.FC<NotificationProps> = ({
   dismissible = true,
   persistent = false,
   sound = false,
+  allowHtml = false,
+  links = [],
   onClose,
   onAction,
 }) => {
@@ -162,39 +232,43 @@ export const Notification: React.FC<NotificationProps> = ({
     if (!persistent) handleClose();
   };
 
-  // Styling configurations
+  // Enhanced styling configurations
   const typeConfig = {
     success: {
-      bgColor: 'bg-gradient-to-r from-green-50 to-emerald-50',
-      borderColor: 'border-green-200',
+      bgColor: 'bg-gradient-to-br from-green-50 via-emerald-50 to-green-100',
+      borderColor: 'border-green-300 border-l-4 border-l-green-500',
       iconColor: 'text-green-600',
-      textColor: 'text-green-800',
-      progressColor: 'bg-green-500',
+      textColor: 'text-green-900',
+      progressColor: 'bg-gradient-to-r from-green-500 to-emerald-500',
       icon: CheckCircleIcon,
+      shadow: 'shadow-green-100',
     },
     error: {
-      bgColor: 'bg-gradient-to-r from-red-50 to-rose-50',
-      borderColor: 'border-red-200',
+      bgColor: 'bg-gradient-to-br from-red-50 via-rose-50 to-red-100',
+      borderColor: 'border-red-300 border-l-4 border-l-red-500',
       iconColor: 'text-red-600',
-      textColor: 'text-red-800',
-      progressColor: 'bg-red-500',
+      textColor: 'text-red-900',
+      progressColor: 'bg-gradient-to-r from-red-500 to-rose-500',
       icon: XCircleIcon,
+      shadow: 'shadow-red-100',
     },
     warning: {
-      bgColor: 'bg-gradient-to-r from-yellow-50 to-orange-50',
-      borderColor: 'border-yellow-200',
+      bgColor: 'bg-gradient-to-br from-yellow-50 via-orange-50 to-yellow-100',
+      borderColor: 'border-yellow-300 border-l-4 border-l-yellow-500',
       iconColor: 'text-yellow-600',
-      textColor: 'text-yellow-800',
-      progressColor: 'bg-yellow-500',
+      textColor: 'text-yellow-900',
+      progressColor: 'bg-gradient-to-r from-yellow-500 to-orange-500',
       icon: AlertTriangleIcon,
+      shadow: 'shadow-yellow-100',
     },
     info: {
-      bgColor: 'bg-gradient-to-r from-blue-50 to-cyan-50',
-      borderColor: 'border-blue-200',
+      bgColor: 'bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-100',
+      borderColor: 'border-blue-300 border-l-4 border-l-blue-500',
       iconColor: 'text-blue-600',
-      textColor: 'text-blue-800',
-      progressColor: 'bg-blue-500',
+      textColor: 'text-blue-900',
+      progressColor: 'bg-gradient-to-r from-blue-500 to-cyan-500',
       icon: InfoIcon,
+      shadow: 'shadow-blue-100',
     },
   };
 
@@ -204,7 +278,7 @@ export const Notification: React.FC<NotificationProps> = ({
   const baseClasses = `
     relative overflow-hidden rounded-xl border shadow-lg backdrop-blur-sm
     transform transition-all duration-300 ease-out
-    ${config.bgColor} ${config.borderColor}
+    ${config.bgColor} ${config.borderColor} ${config.shadow}
   `;
 
   const animationClasses = isExiting
@@ -219,11 +293,11 @@ export const Notification: React.FC<NotificationProps> = ({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Progress Bar */}
+      {/* Enhanced Progress Bar */}
       {showProgress && !persistent && (
         <div className="absolute top-0 left-0 w-full h-1 bg-gray-200 bg-opacity-30">
           <div
-            className={`h-full transition-all duration-75 ease-linear ${config.progressColor}`}
+            className={`h-full transition-all duration-75 ease-linear ${config.progressColor} shadow-sm`}
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -242,10 +316,13 @@ export const Notification: React.FC<NotificationProps> = ({
               {title}
             </h4>
             {message && (
-              <p className={`mt-1 text-sm ${config.textColor} opacity-90 leading-relaxed`}>
-                {message}
-              </p>
+              <div className={`mt-1 text-sm ${config.textColor} opacity-90 leading-relaxed`}>
+                {renderMessageWithLinks(message, allowHtml)}
+              </div>
             )}
+
+            {/* Custom Links */}
+            <NotificationLinks links={links} textColor={config.textColor} />
 
             {/* Actions */}
             {actions.length > 0 && (
@@ -354,7 +431,7 @@ export const NotificationContainer: React.FC<NotificationContainerProps> = ({
   );
 };
 
-// Quick notification builders
+// Enhanced notification builders with new features
 export const createSuccessNotification = (
   title: string, 
   message?: string, 
@@ -366,6 +443,8 @@ export const createSuccessNotification = (
   duration: 4000,
   showProgress: true,
   sound: true,
+  allowHtml: false,
+  links: [],
   ...options,
 });
 
@@ -381,6 +460,8 @@ export const createErrorNotification = (
   showProgress: true,
   sound: true,
   persistent: false,
+  allowHtml: false,
+  links: [],
   ...options,
 });
 
@@ -394,6 +475,8 @@ export const createWarningNotification = (
   message,
   duration: 5000,
   showProgress: true,
+  allowHtml: false,
+  links: [],
   ...options,
 });
 
@@ -407,6 +490,42 @@ export const createInfoNotification = (
   message,
   duration: 4000,
   showProgress: true,
+  allowHtml: false,
+  links: [],
+  ...options,
+});
+
+// New specialized notification builders
+export const createNotificationWithLinks = (
+  type: NotificationType,
+  title: string,
+  message: string,
+  links: { text: string; url: string; external?: boolean }[],
+  options?: Partial<NotificationProps>
+): Omit<NotificationProps, 'id' | 'onClose'> => ({
+  type,
+  title,
+  message,
+  duration: 6000,
+  showProgress: true,
+  allowHtml: false,
+  links,
+  ...options,
+});
+
+export const createHtmlNotification = (
+  type: NotificationType,
+  title: string,
+  message: string,
+  options?: Partial<NotificationProps>
+): Omit<NotificationProps, 'id' | 'onClose'> => ({
+  type,
+  title,
+  message,
+  duration: 5000,
+  showProgress: true,
+  allowHtml: true,
+  links: [],
   ...options,
 });
 

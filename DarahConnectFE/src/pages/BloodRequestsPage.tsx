@@ -157,7 +157,7 @@ const BloodRequestsPage: React.FC = () => {
   const [paginationState, setPaginationState] = useState<PaginationState>({
     page: 1,
     limit: 10,
-    sort: 'created_at',
+    sort: 'event_date',
     order: 'desc'
   });
 
@@ -390,11 +390,12 @@ const BloodRequestsPage: React.FC = () => {
     return Math.min((current / target) * 100, 100);
   };
 
-  // Get blood request status based on progress and deadline
+  // Get blood request status based on progress, deadline, and verification status
   const getBloodRequestStatus = (request: BloodRequest) => {
     const now = new Date();
     const deadline = new Date(request.event_date);
     const progress = getProgress(request.slots_booked || 0, request.slots_available || 1);
+    const status = request.status;
     
     // Check if request is completed (100% donors reached)
     if (progress >= 100) {
@@ -414,7 +415,16 @@ const BloodRequestsPage: React.FC = () => {
       };
     }
     
-    // Check urgency level for active requests
+    // Check if status is not verified
+    if (status !== 'verified') {
+      return {
+        text: 'Tidak Dapat Donor',
+        color: 'bg-gray-100 text-gray-800 border-gray-200',
+        disabled: true
+      };
+    }
+    
+    // Check urgency level for active verified requests
     if (request.urgency_level === 'critical') {
       return {
         text: 'Sangat Mendesak',
@@ -714,9 +724,10 @@ const BloodRequestsPage: React.FC = () => {
                 >
                   <option value="">Semua Status</option>
                   <option value="pending">Menunggu</option>
-                  <option value="active">Aktif</option>
+                  <option value="verified">Aktif</option>
                   <option value="completed">Selesai</option>
                   <option value="canceled">Dibatalkan</option>
+                  <option value="rejected">Ditolak</option>
                 </select> */}
 
                 {/* <button
@@ -820,8 +831,8 @@ const BloodRequestsPage: React.FC = () => {
                     onChange={(e) => handleSortChange(e.target.value)}
                     className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
                   >
-                    <option value="created_at">Tanggal Dibuat</option>
                     <option value="event_date">Tanggal Event</option>
+                    <option value="created_at">Tanggal Dibuat</option>
                     <option value="urgency_level">Urgensi</option>
                     <option value="quantity">Jumlah</option>
                     <option value="patient_name">Nama Pasien</option>
@@ -1046,14 +1057,30 @@ const BloodRequestsPage: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Status */}
-                      <div className="flex items-center justify-between">
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium border ${requestStatus.color}`}>
-                          {requestStatus.text}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {formatDate(request.created_at)}
-                        </span>
+                                            {/* Urgency Level and Status */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <div className="flex flex-col space-y-1">
+                            <span className="text-xs text-gray-600">Urgency Level:</span>
+                            <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getUrgencyColor(request.urgency_level)} inline-flex items-center`}>
+                              <span className="w-2 h-2 rounded-full mr-2 bg-current opacity-60"></span>
+                              {getUrgencyText(request.urgency_level)}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-gray-500">Deadline:</div>
+                            <span className="text-xs text-gray-700 font-medium">
+                              {formatDate(request.event_date)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col space-y-1">
+                          <span className="text-xs text-gray-600">Status:</span>
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(request.status)} inline-flex items-center`}>
+                            <span className="w-2 h-2 rounded-full mr-2 bg-current opacity-60"></span>
+                            {getStatusText(request.status)}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
@@ -1126,10 +1153,10 @@ const BloodRequestsPage: React.FC = () => {
                   }}
                   className="px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
+                  <option value={12}>12</option>
+                  <option value={24}>24</option>
+                  <option value={36}>36</option>
+                  <option value={48}>48</option>
                 </select>
                 <span className="ml-2 text-sm text-gray-600">per halaman</span>
               </div>

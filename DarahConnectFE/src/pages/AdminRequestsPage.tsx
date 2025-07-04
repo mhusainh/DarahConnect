@@ -19,7 +19,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { BloodRequest, AdminBloodRequestResponse } from '../types/index';
-import { adminBloodRequestsApi } from '../services/fetchApi';
+import { adminBloodRequestsApi, getApi } from '../services/fetchApi';
 import AdminLayout from '../components/AdminLayout';
 
 const AdminRequestsPage: React.FC = () => {
@@ -48,7 +48,8 @@ const AdminRequestsPage: React.FC = () => {
       // Build query parameters for server-side filtering
       const params = new URLSearchParams({
         page: page.toString(),
-        per_page: perPage.toString()
+        limit: perPage.toString(),
+        event_type: 'blood_request'
       });
       
       if (search.trim()) {
@@ -63,60 +64,28 @@ const AdminRequestsPage: React.FC = () => {
         params.append('date_filter', date);
       }
       
-      console.log('🔍 Requests API Params:', params.toString());
+      const endpoint = `/admin/blood-requests?${params.toString()}`;
+      console.log('🔍 Requests API Endpoint:', endpoint);
       
-      const response = await adminBloodRequestsApi.getBloodRequests();
+      const response = await getApi(endpoint);
       
       if (response.success && response.data) {
         // Handle both direct array and nested response structure
         let requestsData: BloodRequest[] = [];
-        let paginationData = null;
+        let paginationData: any = null;
         
         if (Array.isArray(response.data)) {
           requestsData = response.data as BloodRequest[];
+          paginationData = response.pagination;
         } else if (response.data.data && Array.isArray(response.data.data)) {
           requestsData = response.data.data as BloodRequest[];
           paginationData = response.data.pagination;
         }
         
-        // Client-side filtering for now (until API supports server-side filtering)
-        const filtered = requestsData.filter(request => {
-          if (!request || !request.user || !request.hospital || !request.patient_name) {
-            return false;
-          }
-          
-          const matchesSearch = !search || 
-            request.user.name.toLowerCase().includes(search.toLowerCase()) ||
-            request.hospital.name.toLowerCase().includes(search.toLowerCase()) ||
-            request.patient_name.toLowerCase().includes(search.toLowerCase());
-          
-          const matchesStatus = status === 'all' || request.status === status;
-          
-          const requestDate = new Date(request.created_at);
-          const today = new Date();
-          const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-          const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-          
-          const matchesDate = date === 'all' ||
-                             (date === 'today' && requestDate.toDateString() === today.toDateString()) ||
-                             (date === 'week' && requestDate >= weekAgo) ||
-                             (date === 'month' && requestDate >= monthAgo);
-
-          return matchesSearch && matchesStatus && matchesDate;
-        });
-        
-        // Client-side pagination
-        const startIndex = (page - 1) * perPage;
-        const endIndex = startIndex + perPage;
-        const paginatedData = filtered.slice(startIndex, endIndex);
-        
-        setRequestsList(paginatedData);
-        setTotalItems(filtered.length);
-        setTotalPages(Math.ceil(filtered.length / perPage));
+        setRequestsList(requestsData);
+        setTotalItems(paginationData?.total_items || 0);
+        setTotalPages(paginationData?.total_pages || 1);
         setCurrentPage(page);
-        
-        console.log('🔍 Requests filtered count:', filtered.length);
-        console.log('🔍 Requests paginated count:', paginatedData.length);
         
       } else {
         setError(response.error || 'Failed to fetch blood requests');
@@ -325,72 +294,72 @@ const AdminRequestsPage: React.FC = () => {
     <AdminLayout title="Kelola Permintaan Donasi" subtitle="Review dan proses permintaan donasi darah">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-xl shadow-sm border">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+          <div className="bg-white p-4 rounded-xl shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Permintaan</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                <p className="text-sm font-medium text-gray-600">Total</p>
+                <p className="text-xl font-bold text-gray-900">{stats.total}</p>
               </div>
-              <FileText className="h-8 w-8 text-gray-500" />
+              <FileText className="h-6 w-6 text-gray-500" />
             </div>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow-sm border">
+          <div className="bg-white p-4 rounded-xl shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
+                <p className="text-xl font-bold text-gray-900">{stats.pending}</p>
               </div>
-              <Clock className="h-8 w-8 text-yellow-500" />
+              <Clock className="h-6 w-6 text-yellow-500" />
             </div>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow-sm border">
+          <div className="bg-white p-4 rounded-xl shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Disetujui</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.approved}</p>
+                <p className="text-xl font-bold text-gray-900">{stats.approved}</p>
               </div>
-              <Check className="h-8 w-8 text-blue-500" />
+              <Check className="h-6 w-6 text-blue-500" />
             </div>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow-sm border">
+          <div className="bg-white p-4 rounded-xl shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Selesai</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.completed}</p>
+                <p className="text-xl font-bold text-gray-900">{stats.completed}</p>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-500" />
+              <CheckCircle className="h-6 w-6 text-green-500" />
             </div>
           </div>
-          <div className="bg-white p-6 rounded-xl shadow-sm border">
+          <div className="bg-white p-4 rounded-xl shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Ditolak</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.rejected}</p>
+                <p className="text-xl font-bold text-gray-900">{stats.rejected}</p>
               </div>
-              <X className="h-8 w-8 text-red-500" />
+              <X className="h-6 w-6 text-red-500" />
             </div>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border mb-8">
+        <div className="bg-white p-6 rounded-xl shadow-sm border mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-            <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+            <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <input
                   type="text"
-                  placeholder="Cari user, pasien, atau rumah sakit..."
+                  placeholder="Cari donor, pasien, atau rumah sakit..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent w-full sm:w-64"
+                  className="pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent w-full sm:w-72"
                 />
               </div>
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent bg-white"
               >
                 <option value="all">Semua Status</option>
                 <option value="pending">Pending</option>
@@ -398,19 +367,19 @@ const AdminRequestsPage: React.FC = () => {
                 <option value="completed">Selesai</option>
                 <option value="rejected">Ditolak</option>
               </select>
-              <select
+              {/* <select
                 value={filterDate}
                 onChange={(e) => setFilterDate(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent bg-white"
               >
                 <option value="all">Semua Tanggal</option>
                 <option value="today">Hari Ini</option>
                 <option value="week">7 Hari Terakhir</option>
                 <option value="month">30 Hari Terakhir</option>
-              </select>
+              </select> */}
             </div>
-            <div className="text-sm text-gray-600">
-              Menampilkan {filteredRequests.length} dari {requestsList?.length || 0} permintaan
+            <div className="text-sm text-gray-600 lg:text-right">
+              Menampilkan <span className="font-medium">{filteredRequests.length}</span> dari <span className="font-medium">{totalItems}</span> permintaan
             </div>
           </div>
         </div>
@@ -421,19 +390,16 @@ const AdminRequestsPage: React.FC = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Donor & Campaign
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">
+                    Informasi Donor
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Tanggal Permintaan
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">
+                    Tanggal
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Catatan
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">
                     Aksi
                   </th>
                 </tr>
@@ -443,29 +409,33 @@ const AdminRequestsPage: React.FC = () => {
                   const StatusIcon = getStatusIcon(request.status);
                   
                   return (
-                    <tr key={request.id} className="hover:bg-gray-50">
+                    <tr key={request.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-4">
-                          <img 
-                            src={request.user.url_file || '/api/placeholder/40/40'} 
-                            alt={request.user.name}
-                            className="w-10 h-10 rounded-full object-cover border"
-                          />
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-gray-900 truncate">
-                              {request.user.name}
-                            </p>
-                            <p className="text-sm text-gray-500 truncate">
-                              {request.patient_name}
-                            </p>
-                            <div className="flex items-center space-x-2 mt-1">
-                              <span className="bg-red-100 text-red-600 px-2 py-1 text-xs font-medium rounded border border-red-200">
+                          <div className="flex-shrink-0">
+                            <img 
+                              src={request.user.url_file || '/api/placeholder/40/40'} 
+                              alt={request.user.name}
+                              className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-200"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <p className="text-sm font-semibold text-gray-900 truncate">
+                                {request.user.name}
+                              </p>
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                                 {request.blood_type}
                               </span>
-                              <span className={`px-2 py-1 text-xs font-medium rounded border ${getUrgencyColor(request.urgency_level)}`}>
+                            </div>
+                            <p className="text-xs text-gray-600 truncate mb-1">
+                              Pasien: {request.patient_name}
+                            </p>
+                            <div className="flex items-center space-x-2">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getUrgencyColor(request.urgency_level)}`}>
                                 {request.urgency_level}
                               </span>
-                              <span className="text-xs text-gray-500">
+                              <span className="text-xs text-gray-500 truncate">
                                 {request.hospital.name}
                               </span>
                             </div>
@@ -473,53 +443,53 @@ const AdminRequestsPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {new Date(request.created_at).toLocaleDateString('id-ID')}
+                        <div className="text-sm text-gray-900 font-medium">
+                          {new Date(request.created_at).toLocaleDateString('id-ID', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: '2-digit'
+                          })}
                         </div>
                         <div className="text-xs text-gray-500">
-                          Event: {new Date(request.event_date).toLocaleDateString('id-ID')}
+                          Event: {new Date(request.event_date).toLocaleDateString('id-ID', {
+                            day: '2-digit',
+                            month: '2-digit'
+                          })}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(request.status)}`}>
-                          <StatusIcon className="h-3 w-3 mr-1" />
-                          {request.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">
-                          {request.diagnosis ? (
-                            <span className="truncate max-w-xs block">{request.diagnosis}</span>
-                          ) : (
-                            <span className="text-gray-400 italic">Tidak ada catatan</span>
-                          )}
+                        <div className="flex items-center">
+                          <StatusIcon className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
+                            {request.status}
+                          </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center justify-end space-x-2">
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <div className="flex items-center justify-center space-x-2">
                           <button
                             onClick={() => handleViewDetails(request)}
-                            className="bg-gray-100 text-gray-700 px-3 py-1 rounded hover:bg-gray-200 transition-colors flex items-center space-x-1"
+                            className="inline-flex items-center p-1.5 border border-gray-300 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+                            title="Lihat Detail"
                           >
-                            <Eye className="h-3 w-3" />
-                            <span>Detail</span>
+                            <Eye className="h-4 w-4" />
                           </button>
                           
                           {request.status === 'pending' && (
                             <>
                               <button
                                 onClick={() => handleApproveRequest(request.id)}
-                                className="bg-green-100 text-green-700 px-3 py-1 rounded hover:bg-green-200 transition-colors flex items-center space-x-1"
+                                className="inline-flex items-center p-1.5 border border-green-300 rounded-full text-green-600 hover:text-green-700 hover:bg-green-50 transition-colors"
+                                title="Setujui"
                               >
-                                <Check className="h-3 w-3" />
-                                <span>Setuju</span>
+                                <Check className="h-4 w-4" />
                               </button>
                               <button
                                 onClick={() => handleRejectRequest(request.id)}
-                                className="bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200 transition-colors flex items-center space-x-1"
+                                className="inline-flex items-center p-1.5 border border-red-300 rounded-full text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors"
+                                title="Tolak"
                               >
-                                <X className="h-3 w-3" />
-                                <span>Tolak</span>
+                                <X className="h-4 w-4" />
                               </button>
                             </>
                           )}
@@ -527,20 +497,12 @@ const AdminRequestsPage: React.FC = () => {
                           {request.status === 'verified' && (
                             <button
                               onClick={() => handleCompleteRequest(request.id)}
-                              className="bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 transition-colors flex items-center space-x-1"
+                              className="inline-flex items-center p-1.5 border border-blue-300 rounded-full text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-colors"
+                              title="Selesai"
                             >
-                              <CheckCircle className="h-3 w-3" />
-                              <span>Selesai</span>
+                              <CheckCircle className="h-4 w-4" />
                             </button>
                           )}
-                          
-                          <button
-                            onClick={() => handleOpenNotesModal(request)}
-                            className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded hover:bg-yellow-200 transition-colors flex items-center space-x-1"
-                          >
-                            <MessageSquare className="h-3 w-3" />
-                            <span>Catatan</span>
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -551,22 +513,87 @@ const AdminRequestsPage: React.FC = () => {
           </div>
           
           {filteredRequests.length === 0 && (
-            <div className="text-center py-12">
-              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Tidak ada permintaan ditemukan</h3>
-              <p className="text-gray-600">Coba ubah filter atau kata kunci pencarian</p>
+            <div className="text-center py-16">
+              <div className="mx-auto h-12 w-12 text-gray-400">
+                <FileText className="h-12 w-12" />
+              </div>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">Tidak ada permintaan</h3>
+              <p className="mt-1 text-sm text-gray-500">Belum ada permintaan donasi yang ditemukan</p>
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {filteredRequests.length > 0 && (
+          <div className="mt-6 bg-white px-4 py-3 flex items-center justify-between border border-gray-200 rounded-lg">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="relative ml-3 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Halaman {currentPage} dari {totalPages} ({totalItems} total)
+                </p>
+              </div>
+              <div>
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const pageNumber = i + 1;
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => handlePageChange(pageNumber)}
+                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                          pageNumber === currentPage
+                            ? 'z-10 bg-red-50 border-red-500 text-red-600'
+                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  })}
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </nav>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Detail Modal */}
       {showDetailModal && selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-4 border-b flex-shrink-0">
               <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold text-gray-900">Detail Permintaan Donasi</h2>
+                <h2 className="text-lg font-bold text-gray-900">Detail Permintaan</h2>
                 <button
                   onClick={() => setShowDetailModal(false)}
                   className="p-2 hover:bg-gray-100 rounded-full"
@@ -576,25 +603,25 @@ const AdminRequestsPage: React.FC = () => {
               </div>
             </div>
             
-            <div className="p-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="p-4 overflow-y-auto flex-1">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Informasi User</h3>
+                  <h3 className="text-md font-semibold text-gray-900 mb-3">Informasi User</h3>
                   <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="flex items-center space-x-4 mb-4">
+                    <div className="flex items-center space-x-3 mb-3">
                       <img 
                         src={selectedRequest.user.url_file || '/api/placeholder/60/60'} 
                         alt={selectedRequest.user.name}
-                        className="w-16 h-16 rounded-full object-cover border"
+                        className="w-12 h-12 rounded-full object-cover border"
                       />
                       <div>
-                        <h4 className="text-lg font-medium text-gray-900">{selectedRequest.user.name}</h4>
+                        <h4 className="text-md font-medium text-gray-900">{selectedRequest.user.name}</h4>
                         <div className="flex items-center space-x-2 mt-1">
-                          <span className="bg-red-100 text-red-600 px-2 py-1 text-xs font-medium rounded border border-red-200">
+                          <span className="bg-red-100 text-red-600 px-2 py-1 text-xs font-medium rounded">
                             {selectedRequest.user.blood_type}
                           </span>
                           {selectedRequest.user.is_verified && (
-                            <span className="bg-green-100 text-green-600 px-2 py-1 text-xs font-medium rounded border border-green-200">
+                            <span className="bg-green-100 text-green-600 px-2 py-1 text-xs font-medium rounded">
                               Verified
                             </span>
                           )}
@@ -604,31 +631,31 @@ const AdminRequestsPage: React.FC = () => {
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center">
                         <Mail className="h-4 w-4 mr-2 text-gray-400" />
-                        <span>{selectedRequest.user.email}</span>
+                        <span className="truncate">{selectedRequest.user.email}</span>
                       </div>
                       <div className="flex items-center">
                         <Phone className="h-4 w-4 mr-2 text-gray-400" />
                         <span>{selectedRequest.user.phone}</span>
                       </div>
-                      <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-                        <span>{selectedRequest.user.address}</span>
+                      <div className="flex items-start">
+                        <MapPin className="h-4 w-4 mr-2 text-gray-400 mt-0.5" />
+                        <span className="text-sm leading-relaxed">{selectedRequest.user.address}</span>
                       </div>
                     </div>
                   </div>
                 </div>
                 
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Informasi Permintaan</h3>
+                  <h3 className="text-md font-semibold text-gray-900 mb-3">Informasi Permintaan</h3>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     {selectedRequest.url_file && (
                       <img 
                         src={selectedRequest.url_file} 
                         alt="Blood request"
-                        className="w-full h-32 object-cover rounded-lg mb-4"
+                        className="w-full h-24 object-cover rounded-lg mb-3"
                       />
                     )}
-                    <h4 className="text-lg font-medium text-gray-900 mb-2">{selectedRequest.patient_name}</h4>
+                    <h4 className="text-md font-medium text-gray-900 mb-2">{selectedRequest.patient_name}</h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Golongan Darah:</span>
@@ -640,26 +667,25 @@ const AdminRequestsPage: React.FC = () => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Urgensi:</span>
-                        <span className={`px-2 py-1 text-xs font-medium rounded border ${getUrgencyColor(selectedRequest.urgency_level)}`}>
+                        <span className={`px-2 py-1 text-xs font-medium rounded ${getUrgencyColor(selectedRequest.urgency_level)}`}>
                           {selectedRequest.urgency_level}
                         </span>
                       </div>
-                      <div className="flex items-center">
-                        <Building className="h-4 w-4 mr-2 text-gray-400" />
-                        <span>{selectedRequest.hospital.name}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-                        <span>{selectedRequest.hospital.address}</span>
+                      <div className="flex items-start">
+                        <Building className="h-4 w-4 mr-2 text-gray-400 mt-0.5" />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-gray-900 truncate">{selectedRequest.hospital.name}</p>
+                          <p className="text-xs text-gray-500 mt-1">{selectedRequest.hospital.address}</p>
+                        </div>
                       </div>
                       <div className="flex justify-between mt-3 pt-3 border-t border-gray-200">
                         <div>
                           <p className="text-xs text-gray-500">Tanggal Event</p>
-                          <p className="font-semibold">{new Date(selectedRequest.event_date).toLocaleDateString('id-ID')}</p>
+                          <p className="font-semibold text-sm">{new Date(selectedRequest.event_date).toLocaleDateString('id-ID')}</p>
                         </div>
                         <div>
                           <p className="text-xs text-gray-500">Slot Tersedia</p>
-                          <p className="font-semibold">{selectedRequest.slots_available}</p>
+                          <p className="font-semibold text-sm">{selectedRequest.slots_available}</p>
                         </div>
                       </div>
                     </div>
@@ -667,18 +693,15 @@ const AdminRequestsPage: React.FC = () => {
                 </div>
                 
                 <div className="lg:col-span-2">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Status Permintaan</h3>
+                  <h3 className="text-md font-semibold text-gray-900 mb-3">Status & Catatan</h3>
                   <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center space-x-3">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(selectedRequest.status)}`}>
-                          <span className="h-4 w-4 mr-2" />
-                          {selectedRequest.status}
-                        </span>
-                        <span className="text-sm text-gray-600">
-                          Tanggal Permintaan: {new Date(selectedRequest.created_at).toLocaleDateString('id-ID')}
-                        </span>
-                      </div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedRequest.status)}`}>
+                        {selectedRequest.status}
+                      </span>
+                      <span className="text-sm text-gray-600">
+                        {new Date(selectedRequest.created_at).toLocaleDateString('id-ID')}
+                      </span>
                     </div>
                     
                     {selectedRequest.diagnosis && (
@@ -689,6 +712,16 @@ const AdminRequestsPage: React.FC = () => {
                         </p>
                       </div>
                     )}
+                    
+                    <div className="mt-4 flex space-x-3">
+                      <button
+                        onClick={() => handleOpenNotesModal(selectedRequest)}
+                        className="flex items-center space-x-1 bg-yellow-100 text-yellow-700 px-3 py-1 rounded hover:bg-yellow-200 transition-colors"
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                        <span>Edit Catatan</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -702,7 +735,7 @@ const AdminRequestsPage: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Tambah/Edit Catatan</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Edit Catatan</h3>
               <button
                 onClick={() => setShowNotesModal(false)}
                 className="p-2 hover:bg-gray-100 rounded-full"
@@ -712,7 +745,7 @@ const AdminRequestsPage: React.FC = () => {
             </div>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Catatan untuk permintaan donasi ini:
+                Catatan permintaan donasi:
               </label>
               <textarea
                 value={notes}

@@ -11,6 +11,8 @@ interface NotificationData {
   dismissible?: boolean;
   persistent?: boolean;
   sound?: boolean;
+  allowHtml?: boolean;
+  links?: { text: string; url: string; external?: boolean }[];
   onAction?: (actionIndex: number) => void;
 }
 

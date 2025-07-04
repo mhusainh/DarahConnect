@@ -99,10 +99,25 @@ const CreateCampaignPage: React.FC = () => {
 
   const handleInputChange = (field: keyof CreateCampaignForm, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear error for this field when user starts typing
     if (errors[field as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
   };
+
+  // Reset loading state on component unmount and prevent memory leaks
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      setIsLoading(false);
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      setIsLoading(false);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
 
   const handleBloodTypeToggle = (bloodType: BloodType) => {
     const newBloodTypes = formData.bloodType.includes(bloodType)
@@ -154,27 +169,46 @@ const CreateCampaignPage: React.FC = () => {
   const validateForm = () => {
     const newErrors: FormErrors = {};
     
-    if (!formData.title.trim()) newErrors.title = 'Judul campaign wajib diisi';
-    if (!formData.description.trim()) newErrors.description = 'Deskripsi wajib diisi';
-    if (formData.description.length < 50) newErrors.description = 'Deskripsi minimal 50 karakter';
+    // Required fields validation
     if (!formData.hospital_id || formData.hospital_id === 0) newErrors.hospital_id = 'Rumah sakit wajib dipilih';
-    if (!formData.location.trim()) newErrors.location = 'Lokasi wajib diisi';
-    if (formData.bloodType.length === 0) newErrors.bloodType = 'Pilih minimal satu golongan darah';
-    if (formData.targetDonors < 10) newErrors.targetDonors = 'Target donor minimal 10 orang';
-    if (!formData.contactPerson.trim()) newErrors.contactPerson = 'Nama kontak wajib diisi';
-    if (!formData.contactPhone.trim()) newErrors.contactPhone = 'Nomor telepon wajib diisi';
-    if (!formData.deadline) newErrors.deadline = 'Deadline wajib diisi';
+    if (!formData.event_name.trim()) newErrors.event_name = 'Nama event wajib diisi';
+    if (!formData.event_date) newErrors.event_date = 'Tanggal event wajib diisi';
+    if (!formData.start_time) newErrors.start_time = 'Waktu mulai wajib diisi';
+    if (!formData.end_time) newErrors.end_time = 'Waktu selesai wajib diisi';
+    if (!formData.slots_available || formData.slots_available < 1) newErrors.slots_available = 'Slot tersedia minimal 1';
+    if (formData.slots_booked < 0) newErrors.slots_booked = 'Slot terisi tidak boleh negatif';
+    if (formData.slots_booked > formData.slots_available) newErrors.slots_booked = 'Slot terisi tidak boleh lebih besar dari slot tersedia';
     
-    // Validate deadline is in the future
-    const deadlineDate = new Date(formData.deadline);
+    // Validate event date is in the future
+    const eventDate = new Date(formData.event_date);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    if (deadlineDate <= today) {
-      newErrors.deadline = 'Deadline harus di masa depan';
+    if (eventDate <= today) {
+      newErrors.event_date = 'Tanggal event harus di masa depan';
+    }
+    
+    // Validate time range
+    if (formData.start_time && formData.end_time) {
+      const startTime = new Date(`2000-01-01T${formData.start_time}`);
+      const endTime = new Date(`2000-01-01T${formData.end_time}`);
+      if (startTime >= endTime) {
+        newErrors.end_time = 'Waktu selesai harus lebih besar dari waktu mulai';
+      }
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    
+    // Scroll to first error field if validation fails
+    if (Object.keys(newErrors).length > 0) {
+      const firstErrorField = Object.keys(newErrors)[0];
+      const errorElement = document.getElementById(firstErrorField);
+      if (errorElement) {
+        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        errorElement.focus();
+      }
+    }
+    
+    return { isValid: Object.keys(newErrors).length === 0, errorCount: Object.keys(newErrors).length };
   };
 
   const handleHospitalAdded = (newHospital: Hospital) => {
@@ -186,9 +220,18 @@ const CreateCampaignPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // if (!validateForm()) return;
-    
     setIsLoading(true);
+    
+    // Validate form first
+    const validation = validateForm();
+    if (!validation.isValid) {
+      setIsLoading(false);
+      notifications.error(
+        'Validasi Gagal', 
+        `Terdapat ${validation.errorCount} kesalahan pada form. Mohon periksa kembali data yang Anda masukkan.`
+      );
+      return;
+    }
     
     try {
       // Create FormData object
@@ -237,18 +280,31 @@ const CreateCampaignPage: React.FC = () => {
       
       if (response.success) {
         console.log('✅ Campaign created successfully:', response.data);
-        setIsLoading(false);
         notifications.success('Berhasil!', 'Campaign donor darah berhasil dibuat');
         navigate('/admin/campaigns');
+      } else {
+        // Handle API error response
+        const errorMessage = response.error || response.message || 'Gagal membuat campaign';
+        notifications.error('Error', errorMessage);
+        console.error('❌ API Error:', response);
       }
-      //  else {
-      //   throw new Error(response.error || 'Failed to create campaign');
-      // }
       
     } catch (error: any) {
       console.error('❌ Create campaign error:', error);
+      
+      // Handle different types of errors
+      let errorMessage = 'Terjadi kesalahan saat membuat campaign. Silakan coba lagi.';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      notifications.error('Error', errorMessage);
+    } finally {
+      // Always reset loading state
       setIsLoading(false);
-      notifications.error('Error', 'Gagal membuat campaign. Silakan coba lagi.');
     }
   };
 
@@ -415,7 +471,11 @@ const CreateCampaignPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="px-8 py-3 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`px-8 py-3 rounded-lg font-semibold transition-colors ${
+                  isLoading 
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                    : 'bg-primary-600 text-white hover:bg-primary-700'
+                }`}
               >
                 {isLoading ? (
                   <div className="flex items-center">

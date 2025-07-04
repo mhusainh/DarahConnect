@@ -60,6 +60,9 @@ const AdminProfilePage = lazy(() => import('./pages/AdminProfilePage'));
 const AdminNotificationsPage = lazy(() => import('./pages/AdminNotificationsPage'));
 const AdminDonationsPage = lazy(() => import('./pages/AdminDonationsPage'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+const TermsPage = lazy(() => import('./pages/TermsPage'));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
+const NotificationExamples = lazy(() => import('./examples/NotificationExamples'));
 
 // Homepage Component
 const HomePage: React.FC = () => {
@@ -111,19 +114,32 @@ const HomePage: React.FC = () => {
       if (errorMessage.includes('health passport') || errorMessage.includes('Health passport')) {
         addNotification({
           type: 'error',
-          title: 'Menyimpan Gagal',
-          message: 'Anda belum memiliki health passport, silahkan untuk mengisi health passport terlebih dahulu',
-          duration: 5000
+          title: 'Health Passport Diperlukan',
+          message: 'Anda belum memiliki health passport. Silakan lengkapi data kesehatan Anda terlebih dahulu untuk melanjutkan pendaftaran.',
+          links: [
+            { text: 'Buat Health Passport', url: '/health-passport' },
+            { text: 'Pelajari Lebih Lanjut', url: '/about-health-passport' }
+          ],
+          actions: [
+            { 
+              label: 'Buat Sekarang', 
+              onClick: () => navigate('/health-passport'),
+              variant: 'primary'
+            }
+          ],
+          duration: 8000,
+          persistent: false
         });
-        setTimeout(() => {
-          navigate('/health-passport');
-        }, 5000);
       } else {
         addNotification({
           type: 'error',
-          title: 'Error',
-          message: 'Terjadi kesalahan sistem. Silakan coba lagi nanti.',
-          duration: 5000
+          title: 'Pendaftaran Gagal',
+          message: 'Terjadi kesalahan sistem. Silakan coba lagi nanti atau hubungi support jika masalah berlanjut.',
+          links: [
+            { text: 'Hubungi Support', url: 'mailto:support@darahconnect.com', external: true },
+            { text: 'Coba Lagi', url: window.location.pathname }
+          ],
+          duration: 8000
         });
       }
     }
@@ -302,6 +318,23 @@ function App() {
                 <Layout>
                   <Suspense fallback={<PageLoader />}>
                     <BloodRequestDetailPage />
+                  </Suspense>
+                </Layout>
+              } />
+              <Route path="/terms" element={
+                <Suspense fallback={<PageLoader />}>
+                  <TermsPage />
+                </Suspense>
+              } />
+              <Route path="/privacy" element={
+                <Suspense fallback={<PageLoader />}>
+                  <PrivacyPage />
+                </Suspense>
+              } />
+              <Route path="/notification-examples" element={
+                <Layout>
+                  <Suspense fallback={<PageLoader />}>
+                    <NotificationExamples />
                   </Suspense>
                 </Layout>
               } />
