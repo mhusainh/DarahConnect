@@ -19,16 +19,20 @@ import {
   ChevronRightIcon,
   SortAsc,
   SortDesc,
-  X
+  X,
+  Eye
 } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 import { useNotification } from '../hooks/useNotification';
+import { useCampaignService } from '../services/campaignService';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import EditBloodRequestModal from '../components/EditBloodRequestModal';
+import DonorOptionModal from '../components/DonorOptionModal';
 import { HoverScale, FadeIn } from '../components/ui/AnimatedComponents';
 import { Spinner } from '../components/ui/LoadingComponents';
 import WalletConnectBanner from '../components/WalletConnectBanner';
+import { BloodCampaign } from '../types';
 import debounce from 'lodash.debounce';
 
 interface UserData {
@@ -116,9 +120,14 @@ interface PaginationState {
 const BloodRequestsPage: React.FC = () => {
   const navigate = useNavigate();
   const { addNotification } = useNotification();
+  const campaignService = useCampaignService();
   const [editRequestModalOpen, setEditRequestModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<BloodRequest | null>(null);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  
+  // Modal state for donor option
+  const [isDonorModalOpen, setIsDonorModalOpen] = useState(false);
+  const [selectedDonorRequest, setSelectedDonorRequest] = useState<BloodRequest | null>(null);
   
   // API state
   const [bloodRequests, setBloodRequests] = useState<BloodRequest[]>([]);
@@ -379,8 +388,108 @@ const BloodRequestsPage: React.FC = () => {
     fetchBloodRequests();
   };
 
+  // Convert BloodRequest to BloodCampaign format for modal
+  const convertBloodRequestToCampaign = (request: BloodRequest): BloodCampaign => {
+    return {
+      id: request.id.toString(),
+      title: request.event_name,
+      description: request.diagnosis,
+      organizer: {
+        name: request.user.name,
+        avatar: request.user.url_file || '/api/placeholder/32/32',
+        verified: request.user.is_verified,
+        role: request.user.role
+      },
+      hospital: request.hospital.name,
+      location: `${request.hospital.city}, ${request.hospital.province}`,
+      bloodType: [request.blood_type as any],
+      targetDonors: request.quantity || 1,
+      currentDonors: 0,
+      urgencyLevel: request.urgency_level as any,
+      contactPerson: request.user.name,
+      contactPhone: request.user.phone,
+      deadline: request.event_date,
+      createdAt: request.created_at,
+      imageUrl: '',
+      url_file: ''
+    };
+  };
+
   const handleDonate = (request: BloodRequest) => {
-    navigate(`/donor-register?requestId=${request.id}`);
+    setSelectedDonorRequest(request);
+    setIsDonorModalOpen(true);
+  };
+
+  const handleDonorNow = async (notes: string, hospitalId: number, description: string) => {
+    if (!selectedDonorRequest) return;
+    
+    try {
+      const success = await campaignService.donorNowWithSchedule(selectedDonorRequest.id, hospitalId, description, notes);
+      if (success) {
+        addNotification({
+          type: 'success',
+          title: 'Pendaftaran dan Jadwal Berhasil!',
+          message: 'Anda telah berhasil mendaftar sebagai donor untuk permintaan darah ini. Tim akan menghubungi Anda segera.',
+          duration: 5000
+        });
+        setIsDonorModalOpen(false);
+        setSelectedDonorRequest(null);
+        fetchBloodRequests(); // Refresh to update data
+      } else {
+        addNotification({
+          type: 'error',
+          title: 'Pendaftaran Gagal',
+          message: 'Terjadi kesalahan saat mendaftar sebagai donor dan membuat jadwal. Silakan coba lagi.',
+          duration: 5000
+        });
+      }
+    } catch (error: any) {
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Terjadi kesalahan sistem. Silakan coba lagi nanti.',
+        duration: 5000
+      });
+    }
+  };
+
+  const handleScheduleOnly = async (hospitalId: number, description: string) => {
+    if (!selectedDonorRequest) return;
+    
+    try {
+      const success = await campaignService.createSchedule(selectedDonorRequest.id, hospitalId, description);
+      if (success) {
+        addNotification({
+          type: 'success',
+          title: 'Jadwal Berhasil Dibuat!',
+          message: 'Jadwal donor darah untuk permintaan ini telah berhasil dibuat. Tim akan menghubungi Anda untuk konfirmasi.',
+          duration: 5000
+        });
+        setIsDonorModalOpen(false);
+        setSelectedDonorRequest(null);
+      } else {
+        addNotification({
+          type: 'error',
+          title: 'Pembuatan Jadwal Gagal',
+          message: 'Terjadi kesalahan saat membuat jadwal. Silakan coba lagi.',
+          duration: 5000
+        });
+      }
+    } catch (error: any) {
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Terjadi kesalahan sistem. Silakan coba lagi nanti.',
+        duration: 5000
+      });
+    }
+  };
+
+  const handleViewDetails = (request: BloodRequest) => {
+    // For now, navigate to the blood requests detail page or display modal
+    // Since we don't have a dedicated detail page for blood requests yet,
+    // we can create one or show a detailed modal
+    navigate(`/blood-requests/${request.id}`);
   };
 
   const handleCreateBloodRequest = () => {
@@ -806,13 +915,37 @@ const BloodRequestsPage: React.FC = () => {
                     </div>
 
                     {/* Actions */}
-                    <div className="p-4 bg-gray-50 border-t space-y-2">
+                    <div className="p-4 bg-gray-50 border-t">
+                      {/* Main Actions Grid */}
+                      <div className="grid grid-cols-2 gap-3 mb-2">
+                        <button
+                          onClick={() => handleViewDetails(request)}
+                          className="bg-blue-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 text-sm"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span>Detail</span>
+                        </button>
+                        
+                        <button
+                          onClick={() => handleDonate(request)}
+                          disabled={request.status === 'completed' || request.status === 'canceled'}
+                          className="bg-red-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2 text-sm"
+                        >
+                          <Heart className="w-4 h-4" />
+                          <span>
+                            {request.status === 'completed' ? 'Selesai' :
+                             request.status === 'canceled' ? 'Dibatalkan' :
+                             'Saya Bisa Donor'}
+                          </span>
+                        </button>
+                      </div>
+
                       {/* Edit Button - Only show if user is the request owner */}
                       {request.user_id === parseInt(localStorage.getItem('userId') || '0') && (
                         <button
                           onClick={() => handleOpenEditRequestModal(request)}
                           disabled={request.status === 'completed' || request.status === 'canceled'}
-                          className="w-full bg-blue-600 text-white py-2 px-4 rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                          className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2 text-sm"
                         >
                           <Edit className="w-4 h-4" />
                           <span>
@@ -822,19 +955,6 @@ const BloodRequestsPage: React.FC = () => {
                           </span>
                         </button>
                       )}
-                      
-                      <button
-                        onClick={() => handleDonate(request)}
-                        disabled={request.status === 'completed' || request.status === 'canceled'}
-                        className="w-full bg-red-600 text-white py-2 px-4 rounded-xl font-semibold hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-                      >
-                        <Heart className="w-4 h-4" />
-                        <span>
-                          {request.status === 'completed' ? 'Sudah Selesai' :
-                           request.status === 'canceled' ? 'Dibatalkan' :
-                           'Saya Bisa Donor'}
-                        </span>
-                      </button>
                     </div>
                   </div>
                 </HoverScale>
@@ -965,6 +1085,21 @@ const BloodRequestsPage: React.FC = () => {
         </div>
       </div>
       <Footer />
+      
+      {/* DonorOptionModal for Blood Requests */}
+      {selectedDonorRequest && (
+        <DonorOptionModal
+          isOpen={isDonorModalOpen}
+          onClose={() => {
+            setIsDonorModalOpen(false);
+            setSelectedDonorRequest(null);
+          }}
+          campaign={convertBloodRequestToCampaign(selectedDonorRequest)}
+          onDonorNow={handleDonorNow}
+          onScheduleOnly={handleScheduleOnly}
+        />
+      )}
+      
       {selectedRequest && (
         <EditBloodRequestModal
           isOpen={editRequestModalOpen}

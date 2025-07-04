@@ -48,33 +48,88 @@ const AdminHospitalsPage: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [perPage] = useState(10); // 3x3 grid
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const { addNotification } = useNotification();
 
-  // Fetch hospitals from API
-  const fetchHospitals = async () => {
+  // Fetch hospitals from API with search and pagination
+  const fetchHospitals = async (page: number = 1, search: string = '', province: string = 'all', city: string = 'all') => {
     try {
       setLoading(true);
-      const response = await getApi<HospitalsResponse>('/hospital');
+      
+      // Build query parameters for server-side filtering
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: perPage.toString()
+      });
+      
+      if (search.trim()) {
+        params.append('search', search.trim());
+      }
+      
+      if (province !== 'all') {
+        params.append('province', province);
+      }
+      
+      if (city !== 'all') {
+        params.append('city', city);
+      }
+      
+      const endpoint = `/hospital?${params.toString()}`;
+      console.log('🔍 Hospitals API Endpoint:', endpoint);
+      const response = await getApi<HospitalsResponse>(endpoint);
       
       console.log('🔍 Full API Response:', response);
       
       if (response.success && response.data) {
         // Handle different response structures
         let hospitalsData: Hospital[] = [];
+        let paginationData = null;
         
         if (Array.isArray(response.data)) {
           // If response.data is directly an array
           hospitalsData = response.data;
+          paginationData = response.pagination;
         } else if (response.data.data && Array.isArray(response.data.data)) {
           // If response.data has nested data array
           hospitalsData = response.data.data;
+          paginationData = response.data.pagination;
         } else {
           console.warn('⚠️ Unexpected response structure:', response.data);
           hospitalsData = [];
         }
         
-        console.log('📋 Hospitals data to set:', hospitalsData);
+        // Client-side filtering for now (until API supports server-side filtering)
+        const filtered = hospitalsData.filter(hospital => {
+          if (!hospital || !hospital.name) return false;
+          
+          const matchesSearch = !search || 
+            (hospital.name || '').toLowerCase().includes(search.toLowerCase()) ||
+            (hospital.address || '').toLowerCase().includes(search.toLowerCase()) ||
+            (hospital.city || '').toLowerCase().includes(search.toLowerCase()) ||
+            (hospital.province || '').toLowerCase().includes(search.toLowerCase());
+          
+          const matchesProvince = province === 'all' || hospital.province === province;
+          const matchesCity = city === 'all' || hospital.city === city;
+
+          return matchesSearch && matchesProvince && matchesCity;
+        });
+        
+        // Client-side pagination
+        // const startIndex = (page - 1) * perPage;
+        // const endIndex = startIndex + perPage;
+        // const paginatedData = filtered.slice(startIndex, endIndex);
+        
+        // console.log('📋 Hospitals data to set:', paginatedData);
+        
         setHospitalsList(hospitalsData);
+        setTotalItems(paginationData.total_items);
+        setTotalPages(paginationData.total_pages);
+        setCurrentPage(page);
+        
       } else {
         throw new Error(response.message || 'Failed to fetch hospitals');
       }
@@ -90,9 +145,30 @@ const AdminHospitalsPage: React.FC = () => {
     }
   };
 
+  // Initial data fetch
   useEffect(() => {
-    fetchHospitals();
-  }, []);
+    fetchHospitals(currentPage, searchTerm, filterProvince, filterCity);
+  }, [currentPage, filterProvince, filterCity]);
+
+  // Handle search with debounce
+  useEffect(() => {
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    const timeout = setTimeout(() => {
+      setCurrentPage(1);
+      fetchHospitals(1, searchTerm, filterProvince, filterCity);
+    }, 500);
+    
+    setSearchTimeout(timeout);
+    
+    return () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    };
+  }, [searchTerm]);
 
   const getProvinceColor = (province: string) => {
     const colors = {
@@ -118,17 +194,30 @@ const AdminHospitalsPage: React.FC = () => {
     return Array.from(new Set(cities)).sort();
   };
 
-  const filteredHospitals = hospitalsList?.filter(hospital => {
-    const matchesSearch = (hospital.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (hospital.address || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (hospital.city || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (hospital.province || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesProvince = filterProvince === 'all' || hospital.province === filterProvince;
-    const matchesCity = filterCity === 'all' || hospital.city === filterCity;
+  // Use server-side filtered data directly
+  const filteredHospitals = hospitalsList || [];
 
-    return matchesSearch && matchesProvince && matchesCity;
-  }) || [];
+  // Handler functions
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+      setCurrentPage(page);
+    }
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+  };
+
+  const handleProvinceFilter = (province: string) => {
+    setFilterProvince(province);
+    setFilterCity('all'); // Reset city filter when province changes
+    setCurrentPage(1);
+  };
+
+  const handleCityFilter = (city: string) => {
+    setFilterCity(city);
+    setCurrentPage(1);
+  };
 
   const handleViewDetails = (hospital: Hospital) => {
     setSelectedHospital(hospital);
@@ -158,7 +247,7 @@ const AdminHospitalsPage: React.FC = () => {
           title: 'Berhasil',
           message: 'Rumah sakit berhasil dihapus'
         });
-        fetchHospitals(); // Refresh the list
+        fetchHospitals(currentPage, searchTerm, filterProvince, filterCity); // Refresh the list
         setShowDeleteModal(false);
         setSelectedHospital(null);
       } else {
@@ -177,7 +266,7 @@ const AdminHospitalsPage: React.FC = () => {
   };
 
   const handleHospitalAdded = () => {
-    fetchHospitals(); // Refresh the list
+    fetchHospitals(currentPage, searchTerm, filterProvince, filterCity); // Refresh the list
     setShowAddModal(false);
     setSelectedHospital(null); // Clear selected hospital
   };
@@ -204,7 +293,15 @@ const AdminHospitalsPage: React.FC = () => {
             <div className="flex items-center space-x-4">
               <h2 className="text-xl font-semibold text-gray-900">Daftar Rumah Sakit</h2>
               <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-sm">
-                {filteredHospitals.length} rumah sakit
+                {searchTerm || filterProvince !== 'all' || filterCity !== 'all' ? (
+                  <>
+                    {filteredHospitals.length} hasil dari {totalItems} total
+                  </>
+                ) : (
+                  <>
+                    {totalItems} rumah sakit
+                  </>
+                )}
               </span>
             </div>
             <div className="flex items-center space-x-3">
@@ -240,9 +337,22 @@ const AdminHospitalsPage: React.FC = () => {
                     type="text"
                     placeholder="Cari rumah sakit..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   />
+                  {!loading && searchTerm && (
+                    <button
+                      onClick={() => handleSearch('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                  {loading && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <div className="animate-spin h-4 w-4 border-2 border-red-500 border-t-transparent rounded-full"></div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -250,10 +360,7 @@ const AdminHospitalsPage: React.FC = () => {
               <div className="sm:w-48">
                 <select
                   value={filterProvince}
-                  onChange={(e) => {
-                    setFilterProvince(e.target.value);
-                    setFilterCity('all'); // Reset city filter when province changes
-                  }}
+                  onChange={(e) => handleProvinceFilter(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                 >
                   <option value="all">Semua Provinsi</option>
@@ -267,7 +374,7 @@ const AdminHospitalsPage: React.FC = () => {
               <div className="sm:w-48">
                 <select
                   value={filterCity}
-                  onChange={(e) => setFilterCity(e.target.value)}
+                  onChange={(e) => handleCityFilter(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                 >
                   <option value="all">Semua Kota</option>
@@ -296,9 +403,9 @@ const AdminHospitalsPage: React.FC = () => {
             {searchTerm || filterProvince !== 'all' || filterCity !== 'all' ? (
               <button
                 onClick={() => {
-                  setSearchTerm('');
-                  setFilterProvince('all');
-                  setFilterCity('all');
+                  handleSearch('');
+                  handleProvinceFilter('all');
+                  handleCityFilter('all');
                 }}
                 className="text-red-600 hover:text-red-700 font-medium"
               >
@@ -373,6 +480,131 @@ const AdminHospitalsPage: React.FC = () => {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {filteredHospitals.length > 0 && (
+          <div className="mt-8 bg-white px-4 py-3 flex items-center justify-between border border-gray-200 rounded-lg sm:px-6">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="relative ml-3 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Menampilkan{' '}
+                  <span className="font-medium">
+                    {((currentPage - 1) * perPage) + 1}
+                  </span>{' '}
+                  sampai{' '}
+                  <span className="font-medium">
+                    {Math.min(currentPage * perPage, totalItems)}
+                  </span>{' '}
+                  dari{' '}
+                  <span className="font-medium">{totalItems}</span> total rumah sakit
+                </p>
+              </div>
+              <div>
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  {(() => {
+                    const pages = [];
+                    const maxPages = 5;
+                    let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
+                    let endPage = Math.min(totalPages, startPage + maxPages - 1);
+                    
+                    if (endPage - startPage + 1 < maxPages) {
+                      startPage = Math.max(1, endPage - maxPages + 1);
+                    }
+                    
+                    // Add first page if not in range
+                    if (startPage > 1) {
+                      pages.push(
+                        <button
+                          key={1}
+                          onClick={() => handlePageChange(1)}
+                          className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                        >
+                          1
+                        </button>
+                      );
+                      if (startPage > 2) {
+                        pages.push(
+                          <span key="ellipsis1" className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500">
+                            ...
+                          </span>
+                        );
+                      }
+                    }
+                    
+                    // Add page numbers in range
+                    for (let i = startPage; i <= endPage; i++) {
+                      pages.push(
+                        <button
+                          key={i}
+                          onClick={() => handlePageChange(i)}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                            i === currentPage
+                              ? 'z-10 bg-red-50 border-red-500 text-red-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          {i}
+                        </button>
+                      );
+                    }
+                    
+                    // Add last page if not in range
+                    if (endPage < totalPages) {
+                      if (endPage < totalPages - 1) {
+                        pages.push(
+                          <span key="ellipsis2" className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500">
+                            ...
+                          </span>
+                        );
+                      }
+                      pages.push(
+                        <button
+                          key={totalPages}
+                          onClick={() => handlePageChange(totalPages)}
+                          className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                        >
+                          {totalPages}
+                        </button>
+                      );
+                    }
+                    
+                    return pages;
+                  })()}
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </nav>
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -3,6 +3,7 @@ import { notificationManager, shouldShowNotification, getMethodDisplayName } fro
 
 // Interface untuk response API
 export interface ApiResponse<T = any> {
+  pagination: any;
   success: boolean;
   data?: T;
   message?: string;
@@ -325,6 +326,7 @@ export const fetchApi = async <T = any>(
         success: true,
         data: extractedData,
         status: response.status,
+        pagination: responseData?.pagination || null,
       };
     } else {
       debugConsole.error(`Request gagal: ${method} ${endpoint}`, {
@@ -356,6 +358,7 @@ export const fetchApi = async <T = any>(
           error: errorMessage,
           status: response.status,
           data: responseData,
+          pagination: responseData?.pagination || null,
         };
       }
       
@@ -390,6 +393,7 @@ export const fetchApi = async <T = any>(
         error: errorMessage,
         status: response.status,
         data: responseData,
+        pagination: responseData?.pagination || null,
       };
     }
     
@@ -401,6 +405,7 @@ export const fetchApi = async <T = any>(
       success: false,
       error: error.message || 'Network error occurred',
       status: 0,
+      pagination: null,
     };
   }
 };
@@ -524,7 +529,7 @@ export const adminBloodRequestsApi = {
     const params = new URLSearchParams();
     params.append('event_type', 'blood_request');
     if (page) params.append('page', page.toString());
-    if (perPage) params.append('per_page', perPage.toString());
+    if (perPage) params.append('limit', perPage.toString());
     
     return getApi(`/admin/blood-requests?${params.toString()}`);
   },
@@ -534,7 +539,7 @@ export const adminBloodRequestsApi = {
     const params = new URLSearchParams();
     params.append('event_type', 'campaign');
     if (page) params.append('page', page.toString());
-    if (perPage) params.append('per_page', perPage.toString());
+    if (perPage) params.append('limit', perPage.toString());
     
     return getApi(`/admin/blood-requests?${params.toString()}`);
   },
@@ -543,7 +548,7 @@ export const adminBloodRequestsApi = {
   getHealthPassports: async (page?: number, perPage?: number) => {
     const params = new URLSearchParams();
     if (page) params.append('page', page.toString());
-    if (perPage) params.append('per_page', perPage.toString());
+    if (perPage) params.append('limit', perPage.toString());
     
     return getApi(`/admin/health-passports?${params.toString()}`);
   },

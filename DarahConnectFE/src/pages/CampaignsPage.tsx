@@ -24,9 +24,10 @@ import {
 } from 'lucide-react';
 import { useApi } from '../hooks/useApi';
 import { useNotification } from '../hooks/useNotification';
+import { useCampaignService } from '../services/campaignService';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import DonorConfirmationModal from '../components/DonorConfirmationModal';
+import DonorOptionModal from '../components/DonorOptionModal';
 import CryptoDonationModal from '../components/CryptoDonationModal';
 import { HoverScale, FadeIn } from '../components/ui/AnimatedComponents';
 import { Spinner } from '../components/ui/LoadingComponents';
@@ -98,16 +99,12 @@ interface FilterState {
   event_type: string;
 }
 
-interface PaginationState {
-  page: number;
-  limit: number;
-  sort: string;
-  order: 'asc' | 'desc';
-}
+
 
 const CampaignsPage: React.FC = () => {
   const navigate = useNavigate();
   const { addNotification } = useNotification();
+  const campaignService = useCampaignService();
   const [selectedCampaign, setSelectedCampaign] = useState<BloodCampaign | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCryptoModalOpen, setIsCryptoModalOpen] = useState(false);
@@ -118,12 +115,16 @@ const CampaignsPage: React.FC = () => {
   const [campaigns, setCampaigns] = useState<BloodCampaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    per_page: 12,
-    total_items: 0,
-    total_pages: 0
-  });
+  
+  // Pagination state - simplified like AdminCampaignsPage
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [perPage, setPerPage] = useState(12);
+  
+  // Sort state
+  const [sortField, setSortField] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // Filter state
   const [filters, setFilters] = useState<FilterState>({
@@ -138,26 +139,13 @@ const CampaignsPage: React.FC = () => {
     event_type: ''
   });
 
-  // Pagination and sorting state
-  const [paginationState, setPaginationState] = useState<PaginationState>({
-    page: 1,
-    limit: 10,
-    sort: 'created_at',
-    order: 'desc'
-  });
 
-  // Tambahkan state untuk search input
+
+  // Search input state untuk debouncing
   const [searchInput, setSearchInput] = useState(filters.search);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const { get: getApi } = useApi<any>();
-
-  // Tambahkan debounced function
-  const debouncedSearch = useCallback(
-    debounce((value: string) => {
-      handleFilterChange('search', value);
-    }, 500),
-    []
-  );
 
   // Convert API campaign to UI campaign format
   const convertApiCampaignToBloodCampaign = (apiCampaign: ApiCampaign): BloodCampaign => {
@@ -191,10 +179,10 @@ const CampaignsPage: React.FC = () => {
     const params = new URLSearchParams();
     
     // Add pagination
-    params.append('page', paginationState.page.toString());
-    params.append('limit', paginationState.limit.toString());
-    params.append('sort', paginationState.sort);
-    params.append('order', paginationState.order);
+    params.append('page', currentPage.toString());
+    params.append('limit', perPage.toString());
+    params.append('sort', sortField);
+    params.append('order', sortOrder);
     
     // Add filters (only if they have values)
     Object.entries(filters).forEach(([key, value]) => {
@@ -204,7 +192,7 @@ const CampaignsPage: React.FC = () => {
     });
     
     return params.toString();
-  }, [filters, paginationState]);
+  }, [filters, currentPage, perPage, sortField, sortOrder]);
 
   // Fetch campaigns with current filters and pagination
   const fetchCampaigns = useCallback(async () => {
@@ -223,17 +211,15 @@ const CampaignsPage: React.FC = () => {
         const convertedCampaigns = apiCampaignsData.map(convertApiCampaignToBloodCampaign);
         setCampaigns(convertedCampaigns);
         
-        // Set pagination data with fallbacks
-        if ((response as any).pagination) {
-          setPagination((response as any).pagination);
+        // Set pagination data from API response
+        if (response.pagination) {
+          setTotalItems(response.pagination.total_items);
+          setTotalPages(response.pagination.total_pages);
+          setCurrentPage(response.pagination.page);
         } else {
-          // If no pagination data from API, calculate based on data length
-          setPagination({
-            page: paginationState.page,
-            per_page: paginationState.limit,
-            total_items: apiCampaignsData.length,
-            total_pages: apiCampaignsData.length > 0 ? Math.ceil(apiCampaignsData.length / paginationState.limit) : 1
-          });
+          // Fallback pagination calculation
+          setTotalItems(apiCampaignsData.length);
+          setTotalPages(apiCampaignsData.length > 0 ? Math.ceil(apiCampaignsData.length / perPage) : 1);
         }
       } else {
         setError('Gagal memuat data campaigns');
@@ -246,30 +232,55 @@ const CampaignsPage: React.FC = () => {
     }
   }, [getApi, buildQueryString]);
 
-  // Effect to fetch data when filters or pagination change
+  // Effect to fetch data when current page, perPage, filters, or sort changes
   useEffect(() => {
     fetchCampaigns();
-  }, [fetchCampaigns]);
+  }, [currentPage, perPage, sortField, sortOrder, filters.search, filters.urgency_level, filters.blood_type, 
+      filters.min_quantity, filters.max_quantity, filters.start_date, filters.end_date, 
+      filters.status, filters.event_type]);
+
+  // Handle search with debounce
+  useEffect(() => {
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    const timeout = setTimeout(() => {
+      setFilters(prev => ({ ...prev, search: searchInput }));
+      setCurrentPage(1); // Reset to first page when searching
+    }, 500);
+    
+    setSearchTimeout(timeout);
+    
+    return () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    };
+  }, [searchInput]);
 
   // Handle filter changes
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
-    setPaginationState(prev => ({ ...prev, page: 1 })); // Reset to first page
+    setCurrentPage(1); // Reset to first page when filtering
   };
 
   // Handle pagination changes
   const handlePageChange = (newPage: number) => {
-    setPaginationState(prev => ({ ...prev, page: newPage }));
+    if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
+      setCurrentPage(newPage);
+    }
   };
 
   // Handle sorting changes
-  const handleSortChange = (sortField: string) => {
-    setPaginationState(prev => ({
-      ...prev,
-      sort: sortField,
-      order: prev.sort === sortField && prev.order === 'desc' ? 'asc' : 'desc',
-      page: 1
-    }));
+  const handleSortChange = (field: string) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+    setCurrentPage(1); // Reset to first page when sorting
   };
 
   // Clear all filters
@@ -285,38 +296,43 @@ const CampaignsPage: React.FC = () => {
       status: '',
       event_type: ''
     });
-    setPaginationState(prev => ({ ...prev, page: 1 }));
+    setSearchInput('');
+    setCurrentPage(1);
   };
 
-  // Generate pagination numbers
+  // Generate pagination numbers (simplified version from AdminCampaignsPage)
   const getPaginationNumbers = () => {
-    const delta = 2;
-    const range = [];
-    const rangeWithDots = [];
-
-    for (
-      let i = Math.max(2, paginationState.page - delta);
-      i <= Math.min(pagination.total_pages - 1, paginationState.page + delta);
-      i++
-    ) {
-      range.push(i);
+    const pages = [];
+    const maxPages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
+    let endPage = Math.min(totalPages, startPage + maxPages - 1);
+    
+    if (endPage - startPage + 1 < maxPages) {
+      startPage = Math.max(1, endPage - maxPages + 1);
     }
-
-    if (paginationState.page - delta > 2) {
-      rangeWithDots.push(1, '...');
-    } else {
-      rangeWithDots.push(1);
+    
+    // Add first page if not in range
+    if (startPage > 1) {
+      pages.push(1);
+      if (startPage > 2) {
+        pages.push('...');
+      }
     }
-
-    rangeWithDots.push(...range);
-
-    if (paginationState.page + delta < pagination.total_pages - 1) {
-      rangeWithDots.push('...', pagination.total_pages);
-    } else {
-      rangeWithDots.push(pagination.total_pages);
+    
+    // Add page numbers in range
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
     }
-
-    return rangeWithDots;
+    
+    // Add last page if not in range
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        pages.push('...');
+      }
+      pages.push(totalPages);
+    }
+    
+    return pages;
   };
 
   // Utility functions
@@ -426,24 +442,64 @@ const CampaignsPage: React.FC = () => {
     setIsCryptoModalOpen(true);
   };
 
-  const handleDonorRegistration = async (notes: string) => {
+  const handleDonorNow = async (notes: string, hospitalId: number, description: string) => {
     if (!selectedCampaign) return;
 
     try {
-      // Here you would implement the donor registration logic
-      addNotification({
-        type: 'success',
-        title: 'Pendaftaran Berhasil!',
-        message: 'Anda telah berhasil mendaftar sebagai donor. Tim akan menghubungi Anda segera.',
-        duration: 5000
-      });
-      setIsModalOpen(false);
-      fetchCampaigns(); // Refresh to update donor count
+      const success = await campaignService.donorNowWithSchedule(Number(selectedCampaign.id), hospitalId, description, notes);
+      if (success) {
+        addNotification({
+          type: 'success',
+          title: 'Pendaftaran dan Jadwal Berhasil!',
+          message: 'Anda telah berhasil mendaftar sebagai donor dan jadwal telah dibuat. Tim akan menghubungi Anda segera.',
+          duration: 5000
+        });
+        setIsModalOpen(false);
+        fetchCampaigns(); // Refresh to update donor count
+      } else {
+        addNotification({
+          type: 'error',
+          title: 'Pendaftaran Gagal',
+          message: 'Terjadi kesalahan saat mendaftar sebagai donor dan membuat jadwal. Silakan coba lagi.',
+          duration: 5000
+        });
+      }
     } catch (error: any) {
       addNotification({
         type: 'error',
-        title: 'Pendaftaran Gagal',
-        message: 'Terjadi kesalahan saat mendaftar sebagai donor. Silakan coba lagi.',
+        title: 'Error',
+        message: 'Terjadi kesalahan sistem. Silakan coba lagi nanti.',
+        duration: 5000
+      });
+    }
+  };
+
+  const handleScheduleOnly = async (hospitalId: number, description: string) => {
+    if (!selectedCampaign) return;
+
+    try {
+      const success = await campaignService.createSchedule(Number(selectedCampaign.id), hospitalId, description);
+      if (success) {
+        addNotification({
+          type: 'success',
+          title: 'Jadwal Berhasil Dibuat!',
+          message: 'Jadwal donor darah telah berhasil dibuat. Tim akan menghubungi Anda untuk konfirmasi.',
+          duration: 5000
+        });
+        setIsModalOpen(false);
+      } else {
+        addNotification({
+          type: 'error',
+          title: 'Pembuatan Jadwal Gagal',
+          message: 'Terjadi kesalahan saat membuat jadwal. Silakan coba lagi.',
+          duration: 5000
+        });
+      }
+    } catch (error: any) {
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Terjadi kesalahan sistem. Silakan coba lagi nanti.',
         duration: 5000
       });
     }
@@ -533,7 +589,7 @@ const CampaignsPage: React.FC = () => {
           <FadeIn direction="up" delay={0.1}>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
-                <div className="text-2xl font-bold text-blue-600">{pagination.total_items}</div>
+                <div className="text-2xl font-bold text-blue-600">{totalItems}</div>
                 <div className="text-sm text-gray-600">Total Campaign</div>
               </div>
               <div className="bg-white rounded-2xl p-6 shadow-lg text-center">
@@ -563,16 +619,15 @@ const CampaignsPage: React.FC = () => {
               {/* Main Search Bar */}
               <div className="relative mb-6">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Cari campaign berdasarkan judul, deskripsi, atau lokasi..."
-                  value={searchInput}
-                  onChange={(e) => {
-                    setSearchInput(e.target.value);
-                    debouncedSearch(e.target.value);
-                  }}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent text-lg"
-                />
+                                  <input
+                    type="text"
+                    placeholder="Cari campaign berdasarkan judul, deskripsi, atau lokasi..."
+                    value={searchInput}
+                    onChange={(e) => {
+                      setSearchInput(e.target.value);
+                    }}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent text-lg"
+                  />
               </div>
 
               {/* Quick Filters Row */}
@@ -717,11 +772,11 @@ const CampaignsPage: React.FC = () => {
                 {/* Sort Controls */}
                 <div className="flex items-center space-x-3">
                   <span className="text-sm text-gray-600">Urutkan:</span>
-                  <select
-                    value={paginationState.sort}
-                    onChange={(e) => handleSortChange(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
-                  >
+                                      <select
+                      value={sortField}
+                      onChange={(e) => handleSortChange(e.target.value)}
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+                    >
                     <option value="created_at">Tanggal Dibuat</option>
                     <option value="event_date">Tanggal Event</option>
                     <option value="urgency_level">Urgensi</option>
@@ -729,33 +784,33 @@ const CampaignsPage: React.FC = () => {
                     <option value="event_name">Nama Campaign</option>
                     <option value="slots_booked">Donor Terdaftar</option>
                   </select>
-                  <button
-                    onClick={() => handleSortChange(paginationState.sort)}
-                    className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    {paginationState.order === 'desc' ? 
-                      <SortDesc className="w-4 h-4" /> : 
-                      <SortAsc className="w-4 h-4" />
-                    }
-                  </button>
+                                      <button
+                      onClick={() => handleSortChange(sortField)}
+                      className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      {sortOrder === 'desc' ? 
+                        <SortDesc className="w-4 h-4" /> : 
+                        <SortAsc className="w-4 h-4" />
+                      }
+                    </button>
                 </div>
               </div>
 
               {/* Results Info */}
-              <div className="mt-4 text-sm text-gray-600">
-                Menampilkan {campaigns.length} dari {pagination.total_items} campaign (Halaman {pagination.page} dari {pagination.total_pages})
-              </div>
+                              <div className="mt-4 text-sm text-gray-600">
+                  Menampilkan {campaigns.length} dari {totalItems} campaign (Halaman {currentPage} dari {totalPages})
+                </div>
             </div>
           </FadeIn>
 
           {/* Campaigns Grid */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
             {campaigns.map((campaign, index) => (
               <FadeIn key={campaign.id} direction="up" delay={0.1 * index}>
                 <HoverScale scale={1.02}>
-                  <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-all duration-300">
+                  <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-all duration-300 h-full flex flex-col">
                     {/* Image Section */}
-                    <div className="relative h-48 bg-gradient-to-br from-red-100 to-red-200">
+                    <div className="relative h-48 bg-gradient-to-br from-red-100 to-red-200 flex-shrink-0">
                       {campaign.imageUrl ? (
                         <img
                           src={campaign.imageUrl}
@@ -798,12 +853,16 @@ const CampaignsPage: React.FC = () => {
                     </div>
 
                     {/* Content */}
-                    <div className="p-4 space-y-4">
+                    <div className="p-4 space-y-4 flex-grow flex flex-col">
                       {/* Campaign Name */}
-                      <div>
-                        <h3 className="font-bold text-xl text-gray-900 mb-2">{campaign.title}</h3>
+                      <div className="flex-shrink-0">
+                        <h3 className="font-bold text-lg text-gray-900 mb-2 overflow-hidden" style={{
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical'
+                        }}>{campaign.title}</h3>
                         {campaign.description && (
-                          <p className="text-sm text-gray-600 overflow-hidden text-ellipsis" style={{
+                          <p className="text-sm text-gray-600 h-10 overflow-hidden" style={{
                             display: '-webkit-box',
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: 'vertical'
@@ -814,54 +873,46 @@ const CampaignsPage: React.FC = () => {
                       </div>
 
                       {/* Progress Bar */}
-                      {campaign.targetDonors && (
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Progress Donor</span>
-                            <span className="text-gray-900 font-semibold">
-                              {campaign.currentDonors || 0}/{campaign.targetDonors || 0}
-                            </span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-gradient-to-r from-red-500 to-red-600 h-2 rounded-full transition-all duration-300"
-                              style={{ 
-                                width: `${getProgress(
-                                  campaign.currentDonors || 0, 
-                                  campaign.targetDonors || 1
-                                )}%` 
-                              }}
-                            ></div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Campaign Info */}
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <User className="w-4 h-4 text-gray-500" />
-                          <span className="text-sm text-gray-600">
-                            Organizer: {campaign.organizer.name}
+                      <div className="space-y-2 flex-shrink-0">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Progress Donor</span>
+                          <span className="text-gray-900 font-semibold">
+                            {campaign.currentDonors || 0}/{campaign.targetDonors || 0}
                           </span>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Building2 className="w-4 h-4 text-gray-500" />
-                          <span className="text-sm text-gray-600">{campaign.hospital}</span>
+                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                          <div 
+                            className="bg-gradient-to-r from-red-500 to-red-600 h-2.5 rounded-full transition-all duration-300"
+                            style={{ 
+                              width: `${getProgress(
+                                campaign.currentDonors || 0, 
+                                campaign.targetDonors || 1
+                              )}%` 
+                            }}
+                          ></div>
                         </div>
-                        <div className="flex items-start space-x-2">
-                          <MapPin className="w-4 h-4 text-gray-500 mt-0.5" />
-                          <span className="text-sm text-gray-600">
+                      </div>
+
+                      {/* Campaign Info */}
+                      <div className="space-y-2 flex-grow">
+                        <div className="flex items-center space-x-2">
+                          <Building2 className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                          <span className="text-sm text-gray-600 truncate">{campaign.hospital}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <MapPin className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                          <span className="text-sm text-gray-600 truncate">
                             {campaign.location}
                           </span>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Calendar className="w-4 h-4 text-gray-500" />
+                          <Calendar className="w-4 h-4 text-gray-500 flex-shrink-0" />
                           <span className="text-sm text-gray-600">
                             {formatDate(campaign.deadline)}
                           </span>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Target className="w-4 h-4 text-gray-500" />
+                          <Target className="w-4 h-4 text-gray-500 flex-shrink-0" />
                           <span className="text-sm text-gray-600">
                             Target: {campaign.targetDonors} donor
                           </span>
@@ -869,7 +920,7 @@ const CampaignsPage: React.FC = () => {
                       </div>
 
                       {/* Status */}
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between mt-auto pt-2 flex-shrink-0">
                         <span className="px-3 py-1 rounded-full text-sm font-medium border bg-green-100 text-green-800 border-green-200">
                           Aktif
                         </span>
@@ -880,11 +931,11 @@ const CampaignsPage: React.FC = () => {
                     </div>
 
                     {/* Actions */}
-                    <div className="p-4 bg-gray-50 border-t space-y-2">
-                      <div className="grid grid-cols-2 gap-2">
+                    <div className="p-4 bg-gray-50 border-t flex-shrink-0">
+                      <div className="grid grid-cols-2 gap-3">
                         <button
                           onClick={() => handleViewDetails(campaign)}
-                          className="bg-blue-600 text-white py-2 px-4 rounded-xl font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 text-sm"
+                          className="bg-blue-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 text-sm"
                         >
                           <Eye className="w-4 h-4" />
                           <span>Detail</span>
@@ -892,10 +943,10 @@ const CampaignsPage: React.FC = () => {
                         
                         <button
                           onClick={() => handleDonate(campaign)}
-                          className="bg-red-600 text-white py-2 px-4 rounded-xl font-semibold hover:bg-red-700 transition-colors flex items-center justify-center space-x-2 text-sm"
+                          className="bg-red-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-red-700 transition-colors flex items-center justify-center space-x-2 text-sm"
                         >
                           <Heart className="w-4 h-4" />
-                          <span>Daftar</span>
+                          <span>Donor Sekarang</span>
                         </button>
                       </div>
                       
@@ -913,18 +964,19 @@ const CampaignsPage: React.FC = () => {
             ))}
           </div>
 
-          {/* Pagination */}
-          {(campaigns.length > 0 || pagination.total_pages > 0) && (
+                      {/* Pagination */}
+            {(campaigns.length > 0 || totalPages > 0) && (
             <FadeIn direction="up" delay={0.4}>
               {/* Limit Per Page Dropdown */}
               <div className="flex items-center justify-end mb-2">
                 <label htmlFor="perPage" className="mr-2 text-sm text-gray-600">Tampilkan</label>
-                <select
-                  id="perPage"
-                  value={paginationState.limit}
-                  onChange={e => {
-                    setPaginationState(prev => ({ ...prev, limit: Number(e.target.value), page: 1 }));
-                  }}
+                                  <select
+                    id="perPage"
+                    value={perPage}
+                                      onChange={e => {
+                      setPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
                   className="px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 >
                   <option value={5}>5</option>
@@ -935,25 +987,25 @@ const CampaignsPage: React.FC = () => {
                 <span className="ml-2 text-sm text-gray-600">per halaman</span>
               </div>
               {/* Pagination Info */}
-              <div className="mt-2 text-center text-sm text-gray-600">
-                Menampilkan {campaigns.length} dari {pagination.total_items} campaign 
-                (Halaman {paginationState.page} dari {Math.max(pagination.total_pages, 1)})
-              </div>
+                              <div className="mt-2 text-center text-sm text-gray-600">
+                  Menampilkan {campaigns.length} dari {totalItems} campaign 
+                  (Halaman {currentPage} dari {totalPages})
+                </div>
 
-              {/* Pagination Controls - only show if more than 1 page */}
-              {pagination.total_pages > 1 && (
+                              {/* Pagination Controls - only show if more than 1 page */}
+                {totalPages > 1 && (
                 <div className="mt-4 flex items-center justify-center">
                   <nav className="flex items-center space-x-2">
                     {/* Previous Button */}
-                    <button
-                      onClick={() => handlePageChange(paginationState.page - 1)}
-                      disabled={paginationState.page === 1}
-                      className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        paginationState.page === 1
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
-                      }`}
-                    >
+                                          <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          currentPage === 1
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                        }`}
+                      >
                       <ChevronLeftIcon className="w-4 h-4 mr-1" />
                       Sebelumnya
                     </button>
@@ -967,11 +1019,11 @@ const CampaignsPage: React.FC = () => {
                           ) : (
                             <button
                               onClick={() => handlePageChange(Number(page))}
-                              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                paginationState.page === page
-                                  ? 'bg-red-600 text-white'
-                                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
-                              }`}
+                                                              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                  currentPage === page
+                                    ? 'bg-red-600 text-white'
+                                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                                }`}
                             >
                               {page}
                             </button>
@@ -981,15 +1033,15 @@ const CampaignsPage: React.FC = () => {
                     </div>
 
                     {/* Next Button */}
-                    <button
-                      onClick={() => handlePageChange(paginationState.page + 1)}
-                      disabled={paginationState.page === pagination.total_pages}
-                      className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        paginationState.page === pagination.total_pages
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
-                      }`}
-                    >
+                                          <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          currentPage === totalPages
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                        }`}
+                      >
                       Selanjutnya
                       <ChevronRightIcon className="w-4 h-4 ml-1" />
                     </button>
@@ -1040,11 +1092,12 @@ const CampaignsPage: React.FC = () => {
       {/* Modals */}
       {selectedCampaign && (
         <>
-          <DonorConfirmationModal
+          <DonorOptionModal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
             campaign={selectedCampaign}
-            onConfirm={handleDonorRegistration}
+            onDonorNow={handleDonorNow}
+            onScheduleOnly={handleScheduleOnly}
           />
 
           <CryptoDonationModal

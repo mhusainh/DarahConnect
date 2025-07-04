@@ -213,4 +213,39 @@ export interface AdminDashboardResponse {
     message: string;
   };
   data: AdminDashboardData;
+}
+
+// Donation History Types
+export interface Donation {
+  id: number;
+  user_id: number;
+  user: User;
+  order_id: number;
+  amount: number;
+  status: string;
+  transaction_time: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DonationsResponse {
+  meta: {
+    code: number;
+    message: string;
+  };
+  data: Donation[];
+  pagination: {
+    page: number;
+    per_page: number;
+    total_items: number;
+    total_pages: number;
+  };
+}
+
+export interface SingleDonationResponse {
+  meta: {
+    code: number;
+    message: string;
+  };
+  data: Donation;
 } 
