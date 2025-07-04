@@ -14,13 +14,22 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-  X
+  X,
+  Navigation,
+  ExternalLink
 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { getApi, deleteApi } from '../services/fetchApi';
 import { useNotification } from '../hooks/useNotification';
 import { Hospital } from '../types/index';
 import AddHospitalModal from '../components/AddHospitalModal';
+
+// Declare global window interface for Google Maps
+declare global {
+  interface Window {
+    google: any;
+  }
+}
 
 // Interface untuk response API
 interface HospitalsResponse {
@@ -40,10 +49,12 @@ interface HospitalsResponse {
 const AdminHospitalsPage: React.FC = () => {
   const [hospitalsList, setHospitalsList] = useState<Hospital[]>([]);
   const [loading, setLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterProvince, setFilterProvince] = useState('all');
   const [filterCity, setFilterCity] = useState('all');
   const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
+  const [hospitalDetail, setHospitalDetail] = useState<Hospital | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -53,6 +64,9 @@ const AdminHospitalsPage: React.FC = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [perPage] = useState(10); // 3x3 grid
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [detailMap, setDetailMap] = useState<any>(null);
+  const [detailMarker, setDetailMarker] = useState<any>(null);
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
   const { addNotification } = useNotification();
 
   // Fetch hospitals from API with search and pagination
@@ -145,6 +159,98 @@ const AdminHospitalsPage: React.FC = () => {
     }
   };
 
+  // Fetch hospital detail from API
+  const fetchHospitalDetail = async (hospitalId: number) => {
+    try {
+      setDetailLoading(true);
+      const endpoint = `/hospital/${hospitalId}`;
+      console.log('🔍 Hospital Detail API Endpoint:', endpoint);
+      const response = await getApi(endpoint);
+      
+      console.log('🔍 Hospital Detail Response:', response);
+      
+      if (response.success && response.data) {
+        // Handle the response structure properly
+        let hospitalData: Hospital;
+        
+        // Check if response.data has the nested structure or is direct Hospital data
+        if (response.data.data) {
+          // If response.data.data exists, use it (nested structure like {meta: {...}, data: {...}})
+          hospitalData = response.data.data;
+        } else {
+          // If response.data is directly the Hospital object
+          hospitalData = response.data;
+        }
+        
+        setHospitalDetail(hospitalData);
+        return hospitalData;
+      } else {
+        throw new Error(response.message || 'Failed to fetch hospital detail');
+      }
+    } catch (error: any) {
+      console.error('❌ Error fetching hospital detail:', error);
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Gagal memuat detail rumah sakit: ' + (error.message || 'Unknown error')
+      });
+      return null;
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  // Load Google Maps JavaScript API
+  useEffect(() => {
+    if (!window.google && !isMapLoaded) {
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}&libraries=places`;
+      script.async = true;
+      script.defer = true;
+      script.onload = () => setIsMapLoaded(true);
+      script.onerror = () => {
+        console.error('Failed to load Google Maps API');
+        setIsMapLoaded(false);
+      };
+      document.head.appendChild(script);
+    } else if (window.google) {
+      setIsMapLoaded(true);
+    }
+  }, []);
+
+  // Initialize detail map when modal opens and Google Maps is loaded
+  useEffect(() => {
+    if (isMapLoaded && showDetailModal && hospitalDetail && hospitalDetail.latitude && hospitalDetail.longitude && !detailMap) {
+      const mapElement = document.getElementById(`hospital-detail-map-${hospitalDetail.id}`);
+      if (mapElement && window.google) {
+        const googleMap = new window.google.maps.Map(mapElement, {
+          center: { lat: hospitalDetail.latitude, lng: hospitalDetail.longitude },
+          zoom: 15,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+        });
+
+        const mapMarker = new window.google.maps.Marker({
+          position: { lat: hospitalDetail.latitude, lng: hospitalDetail.longitude },
+          map: googleMap,
+          title: hospitalDetail.name
+        });
+
+        setDetailMap(googleMap);
+        setDetailMarker(mapMarker);
+      }
+    }
+  }, [isMapLoaded, showDetailModal, hospitalDetail, detailMap]);
+
+  // Clean up map when modal closes
+  useEffect(() => {
+    if (!showDetailModal) {
+      setDetailMap(null);
+      setDetailMarker(null);
+    }
+  }, [showDetailModal]);
+
   // Initial data fetch
   useEffect(() => {
     fetchHospitals(currentPage, searchTerm, filterProvince, filterCity);
@@ -219,9 +325,17 @@ const AdminHospitalsPage: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const handleViewDetails = (hospital: Hospital) => {
+  const handleViewDetails = async (hospital: Hospital) => {
     setSelectedHospital(hospital);
     setShowDetailModal(true);
+    
+    // Fetch detailed information from API
+    await fetchHospitalDetail(hospital.id);
+    // setHospitalDetail is already called inside fetchHospitalDetail
+  };
+
+  const handleHospitalClick = async (hospital: Hospital) => {
+    await handleViewDetails(hospital);
   };
 
   const handleEditHospital = (hospital: Hospital) => {
@@ -269,6 +383,16 @@ const AdminHospitalsPage: React.FC = () => {
     fetchHospitals(currentPage, searchTerm, filterProvince, filterCity); // Refresh the list
     setShowAddModal(false);
     setSelectedHospital(null); // Clear selected hospital
+  };
+
+  const openGoogleMaps = (latitude: number, longitude: number, name: string) => {
+    const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}&query_place_id=${encodeURIComponent(name)}`;
+    window.open(url, '_blank');
+  };
+
+  const getDirections = (latitude: number, longitude: number) => {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
+    window.open(url, '_blank');
   };
 
   if (loading) {
@@ -423,22 +547,26 @@ const AdminHospitalsPage: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredHospitals.map((hospital) => (
-              <div key={hospital.id} className="bg-white rounded-xl shadow-sm border hover:shadow-md transition-shadow">
-                <div className="p-6">
+              <div key={hospital.id} className="bg-white rounded-xl shadow-sm border hover:shadow-md transition-shadow cursor-pointer group">
+                {/* Clickable Card Content */}
+                <div 
+                  onClick={() => handleHospitalClick(hospital)}
+                  className="p-6"
+                >
                   {/* Hospital Header */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                      <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
                         <Building className="h-6 w-6 text-indigo-600" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-gray-900 truncate">{hospital.name}</h3>
+                        <h3 className="font-semibold text-gray-900 truncate group-hover:text-indigo-600 transition-colors">{hospital.name}</h3>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getProvinceColor(hospital.province)}`}>
                           {hospital.province}
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => handleViewDetails(hospital)}
                         className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
@@ -476,6 +604,13 @@ const AdminHospitalsPage: React.FC = () => {
                       <span>ID: {hospital.id}</span>
                       <span>Dibuat: {new Date(hospital.created_at).toLocaleDateString('id-ID')}</span>
                     </div>
+                  </div>
+                </div>
+
+                {/* Click to view hint */}
+                <div className="px-6 pb-4">
+                  <div className="text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity text-center">
+                    Klik untuk melihat detail lengkap
                   </div>
                 </div>
               </div>
@@ -612,74 +747,174 @@ const AdminHospitalsPage: React.FC = () => {
       {/* Hospital Detail Modal */}
       {showDetailModal && selectedHospital && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold text-gray-900">Detail Rumah Sakit</h3>
                 <button
-                  onClick={() => setShowDetailModal(false)}
+                  onClick={() => {
+                    setShowDetailModal(false);
+                    setHospitalDetail(null);
+                  }}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <X className="h-6 w-6" />
                 </button>
               </div>
               
-              <div className="space-y-6">
-                <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 bg-indigo-100 rounded-lg flex items-center justify-center">
-                    <Building className="h-8 w-8 text-indigo-600" />
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-semibold text-gray-900">{selectedHospital.name}</h4>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getProvinceColor(selectedHospital.province)}`}>
-                      {selectedHospital.province}
-                    </span>
+              {detailLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Memuat detail rumah sakit...</p>
                   </div>
                 </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Hospital Header */}
+                  <div className="flex items-center space-x-4">
+                    <div className="w-16 h-16 bg-indigo-100 rounded-lg flex items-center justify-center">
+                      <Building className="h-8 w-8 text-indigo-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-900">
+                        {hospitalDetail?.name || selectedHospital.name}
+                      </h4>
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getProvinceColor(hospitalDetail?.province || selectedHospital.province)}`}>
+                        {hospitalDetail?.province || selectedHospital.province}
+                      </span>
+                    </div>
+                  </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
-                    <p className="text-sm text-gray-900">{selectedHospital.address}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Kota</label>
-                    <p className="text-sm text-gray-900">{selectedHospital.city}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Provinsi</label>
-                    <p className="text-sm text-gray-900">{selectedHospital.province}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">ID</label>
-                    <p className="text-sm text-gray-900">{selectedHospital.id}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
-                    <p className="text-sm text-gray-900">{selectedHospital.latitude}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
-                    <p className="text-sm text-gray-900">{selectedHospital.longitude}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Dibuat</label>
-                    <p className="text-sm text-gray-900">
-                      {new Date(selectedHospital.created_at).toLocaleString('id-ID')}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Diperbarui</label>
-                    <p className="text-sm text-gray-900">
-                      {new Date(selectedHospital.updated_at).toLocaleString('id-ID')}
-                    </p>
+                  {/* Google Maps Integration - Using JavaScript API like AddHospitalModal */}
+                  {(hospitalDetail?.latitude && hospitalDetail?.longitude) && (
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h5 className="text-sm font-medium text-gray-900 mb-3 flex items-center">
+                        <MapPin className="h-4 w-4 mr-2" />
+                        Lokasi di Peta
+                      </h5>
+                      
+                      {/* Google Maps Container - JavaScript API */}
+                      <div className="bg-white rounded-lg overflow-hidden shadow-sm mb-4">
+                        {isMapLoaded ? (
+                          <div 
+                            id={`hospital-detail-map-${hospitalDetail.id}`}
+                            className="w-full h-64"
+                            style={{ minHeight: '250px' }}
+                          ></div>
+                        ) : (
+                          <div className="w-full h-64 flex items-center justify-center bg-gray-100">
+                            <div className="text-center">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-2"></div>
+                              <p className="text-sm text-gray-600">Memuat peta...</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Map Actions */}
+                      <div className="flex space-x-3">
+                        <button
+                          onClick={() => openGoogleMaps(hospitalDetail.latitude, hospitalDetail.longitude, hospitalDetail.name)}
+                          className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          <span>Buka di Google Maps</span>
+                        </button>
+                        <button
+                          onClick={() => getDirections(hospitalDetail.latitude, hospitalDetail.longitude)}
+                          className="flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                        >
+                          <Navigation className="h-4 w-4" />
+                          <span>Rute ke Sini</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Hospital Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Alamat Lengkap</label>
+                      <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">
+                        {hospitalDetail?.address || selectedHospital.address}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Kota</label>
+                      <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">
+                        {hospitalDetail?.city || selectedHospital.city}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Provinsi</label>
+                      <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">
+                        {hospitalDetail?.province || selectedHospital.province}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">ID Rumah Sakit</label>
+                      <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">
+                        {hospitalDetail?.id || selectedHospital.id}
+                      </p>
+                    </div>
+                    
+                    {/* Coordinates */}
+                    {(hospitalDetail?.latitude && hospitalDetail?.longitude) && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Koordinat Latitude</label>
+                          <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg font-mono">
+                            {hospitalDetail.latitude}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Koordinat Longitude</label>
+                          <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg font-mono">
+                            {hospitalDetail.longitude}
+                          </p>
+                        </div>
+                      </>
+                    )}
+                    
+                    {/* Timestamps */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Dibuat</label>
+                      <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">
+                        {new Date(hospitalDetail?.created_at || selectedHospital.created_at).toLocaleString('id-ID', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Terakhir Diperbarui</label>
+                      <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">
+                        {new Date(hospitalDetail?.updated_at || selectedHospital.updated_at).toLocaleString('id-ID', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
-              <div className="flex justify-end space-x-3 mt-6">
+              {/* Modal Actions */}
+              <div className="flex justify-end space-x-3 mt-6 pt-6 border-t">
                 <button
-                  onClick={() => setShowDetailModal(false)}
+                  onClick={() => {
+                    setShowDetailModal(false);
+                    setHospitalDetail(null);
+                  }}
                   className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
                 >
                   Tutup
@@ -687,11 +922,12 @@ const AdminHospitalsPage: React.FC = () => {
                 <button
                   onClick={() => {
                     setShowDetailModal(false);
-                    handleEditHospital(selectedHospital);
+                    handleEditHospital(hospitalDetail || selectedHospital);
                   }}
-                  className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors flex items-center space-x-2"
                 >
-                  Edit
+                  <Edit className="h-4 w-4" />
+                  <span>Edit</span>
                 </button>
               </div>
             </div>
