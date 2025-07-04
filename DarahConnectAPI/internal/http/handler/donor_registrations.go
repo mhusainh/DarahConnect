@@ -141,7 +141,10 @@ func (h *DonorRegistrationHandler) CreateDonorRegistration(ctx echo.Context) err
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 	if bloodRequest.Status != "verified" {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Request blood masih/sudah " + bloodRequest.Status))
+		if bloodRequest.Status == "pending"{
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Request blood masih" + bloodRequest.Status))
+		}
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Request blood sudah " + bloodRequest.Status))
 	}
 	
 	donorRegistration, _ := h.donorRegistrationService.GetByRequestId(ctx.Request().Context(), req.RequestId, claimsData.Id)
