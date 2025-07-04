@@ -266,10 +266,10 @@ func (h *BloodRequestHandler) UpdateBloodRequest(ctx echo.Context) error {
 		if claimsData.Id != bloodRequest.UserId {
 			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "You are not authorized to update this request"))
 		}
-		if bloodRequest.Status == "Completed" || bloodRequest.Status == "Verified" {
+		if bloodRequest.Status == "completed" || bloodRequest.Status == "verified" {
 			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Permintaan Sudah tidak bisa diupdate"))
 		}
-		if req.Status != "" && req.Status != "Canceled" {
+		if req.Status != "" && req.Status != "canceled" {
 			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Kamu hanya bisa membatalkan permintaan"))
 		}
 	}
