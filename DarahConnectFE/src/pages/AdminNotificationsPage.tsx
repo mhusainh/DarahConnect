@@ -281,7 +281,7 @@ const AdminNotificationsPage: React.FC = () => {
   const handleMarkAsUnread = async (id: string) => {
     try {
       // Using PUT method to mark as unread (endpoint not specified, keeping original)
-      const response = await putApi(`/admin/notification/${id}/mark-unread`);
+      const response = await getApi(`/admin/notification/${id}`);
       
       if (response.success) {
         setNotifications(prev => prev.map(notification => 
@@ -328,9 +328,7 @@ const AdminNotificationsPage: React.FC = () => {
   const handleBulkMarkAsRead = async () => {
     try {
       // Using bulk mark as read endpoint (may need adjustment based on actual API)
-      const response = await putApi('/admin/notification/bulk-mark-read', {
-        notification_ids: selectedNotifications
-      });
+      const response = await getApi(`/admin/notification/${selectedNotifications}`);
       
       if (response.success) {
         setNotifications(prev => prev.map(notification => 

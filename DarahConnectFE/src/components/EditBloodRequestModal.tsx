@@ -16,6 +16,7 @@ import {
 import { useApi } from '../hooks/useApi';
 import { useNotification } from '../hooks/useNotification';
 import { FadeIn } from './ui/AnimatedComponents';
+import { formatDateForBackend } from '../utils/dateUtils';
 
 interface UserData {
   id: number;
@@ -62,6 +63,8 @@ interface BloodRequest {
   event_type: string;
   created_at: string;
   updated_at: string;
+  public_id?: string;
+  url_file?: string;
 }
 
 interface EditBloodRequestModalProps {
@@ -93,13 +96,31 @@ const EditBloodRequestModal: React.FC<EditBloodRequestModalProps> = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   // Initialize form data when bloodRequest changes
   useEffect(() => {
     if (bloodRequest) {
       const eventDate = new Date(bloodRequest.event_date);
-      const startTime = bloodRequest.start_time || '08:00';
-      const endTime = bloodRequest.end_time || '17:00';
+      
+      // Extract time from datetime strings if available
+      let startTime = '08:00';
+      let endTime = '17:00';
+      
+      if (bloodRequest.start_time && bloodRequest.start_time !== '0001-01-01T00:00:00Z') {
+        const startDateTime = new Date(bloodRequest.start_time);
+        if (!isNaN(startDateTime.getTime())) {
+          startTime = startDateTime.toTimeString().slice(0, 5); // Extract HH:MM
+        }
+      }
+      
+      if (bloodRequest.end_time && bloodRequest.end_time !== '0001-01-01T00:00:00Z') {
+        const endDateTime = new Date(bloodRequest.end_time);
+        if (!isNaN(endDateTime.getTime())) {
+          endTime = endDateTime.toTimeString().slice(0, 5); // Extract HH:MM
+        }
+      }
       
       setFormData({
         patient_name: bloodRequest.patient_name || '',
@@ -113,6 +134,10 @@ const EditBloodRequestModal: React.FC<EditBloodRequestModalProps> = ({
         end_time: endTime
       });
       setErrors({});
+      
+      // Reset image states when bloodRequest changes
+      setSelectedImage(null);
+      setImagePreview(null);
     }
   }, [bloodRequest]);
 
@@ -178,6 +203,50 @@ const EditBloodRequestModal: React.FC<EditBloodRequestModalProps> = ({
     }
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        addNotification({
+          type: 'error',
+          title: 'File Tidak Valid',
+          message: 'Hanya file gambar yang diizinkan'
+        });
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        addNotification({
+          type: 'error',
+          title: 'File Terlalu Besar',
+          message: 'Ukuran file maksimal 5MB'
+        });
+        return;
+      }
+
+      setSelectedImage(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    // Reset file input
+    const fileInput = document.getElementById('image-upload') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -193,7 +262,34 @@ const EditBloodRequestModal: React.FC<EditBloodRequestModalProps> = ({
     }
 
     try {
-      const response = await put(`/update-blood-request/${bloodRequest.id}`, formData);
+      // Format the data as FormData for multipart/form-data
+      const formPayload = new FormData();
+      
+      // Add all form fields to FormData
+      formPayload.append('patient_name', formData.patient_name);
+      formPayload.append('blood_type', formData.blood_type);
+      formPayload.append('quantity', String(formData.quantity));
+      formPayload.append('urgency_level', formData.urgency_level);
+      formPayload.append('diagnosis', formData.diagnosis);
+      formPayload.append('event_name', formData.event_name);
+      
+      // Format dates properly with timezone
+      const eventDatetime = `${formData.event_date}T${formData.start_time || '08:00'}:00`;
+      const startDatetime = `${formData.event_date}T${formData.start_time || '08:00'}:00`;
+      const endDatetime = `${formData.event_date}T${formData.end_time || '17:00'}:00`;
+      
+      formPayload.append('event_date', formatDateForBackend(eventDatetime));
+      formPayload.append('start_time', formatDateForBackend(startDatetime));
+      formPayload.append('end_time', formatDateForBackend(endDatetime));
+      
+      // Add image if selected
+      if (selectedImage) {
+        formPayload.append('image', selectedImage);
+      }
+
+      console.log('🔧 Updating blood request as FormData:', Array.from(formPayload.entries()));
+
+      const response = await put(`/user/update-blood-request/${bloodRequest.id}`, formPayload);
       
       if (response) {
         addNotification({
@@ -444,6 +540,71 @@ const EditBloodRequestModal: React.FC<EditBloodRequestModalProps> = ({
                     <p className="mt-1 text-sm text-red-600">{errors.end_time}</p>
                   )}
                 </div>
+              </div>
+            </div>
+
+            {/* Image Upload */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
+                <Droplet className="w-5 h-5 text-red-600" />
+                <span>Gambar Permintaan</span>
+              </h3>
+              
+              <div className="border-2 border-dashed border-gray-300 rounded-xl p-6">
+                {!imagePreview && !bloodRequest?.url_file ? (
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Droplet className="w-6 h-6 text-gray-400" />
+                    </div>
+                    <p className="text-gray-600 mb-4">Upload gambar untuk permintaan darah</p>
+                    <label htmlFor="image-upload" className="cursor-pointer">
+                      <span className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 hover:bg-gray-50 transition-colors">
+                        <Calendar className="w-4 h-4 mr-2" />
+                        Pilih Gambar
+                      </span>
+                      <input
+                        id="image-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                    </label>
+                    <p className="text-xs text-gray-500 mt-2">Format: JPG, PNG, GIF (Max 5MB)</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <img
+                        src={imagePreview || bloodRequest?.url_file}
+                        alt="Preview gambar"
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveImage}
+                        className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="flex justify-center">
+                      <label htmlFor="image-upload" className="cursor-pointer">
+                        <span className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-700 hover:bg-gray-50 transition-colors">
+                          <Edit className="w-4 h-4 mr-2" />
+                          Ganti Gambar
+                        </span>
+                        <input
+                          id="image-upload"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

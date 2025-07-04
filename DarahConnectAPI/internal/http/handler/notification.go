@@ -37,7 +37,7 @@ func (h *NotificationHandler) GetNotifications(ctx echo.Context) error {
 			response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 	return ctx.JSON(http.StatusOK, 
-		response.SuccessResponseWithPagi("successfully showing all notifications", notifications, req.Page, req.Limit, total))
+		response.SuccessResponseWithPagi("berhasil menampilkan semua notifikasi", notifications, req.Page, req.Limit, total))
 }
 
 func (h *NotificationHandler) GetNotification(ctx echo.Context) error {
@@ -51,7 +51,7 @@ func (h *NotificationHandler) GetNotification(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError,
 			response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully showing notification", notification))
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("berhasil menampilkan notifikasi", notification))
 }
 
 func (h *NotificationHandler) GetNotificationByUserId(ctx echo.Context) error{
@@ -73,20 +73,20 @@ func (h *NotificationHandler) GetNotificationByUserId(ctx echo.Context) error{
 			response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 	return ctx.JSON(http.StatusOK, 
-		response.SuccessResponseWithPagi("successfully showing all notifications", notifications, req.Page, req.Limit, total,))
+		response.SuccessResponseWithPagi("berhasil menampilkan semua notifikasi", notifications, req.Page, req.Limit, total,))
 }
 
 func (h *NotificationHandler) GetNotificationsByUser(ctx echo.Context) error {
 	// Retrieve user claims from the JWT token
 	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user claims"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan data pengguna"))
 	}
 
 	// Extract user information from claims
 	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user information from claims"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan informasi pengguna dari token"))
 	}
 
 	// Bind query parameters untuk filter dan pagination
@@ -101,7 +101,7 @@ func (h *NotificationHandler) GetNotificationsByUser(ctx echo.Context) error {
 			response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 	return ctx.JSON(http.StatusOK, 
-		response.SuccessResponseWithPagi("successfully showing all notifications by user", notifications, req.Page, req.Limit, total))
+		response.SuccessResponseWithPagi("berhasil menampilkan semua notifikasi pengguna", notifications, req.Page, req.Limit, total))
 }
 
 func (h *NotificationHandler) GetNotificationByUser(ctx echo.Context) error {
@@ -113,13 +113,13 @@ func (h *NotificationHandler) GetNotificationByUser(ctx echo.Context) error {
 	// Retrieve user claims from the JWT token
 	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user claims"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "gagal mendapatkan user klaims"))
 	}
 
 	// Extract user information from claims
 	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user information from claims"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "gagal mendapatkan informasi pengguna dari token"))
 	}
 
 	notification, err := h.notificationService.GetById(ctx.Request().Context(), req.Id)
@@ -130,7 +130,7 @@ func (h *NotificationHandler) GetNotificationByUser(ctx echo.Context) error {
 
 	// Check if the notification belongs to the user
 	if notification.UserId != claimsData.Id {
-		return ctx.JSON(http.StatusForbidden, response.ErrorResponse(http.StatusForbidden, "unauthorized access"))
+		return ctx.JSON(http.StatusForbidden, response.ErrorResponse(http.StatusForbidden, "Tidak memiliki izin"))
 	}
 	
 	var update dto.NotificationUpdateRequest
@@ -140,20 +140,20 @@ func (h *NotificationHandler) GetNotificationByUser(ctx echo.Context) error {
 			response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully showing notification by user", notification))
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("berhasil menampilkan notifikasi pengguna", notification))
 }
 
 func (h *NotificationHandler) GetUnreadNotificationCount(ctx echo.Context) error {
 	// Retrieve user claims from the JWT token
 	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user claims"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "gail mendapatkan user klaims"))
 	}
 
 	// Extract user information from claims
 	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user information from claims"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "gagal mendapatkan informasi pengguna dari token"))
 	}
 
 	count, err := h.notificationService.GetUnreadCountByUserId(ctx.Request().Context(), claimsData.Id)
@@ -161,7 +161,7 @@ func (h *NotificationHandler) GetUnreadNotificationCount(ctx echo.Context) error
 		return ctx.JSON(http.StatusInternalServerError,
 			response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully showing unread notification count", count))
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("berhasil menampilkan jumlah notifikasi belum dibaca", count))
 }
 
 func (h *NotificationHandler) CreateNotification(ctx echo.Context) error {
@@ -179,7 +179,7 @@ func (h *NotificationHandler) CreateNotification(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError,
 			response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-	return ctx.JSON(http.StatusCreated, response.SuccessResponse("successfully created notification", nil))
+	return ctx.JSON(http.StatusCreated, response.SuccessResponse("berhasil membuat notifikasi", nil))
 }
 
 func (h *NotificationHandler) UpdateNotification(ctx echo.Context) error {
@@ -199,7 +199,7 @@ func (h *NotificationHandler) UpdateNotification(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError,
 			response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-	return ctx.JSON(http.StatusCreated, response.SuccessResponse("successfully updated notification", nil))
+	return ctx.JSON(http.StatusCreated, response.SuccessResponse("berhasil memperbarui notifikasi", nil))
 }
 
 func (h *NotificationHandler) DeleteNotification(ctx echo.Context) error {
@@ -213,5 +213,5 @@ func (h *NotificationHandler) DeleteNotification(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError,
 			response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully deleted notification", nil))
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("berhasil menghapus notifikasi", nil))
 }

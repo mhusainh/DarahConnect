@@ -19,6 +19,7 @@ import { BloodCampaign } from '../types';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import DonorOptionModal from '../components/DonorOptionModal';
+import HospitalDetailModal from '../components/HospitalDetailModal';
 import WalletConnectBanner from '../components/WalletConnectBanner';
 
 const BloodRequestDetailPage: React.FC = () => {
@@ -28,6 +29,7 @@ const BloodRequestDetailPage: React.FC = () => {
   const { addNotification } = useNotification();
   const [bloodRequest, setBloodRequest] = useState<BloodCampaign | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isHospitalModalOpen, setIsHospitalModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -178,6 +180,57 @@ const BloodRequestDetailPage: React.FC = () => {
 
   const progress = (bloodRequest.currentDonors / bloodRequest.targetDonors) * 100;
   const daysLeft = Math.ceil((new Date(bloodRequest.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+  
+  // Get blood request status based on progress and deadline
+  const getBloodRequestStatus = () => {
+    const now = new Date();
+    const deadline = new Date(bloodRequest.deadline);
+    
+    // Check if request is completed (100% donors reached)
+    if (progress >= 100) {
+      return {
+        text: 'Selesai - Target Terpenuhi',
+        color: 'bg-blue-100 text-blue-800 border-blue-200',
+        disabled: true
+      };
+    }
+    
+    // Check if deadline has passed
+    if (now > deadline) {
+      return {
+        text: 'Berakhir - Deadline Terlewat',
+        color: 'bg-gray-100 text-gray-800 border-gray-200',
+        disabled: true
+      };
+    }
+    
+    // Check urgency level for active requests
+    if (bloodRequest.urgencyLevel === 'critical') {
+      return {
+        text: 'Sangat Mendesak',
+        color: 'bg-red-100 text-red-800 border-red-200',
+        disabled: false
+      };
+    }
+    
+    if (bloodRequest.urgencyLevel === 'high') {
+      return {
+        text: 'Mendesak',
+        color: 'bg-orange-100 text-orange-800 border-orange-200',
+        disabled: false
+      };
+    }
+    
+    // Default active status
+    return {
+      text: 'Aktif - Membutuhkan Donor',
+      color: 'bg-green-100 text-green-800 border-green-200',
+      disabled: false
+    };
+  };
+  
+  const requestStatus = getBloodRequestStatus();
+  const isDisabled = requestStatus.disabled;
 
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
@@ -248,8 +301,29 @@ const BloodRequestDetailPage: React.FC = () => {
             <div className="lg:col-span-2">
               {/* Hero Section */}
               <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
-                <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-8 text-white">
-                  <div className="flex items-start justify-between">
+                <div className={`px-6 py-8 text-white relative ${
+                  isDisabled 
+                    ? 'bg-gradient-to-r from-gray-500 to-gray-600' 
+                    : 'bg-gradient-to-r from-red-500 to-red-600'
+                }`}>
+                  {/* Completion Overlay */}
+                  {isDisabled && (
+                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                      <div className="text-center text-white">
+                        <div className="text-4xl mb-2">
+                          {progress >= 100 ? '✅' : '⏰'}
+                        </div>
+                        <div className="text-lg font-bold">
+                          {progress >= 100 ? 'SELESAI' : 'BERAKHIR'}
+                        </div>
+                        <div className="text-sm opacity-90">
+                          {progress >= 100 ? 'Target donor tercapai' : 'Deadline terlewat'}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-start justify-between relative z-10">
                     <div className="flex-1">
                       <h1 className="text-3xl font-bold mb-4">{bloodRequest.title}</h1>
                       <div className="flex items-center space-x-4 text-red-100">
@@ -262,9 +336,16 @@ const BloodRequestDetailPage: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="bg-white/20 rounded-lg p-4 text-center min-w-[120px]">
+                    <div className={`rounded-lg p-4 text-center min-w-[120px] ${
+                      progress >= 100 
+                        ? 'bg-green-500/30 border-2 border-green-300' 
+                        : 'bg-white/20'
+                    }`}>
                       <div className="text-2xl font-bold">{bloodRequest.targetDonors}</div>
                       <div className="text-sm opacity-90">Donor Dibutuhkan</div>
+                      {progress >= 100 && (
+                        <div className="text-xs text-green-200 mt-1">✓ Tercapai</div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -274,20 +355,79 @@ const BloodRequestDetailPage: React.FC = () => {
                   <div className="mb-6">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-sm font-medium text-gray-900">Progress Donor</span>
-                      <span className="text-sm text-gray-600">
+                      <span className={`text-sm font-semibold ${
+                        progress >= 100 ? 'text-green-600' : 'text-gray-600'
+                      }`}>
                         {bloodRequest.currentDonors}/{bloodRequest.targetDonors} donor
+                        {progress >= 100 && (
+                          <span className="text-xs text-green-600 ml-1">✓ Terpenuhi</span>
+                        )}
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-3">
                       <div 
-                        className="bg-gradient-to-r from-red-500 to-red-600 h-3 rounded-full transition-all duration-1000"
+                        className={`h-3 rounded-full transition-all duration-1000 ${
+                          progress >= 100
+                            ? 'bg-gradient-to-r from-green-500 to-green-600'
+                            : 'bg-gradient-to-r from-red-500 to-red-600'
+                        }`}
                         style={{ width: `${Math.min(progress, 100)}%` }}
                       ></div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {progress.toFixed(1)}% tercapai
-                    </p>
+                    <div className="flex justify-between items-center mt-1">
+                      <p className="text-xs text-gray-500">
+                        {progress.toFixed(1)}% tercapai
+                      </p>
+                      {progress >= 100 && (
+                        <p className="text-xs text-green-600 font-medium">
+                          🎉 Target donor telah tercapai!
+                        </p>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Status Banner */}
+                  <div className={`mb-6 p-4 rounded-lg border ${requestStatus.color}`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold">Status Permintaan</h4>
+                        <p className="text-sm">{requestStatus.text}</p>
+                      </div>
+                      {isDisabled && (
+                        <div className="text-right">
+                          <span className="text-xs font-medium">
+                            {progress >= 100 ? 'Target Tercapai' : 'Tidak Aktif'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Image Section */}
+                  {bloodRequest.url_file && bloodRequest.url_file !== 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80' && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Dokumentasi</h3>
+                      <div className="relative h-64 md:h-80 rounded-xl overflow-hidden bg-gray-100">
+                        <img 
+                          src={bloodRequest.url_file} 
+                          alt={bloodRequest.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            target.nextElementSibling?.classList.remove('hidden');
+                          }}
+                        />
+                        {/* Fallback */}
+                        <div className="hidden w-full h-full flex items-center justify-center bg-gray-100">
+                          <div className="text-center text-gray-500">
+                            <DropletIcon className="w-12 h-12 mx-auto mb-2" />
+                            <p className="text-sm">Gambar tidak dapat dimuat</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="prose max-w-none">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Deskripsi</h3>
@@ -353,14 +493,54 @@ const BloodRequestDetailPage: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Hospital Detail Button */}
+                <button
+                  onClick={() => setIsHospitalModalOpen(true)}
+                  className="w-full bg-blue-600 text-white font-semibold py-3 px-6 rounded-xl hover:bg-blue-700 transition-all duration-200 transform hover:scale-105 shadow-lg flex items-center justify-center space-x-2 mb-6"
+                >
+                  <Building2Icon className="w-5 h-5" />
+                  <span>Lihat Detail Rumah Sakit</span>
+                </button>
+
                 {/* Action Button */}
                 <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="w-full bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold py-3 px-6 rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-200 transform hover:scale-105 shadow-lg flex items-center justify-center space-x-2"
+                  onClick={isDisabled ? undefined : () => setIsModalOpen(true)}
+                  disabled={isDisabled}
+                  className={`w-full font-semibold py-3 px-6 rounded-xl transition-all duration-200 shadow-lg flex items-center justify-center space-x-2 ${
+                    isDisabled
+                      ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 transform hover:scale-105'
+                  }`}
+                  title={isDisabled ? 'Permintaan darah sudah selesai atau berakhir' : 'Klik untuk mendaftar donor'}
                 >
                   <HeartIcon className="w-5 h-5" />
-                  <span>Saya Bisa Donor</span>
+                  <span>
+                    {isDisabled 
+                      ? (progress >= 100 ? 'Target Tercapai' : 'Tidak Dapat Donor') 
+                      : 'Saya Bisa Donor'
+                    }
+                  </span>
                 </button>
+
+                {/* Disabled Info */}
+                {isDisabled && (
+                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <AlertTriangleIcon className="w-5 h-5 text-yellow-600" />
+                      <div>
+                        <p className="text-sm font-medium text-yellow-800">
+                          {progress >= 100 ? 'Permintaan Selesai' : 'Permintaan Berakhir'}
+                        </p>
+                        <p className="text-xs text-yellow-700">
+                          {progress >= 100 
+                            ? 'Target donor sudah tercapai. Terima kasih!' 
+                            : 'Deadline permintaan sudah terlewat.'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Stats */}
                 <div className="mt-6 grid grid-cols-2 gap-4">
@@ -400,13 +580,30 @@ const BloodRequestDetailPage: React.FC = () => {
 
       {/* Modal */}
       {bloodRequest && (
-        <DonorOptionModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          campaign={bloodRequest}
-          onDonorNow={handleDonorNow}
-          onScheduleOnly={handleScheduleOnly}
-        />
+        <>
+          <DonorOptionModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            campaign={bloodRequest}
+            onDonorNow={handleDonorNow}
+            onScheduleOnly={handleScheduleOnly}
+          />
+          <HospitalDetailModal
+            isOpen={isHospitalModalOpen}
+            onClose={() => setIsHospitalModalOpen(false)}
+            hospital={{
+              id: 1,
+              name: bloodRequest.hospital,
+              address: bloodRequest.location,
+              city: bloodRequest.location.split(',')[0] || '',
+              province: bloodRequest.location.split(',')[1] || '',
+              latitude: -6.2088,
+              longitude: 106.8456,
+              created_at: '',
+              updated_at: ''
+            }}
+          />
+        </>
       )}
 
       <Footer />

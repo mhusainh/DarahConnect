@@ -41,7 +41,7 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, cloudinaryService *clou
 	midtransService := midtrans.NewMidtransService(&cfg.MidtransConfig)
 	// Set donationsRepository
 	midtransService.DonationsRepository = donationsRepository
-	dashboardService := service.NewDashboardService(bloodDonationRepository, bloodRequestRepository, userRepository)
+	dashboardService := service.NewDashboardService(bloodDonationRepository, bloodRequestRepository, userRepository, certificateRepository)
 	googleAuthService := googleoauth.NewGoogleOAuthService(tokenUseCase, userService, &cfg.GoogleOauth)
 	donationService := service.NewDonationService(donationsRepository)
 	//end
@@ -91,7 +91,7 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, cloudinaryService *clo
 	midtransService.DonationsRepository = donationsRepository
 	googleAuthService := googleoauth.NewGoogleOAuthService(tokenUseCase, userService, &cfg.GoogleOauth)
 	donationService := service.NewDonationService(donationsRepository)
-	dashboardService := service.NewDashboardService(bloodDonationRepository, bloodRequestRepository, userRepository)
+	dashboardService := service.NewDashboardService(bloodDonationRepository, bloodRequestRepository, userRepository, certificateRepository)
 
 	//end
 
