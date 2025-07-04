@@ -86,7 +86,7 @@ func (r *donorRegistrationRepository) GetAll(ctx context.Context, req dto.GetAll
 	var total int64
 
 	// Hitung total item sebelum pagination
-	dataQuery := r.db.WithContext(ctx).Model(&entity.DonorRegistration{}).Preload("User")
+	dataQuery := r.db.WithContext(ctx).Model(&entity.DonorRegistration{}).Preload("User").Preload("BloodRequest")
 	dataQuery, req = r.applyFilters(dataQuery, req)
 	if err := dataQuery.Count(&total).Error; err != nil {
 		return nil, 0, err
