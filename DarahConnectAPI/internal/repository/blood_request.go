@@ -36,6 +36,10 @@ func NewBloodRequestRepository(db *gorm.DB) BloodRequestRepository {
 }
 
 func (r *bloodRequestRepository) applyFilters(query *gorm.DB, req dto.GetAllBloodRequestRequest) (*gorm.DB, dto.GetAllBloodRequestRequest) {
+	if req.Status != "" {
+		query = query.Where("LOWER(status) = ?", req.Status)
+	}
+
 	if req.UrgencyLevel != "" {
 		query = query.Where("LOWER(urgency_level) = ?", req.UrgencyLevel)
 	}

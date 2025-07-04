@@ -70,6 +70,7 @@ type BloodRequestByHospitalIdRequest struct {
 type GetAllBloodRequestRequest struct {
 	Page         int64  `query:"page"`
 	Limit        int64  `query:"limit"`
+	Status       string `query:"status"`
 	Search       string `query:"search"`
 	Sort         string `query:"sort"`
 	Order        string `query:"order"`
