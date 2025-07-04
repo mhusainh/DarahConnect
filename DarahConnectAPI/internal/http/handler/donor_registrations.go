@@ -39,17 +39,17 @@ func NewDonorRegistrationHandler(
 func (h *DonorRegistrationHandler) GetDonorRegistrations(ctx echo.Context) error {
 	var req dto.GetAllDonorRegistrationRequest
 	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Gagal memproses permintaan: "+err.Error()))
 	}
 
 	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user claims"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan data pengguna"))
 	}
 	
 	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user information from claims"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan informasi pengguna dari token"))
 	}
 
 	if claimsData.Role != "user" {
@@ -58,30 +58,30 @@ func (h *DonorRegistrationHandler) GetDonorRegistrations(ctx echo.Context) error
 
 	donorRegistrations, total, err := h.donorRegistrationService.GetAll(ctx.Request().Context(), req)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan data pendaftaran donor: "+err.Error()))
 	}
-	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("successfully showing all donor registrations", donorRegistrations, req.Page, req.Limit, total))
+	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("berhasil menampilkan semua pendaftaran donor", donorRegistrations, req.Page, req.Limit, total))
 }
 
 func (h *DonorRegistrationHandler) GetDonorRegistration(ctx echo.Context) error {
 	var req dto.DonorRegistrationByIdRequest
 	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Gagal memproses permintaan: "+err.Error()))
 	}
 
 	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user claims"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan data pengguna"))
 	}
 	
 	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user information from claims"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan informasi pengguna dari token"))
 	}
 
 	donorRegistration, err := h.donorRegistrationService.GetById(ctx.Request().Context(), req.Id)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan data pendaftaran donor: "+err.Error()))
 	}
 
 	if donorRegistration == nil {
@@ -92,59 +92,59 @@ func (h *DonorRegistrationHandler) GetDonorRegistration(ctx echo.Context) error 
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Anda tidak memiliki akses"))
 	}
 
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully showing donor registration", donorRegistration))
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("berhasil menampilkan pendaftaran donor", donorRegistration))
 }
 
 func (h *DonorRegistrationHandler) GetRiwayatDonor(ctx echo.Context) error {
 	var req dto.GetAllDonorRegistrationRequest
 	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Gagal memproses permintaan: "+err.Error()))
 	}
 
 	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user claims"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan data pengguna"))
 	}
 
 	// Extract user information from claims
 	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user information from claims"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan informasi pengguna dari token"))
 	}
 
 	donorRegistrations, total, err := h.donorRegistrationService.GetAllByUserId(ctx.Request().Context(), claimsData.Id, req)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan riwayat donor: "+err.Error()))
 	}
-	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("successfully showing all donor registrations", donorRegistrations, req.Page, req.Limit, total))
+	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("berhasil menampilkan semua riwayat donor", donorRegistrations, req.Page, req.Limit, total))
 }
 
 func (h *DonorRegistrationHandler) CreateDonorRegistration(ctx echo.Context) error {
 	var req dto.DonorRegistrationCreateRequest
 	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Gagal memproses permintaan: "+err.Error()))
 	}
 
 	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user claims"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan data pengguna"))
 	}
 
 	// Extract user information from claims
 	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user information from claims"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan informasi pengguna dari token"))
 	}
 
 	bloodRequest, err := h.bloodRequestService.GetById(ctx.Request().Context(), req.RequestId)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan data permintaan darah: "+err.Error()))
 	}
 	if bloodRequest.Status != "verified" {
 		if bloodRequest.Status == "pending"{
-			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Request blood masih" + bloodRequest.Status))
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Permintaan darah masih" + bloodRequest.Status))
 		}
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Request blood sudah " + bloodRequest.Status))
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Permintaan darah sudah " + bloodRequest.Status))
 	}
 	
 	donorRegistration, _ := h.donorRegistrationService.GetByRequestId(ctx.Request().Context(), req.RequestId, claimsData.Id)
@@ -164,7 +164,7 @@ func (h *DonorRegistrationHandler) CreateDonorRegistration(ctx echo.Context) err
 	}
 
 	if err := h.donorRegistrationService.Create(ctx.Request().Context(), req); err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal membuat pendaftaran donor: "+err.Error()))
 	}
 
 	_ = h.bloodRequestService.RegistrationDonate(ctx.Request().Context(), "registered", bloodRequest)
@@ -177,33 +177,33 @@ func (h *DonorRegistrationHandler) CreateDonorRegistration(ctx echo.Context) err
 
 	}
 	if err := h.notificationService.Create(ctx.Request().Context(), notificationData); err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal membuat notifikasi: "+err.Error()))
 	}
 	
-	return ctx.JSON(http.StatusCreated, response.SuccessResponse("successfully creating donor registration", nil))
+	return ctx.JSON(http.StatusCreated, response.SuccessResponse("berhasil membuat pendaftaran donor", nil))
 }
 
 // AllRole
 func (h *DonorRegistrationHandler) UpdateDonorRegistration(ctx echo.Context) error {
 	var req dto.DonorRegistrationUpdateRequest
 	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Gagal memproses permintaan: "+err.Error()))
 	}
 
 	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user claims"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan data pengguna"))
 	}
 
 	// Extract user information from claims
 	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user information from claims"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan informasi pengguna dari token"))
 	}
 
 	donorRegistration, err := h.donorRegistrationService.GetById(ctx.Request().Context(), req.Id)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan data pendaftaran donor: "+err.Error()))
 	}
 
 	if donorRegistration == nil {
@@ -212,7 +212,7 @@ func (h *DonorRegistrationHandler) UpdateDonorRegistration(ctx echo.Context) err
 
 	if claimsData.Role == "User"{
 		if donorRegistration.UserId != claimsData.Id {
-			return ctx.JSON(http.StatusUnauthorized, response.ErrorResponse(http.StatusUnauthorized, "unauthorized"))
+			return ctx.JSON(http.StatusUnauthorized, response.ErrorResponse(http.StatusUnauthorized, "Tidak memiliki izin"))
 		}
 		if donorRegistration.Status != "registered" {
 			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Pendaftaran sudah tidak dapat diupdate"))
@@ -223,7 +223,7 @@ func (h *DonorRegistrationHandler) UpdateDonorRegistration(ctx echo.Context) err
 			}
 			bloodRequest, err := h.bloodRequestService.GetById(ctx.Request().Context(), donorRegistration.RequestId)
 			if err != nil {
-				return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+				return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan data permintaan darah: "+err.Error()))
 			}
 			_ = h.bloodRequestService.RegistrationDonate(ctx.Request().Context(), req.Status, bloodRequest)
 		}
@@ -232,40 +232,40 @@ func (h *DonorRegistrationHandler) UpdateDonorRegistration(ctx echo.Context) err
 	}
 
 	if err := h.donorRegistrationService.Update(ctx.Request().Context(), req, donorRegistration); err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal memperbarui pendaftaran donor: "+err.Error()))
 	}
-	return ctx.JSON(http.StatusCreated, response.SuccessResponse("successfully updating donor registration", nil))
+	return ctx.JSON(http.StatusCreated, response.SuccessResponse("berhasil memperbarui pendaftaran donor", nil))
 }
 
 func (h *DonorRegistrationHandler) DeleteDonorRegistration(ctx echo.Context) error {
 	var req dto.DonorRegistrationByIdRequest
 	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Gagal memproses permintaan: "+err.Error()))
 	}
 
 	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user claims"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan data pengguna"))
 	}
 
 	// Extract user information from claims
 	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user information from claims"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan informasi pengguna dari token"))
 	}
 
 	donorRegistration, err := h.donorRegistrationService.GetById(ctx.Request().Context(), req.Id)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan data pendaftaran donor: "+err.Error()))
 	}
 	if claimsData.Role == "User"{
 		if claimsData.Id != donorRegistration.UserId {
-			return ctx.JSON(http.StatusUnauthorized, response.ErrorResponse(http.StatusUnauthorized, "unauthorized"))
+			return ctx.JSON(http.StatusUnauthorized, response.ErrorResponse(http.StatusUnauthorized, "Tidak memiliki izin"))
 		}
 	}
 	
 	if err := h.donorRegistrationService.Delete(ctx.Request().Context(), req.Id); err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal menghapus pendaftaran donor: "+err.Error()))
 	}
-	return ctx.JSON(http.StatusCreated, response.SuccessResponse("successfully deleting donor registration", nil))
+	return ctx.JSON(http.StatusCreated, response.SuccessResponse("berhasil menghapus pendaftaran donor", nil))
 }

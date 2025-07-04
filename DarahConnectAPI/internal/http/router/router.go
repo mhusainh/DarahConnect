@@ -294,7 +294,7 @@ func PrivateRoutes(
 		// Blood Request/Campaign - Admin Only
 		{
 			Method:  http.MethodPost,
-			Path:    "admin/campaign",
+			Path:    "admin-campaign",
 			Handler: bloodRequestHandler.CreateCampaign,
 			Roles:   adminOnly,
 		},
@@ -365,6 +365,12 @@ func PrivateRoutes(
 			Method:  http.MethodPut,
 			Path:    "admin/hospital/:id",
 			Handler: hospitalHandler.Update,
+			Roles:   adminOnly,
+		},
+		{
+			Method:  http.MethodDelete,
+			Path:    "admin/hospital/:id",
+			Handler: hospitalHandler.Delete,
 			Roles:   adminOnly,
 		},
 		{
