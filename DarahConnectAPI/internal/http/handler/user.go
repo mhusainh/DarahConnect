@@ -57,7 +57,7 @@ func (h *UserHandler) GetUsers(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError,
 			response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("successfully showing all users", users, req.Page, req.Limit, total))
+	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("berhasil menampilkan semua pengguna", users, req.Page, req.Limit, total))
 }
 
 func (h *UserHandler) GetUser(ctx echo.Context) error {
@@ -65,7 +65,7 @@ func (h *UserHandler) GetUser(ctx echo.Context) error {
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Invalid ID format"))
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Format ID tidak valid"))
 	}
 
 	user, err := h.userService.GetById(ctx.Request().Context(), id)
@@ -73,7 +73,7 @@ func (h *UserHandler) GetUser(ctx echo.Context) error {
 		return ctx.JSON(http.StatusNotFound, response.ErrorResponse(http.StatusNotFound, err.Error()))
 	}
 
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully showing user", user))
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("berhasil menampilkan pengguna", user))
 }
 
 func (h *UserHandler) Login(ctx echo.Context) error {
@@ -94,7 +94,7 @@ func (h *UserHandler) Login(ctx echo.Context) error {
 		}))
 	}
 
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully login", map[string]interface{}{
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("berhasil masuk", map[string]interface{}{
 		"token": token,
 	}))
 }
@@ -111,7 +111,7 @@ func (h *UserHandler) Register(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 
-	return ctx.JSON(http.StatusCreated, response.SuccessResponse("successfully registered", nil))
+	return ctx.JSON(http.StatusCreated, response.SuccessResponse("berhasil mendaftar", nil))
 }
 
 func (h *UserHandler) GetProfile(ctx echo.Context) error {
@@ -119,13 +119,13 @@ func (h *UserHandler) GetProfile(ctx echo.Context) error {
 	// Retrieve user claims from the JWT token
 	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, "unable to get user claims")
+		return ctx.JSON(http.StatusInternalServerError, "Gagal mendapatkan data pengguna")
 	}
 
 	// Extract user information from claims
 	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, "unable to get user information from claims")
+		return ctx.JSON(http.StatusInternalServerError, "Gagal mendapatkan informasi pengguna dari token")
 	}
 
 	user, err := h.userService.GetById(ctx.Request().Context(), claimsData.Id)
@@ -133,7 +133,7 @@ func (h *UserHandler) GetProfile(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully showing a user", user))
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("berhasil menampilkan pengguna", user))
 }
 
 func (h *UserHandler) DeleteUser(ctx echo.Context) error {
@@ -154,7 +154,7 @@ func (h *UserHandler) DeleteUser(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully delete user", nil))
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("berhasil menghapus pengguna", nil))
 }
 
 func (h *UserHandler) ResetPassword(ctx echo.Context) error {
@@ -164,7 +164,7 @@ func (h *UserHandler) ResetPassword(ctx echo.Context) error {
 	}
 	req.Token = ctx.QueryParam("token")
 	if req.Token == "" {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "token is required"))
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "token diperlukan"))
 	}
 
 	err := h.userService.ResetPassword(ctx.Request().Context(), req)
@@ -172,7 +172,7 @@ func (h *UserHandler) ResetPassword(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully reset a password", nil))
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("berhasil mengatur ulang kata sandi", nil))
 }
 
 func (h *UserHandler) ResetPasswordRequest(ctx echo.Context) error {
@@ -187,7 +187,7 @@ func (h *UserHandler) ResetPasswordRequest(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully request reset password", nil))
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("berhasil meminta pengaturan ulang kata sandi", nil))
 }
 
 func (h *UserHandler) ResendTokenVerifyEmail(ctx echo.Context) error {
@@ -204,7 +204,7 @@ func (h *UserHandler) ResendTokenVerifyEmail(ctx echo.Context) error {
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("Resend token verify email", user))
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("berhasil mengirim ulang token verifikasi email", user))
 }
 
 func (h *UserHandler) VerifyEmail(ctx echo.Context) error {
@@ -224,7 +224,7 @@ func (h *UserHandler) VerifyEmail(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully verify email", nil))
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("berhasil memverifikasi email", nil))
 }
 
 func (h *UserHandler) UpdateUser(ctx echo.Context) error {
@@ -242,7 +242,7 @@ func (h *UserHandler) UpdateUser(ctx echo.Context) error {
 	if imageFile, err := ctx.FormFile("image"); err != nil {
 		// Jika error bukan karena file tidak ada, berarti ada masalah lain.
 		if err != http.ErrMissingFile {
-			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "error processing image file: "+err.Error()))
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "gagal memproses file gambar: "+err.Error()))
 		}
 		// Jika errornya adalah http.ErrMissingFile, tidak apa-apa, karena gambar bersifat opsional.
 		// req.Image akan tetap nil.
@@ -257,20 +257,20 @@ func (h *UserHandler) UpdateUser(ctx echo.Context) error {
 	}
 	if req.Image != nil {
 		if _, ok := acceptedImages[req.Image.Header.Get("Content-Type")]; !ok {
-			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "unsupported image type"))
+			return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "tipe gambar tidak didukung"))
 		}
 	}
 
 	// Retrieve user claims from the JWT token
 	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user claims"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan data pengguna"))
 	}
 
 	// Extract user information from claims
 	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user information from claims"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan informasi pengguna dari token"))
 	}
 
 	req.Id = claimsData.Id
@@ -281,7 +281,7 @@ func (h *UserHandler) UpdateUser(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
 
-	return ctx.JSON(http.StatusCreated, response.SuccessResponse("successfully update user", nil))
+	return ctx.JSON(http.StatusCreated, response.SuccessResponse("berhasil memperbarui pengguna", nil))
 }
 
 func (h *UserHandler) LoginGoogleAuth(ctx echo.Context) error {
@@ -312,13 +312,13 @@ func (h *UserHandler) WalletAddress(ctx echo.Context) error {
 
 	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user claims"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "gagal mendapatkan data pengguna"))
 	}
 
 	// Extract user information from claims
 	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "unable to get user information from claims"))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "gagal mendapatkan informasi pengguna dari token"))
 	}
 
 	user, err := h.userService.GetById(ctx.Request().Context(), claimsData.Id)
@@ -329,5 +329,5 @@ func (h *UserHandler) WalletAddress(ctx echo.Context) error {
 	if err := h.userService.WalletAddress(ctx.Request().Context(), user, req); err != nil {
 		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
 	}
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully update wallet address", nil))
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("berhasil memperbarui alamat dompet", nil))
 }

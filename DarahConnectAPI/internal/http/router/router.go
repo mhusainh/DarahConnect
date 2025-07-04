@@ -368,6 +368,12 @@ func PrivateRoutes(
 			Roles:   adminOnly,
 		},
 		{
+			Method:  http.MethodDelete,
+			Path:    "admin/hospital/:id",
+			Handler: hospitalHandler.Delete,
+			Roles:   adminOnly,
+		},
+		{
 			Method: http.MethodGet,
 			Path:    "admin/donations",
 			Handler: donationHandler.GetDonations,

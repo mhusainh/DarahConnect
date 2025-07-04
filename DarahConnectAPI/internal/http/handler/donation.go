@@ -33,37 +33,37 @@ func NewDonationHandler(midtransService midtrans.MidtransService, notificationSe
 func (h *DonationHandler) WebHookTransaction(ctx echo.Context) error {
 	var req dto.DonationsCreate
 	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Gagal memproses permintaan: "+err.Error()))
 	}
 
 	err := h.midtransService.WebHookTransaction(ctx.Request().Context(), &req)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal memproses transaksi webhook: "+err.Error()))
 	}
 
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully update donation status", nil))
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("berhasil memperbarui status donasi", nil))
 }
 
 func (h *DonationHandler) CreateTransaction(ctx echo.Context) error {
 	var req dto.PaymentRequest
 
 	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Gagal memproses permintaan: "+err.Error()))
 	}
 
 	if err := ctx.Validate(req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Data tidak valid: "+err.Error()))
 	}
 
 	claims, ok := ctx.Get("user").(*jwt.Token)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, "unable to get user claims")
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan data pengguna"))
 	}
 
 	// Extract user information from claims
 	claimsData, ok := claims.Claims.(*token.JwtCustomClaims)
 	if !ok {
-		return ctx.JSON(http.StatusInternalServerError, "unable to get user information from claims")
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan informasi pengguna dari token"))
 	}
 	// Generate order ID
 	req.OrderID = "ORDER-" + strconv.FormatInt(claimsData.Id, 10) + "-" + time.Now().Format("20060102150405")
@@ -73,7 +73,7 @@ func (h *DonationHandler) CreateTransaction(ctx echo.Context) error {
 
 	redirectURL, err := h.midtransService.CreateTransaction(ctx.Request().Context(), req)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal membuat transaksi: "+err.Error()))
 	}
 	notificationData := dto.NotificationCreateRequest{
 		UserId:      claimsData.Id,
@@ -82,9 +82,9 @@ func (h *DonationHandler) CreateTransaction(ctx echo.Context) error {
 		NotificationType: "Donation",
 	}
 	if err := h.notificationService.Create(ctx.Request().Context(), notificationData); err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal membuat notifikasi: "+err.Error()))
 	}
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully created transaction", map[string]interface{}{
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("berhasil membuat transaksi", map[string]interface{}{
 		"redirect_url": redirectURL,
 	}))
 }
@@ -92,11 +92,11 @@ func (h *DonationHandler) CreateTransaction(ctx echo.Context) error {
 func (h	 *DonationHandler) GetDonations(ctx echo.Context) error {
 	var req dto.GetAllDonation
 	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Gagal memproses permintaan: "+err.Error()))
 	}
 	donations, total, err := h.donationService.GetAllDonation(ctx.Request().Context(), req)
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, "Gagal mendapatkan data donasi: "+err.Error()))
 	}
 
 	if req.Limit == 0 {
@@ -106,7 +106,7 @@ func (h	 *DonationHandler) GetDonations(ctx echo.Context) error {
 	if req.Page == 0 {
 		req.Page = 10
 	}
-	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("successfully showing all blood requests", donations, req.Page, req.Limit, total))
+	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("berhasil menampilkan semua donasi", donations, req.Page, req.Limit, total))
 }
 
 func (h *DonationHandler) GetDonation(ctx echo.Context) error {
@@ -114,13 +114,13 @@ func (h *DonationHandler) GetDonation(ctx echo.Context) error {
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Invalid ID format"))
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Format ID tidak valid"))
 	}
 
 	donation, err := h.donationService.GetById(ctx.Request().Context(), id)
 	if err != nil {
-		return ctx.JSON(http.StatusNotFound, response.ErrorResponse(http.StatusNotFound, err.Error()))
+		return ctx.JSON(http.StatusNotFound, response.ErrorResponse(http.StatusNotFound, "Donasi tidak ditemukan: "+err.Error()))
 	}
 
-	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully showing user", donation))
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("berhasil mendapatkan data", donation))
 }
