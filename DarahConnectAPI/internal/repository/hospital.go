@@ -28,6 +28,16 @@ func NewHospitalRepository(db *gorm.DB) HospitalRepository {
 
 // applyFilters menerapkan filter, sorting, dan pagination ke query GORM
 func (r *hospitalRepository) applyFilters(query *gorm.DB, req dto.GetAllHospitalRequest) (*gorm.DB, dto.GetAllHospitalRequest) {
+	// Filter berdasarkan provinsi
+	if req.Province != "" {
+		query = query.Where("LOWER(province) = ?", strings.ToLower(req.Province))
+	}
+
+	// Filter berdasarkan kota
+	if req.City != "" {
+		query = query.Where("LOWER(city) = ?", strings.ToLower(req.City))
+	}
+
 	// Filter berdasarkan Search (pada judul atau pesan)
 	if req.Search != "" {
 		search := strings.ToLower(req.Search)
