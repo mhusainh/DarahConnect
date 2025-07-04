@@ -362,7 +362,7 @@ func PrivateRoutes(
 		},
 		// Hospital - Admin Only
 		{
-			Method:  http.MethodGet,
+			Method:  http.MethodPut,
 			Path:    "admin/hospital/:id",
 			Handler: hospitalHandler.Update,
 			Roles:   adminOnly,
