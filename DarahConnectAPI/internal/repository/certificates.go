@@ -15,6 +15,7 @@ type CertificateRepository interface {
 	GetById(ctx context.Context, id int64) (*entity.Certificate, error)
 	GetAll(ctx context.Context, req dto.GetAllCertificateRequest) ([]entity.Certificate, int64, error)
 	GetByUser(ctx context.Context, userId int64, req dto.GetAllCertificateRequest) ([]entity.Certificate, int64, error)
+	GetByUserid(ctx context.Context, userId int64) ([]entity.Certificate, error)
 	Update(ctx context.Context, certificate *entity.Certificate) error
 	Delete(ctx context.Context, certificate *entity.Certificate) error
 }
@@ -64,6 +65,14 @@ func (r *certificateRepository) applyFilters(query *gorm.DB, req dto.GetAllCerti
 	query = query.Order(sortBy + " " + orderBy)
 
 	return query, req
+}
+
+func (r *certificateRepository) GetByUserid(ctx context.Context, userId int64) ([]entity.Certificate, error) {
+	var certificates []entity.Certificate
+	if err := r.db.WithContext(ctx).Where("user_id = ?", userId).Find(&certificates).Error; err != nil {
+		return nil, err
+	}
+	return certificates, nil
 }
 
 func (r *certificateRepository) Create(ctx context.Context, certificate *entity.Certificate) error {

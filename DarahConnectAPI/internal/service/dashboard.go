@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/entity"
 	"github.com/mhusainh/DarahConnect/DarahConnectAPI/internal/repository"
 )
 
@@ -19,22 +18,26 @@ type dashboardService struct {
 	bloodDonationRepository repository.BloodDonationRepository
 	bloodRequestRepository  repository.BloodRequestRepository
 	userRepository          repository.UserRepository
+	certificateRepository repository.CertificateRepository
 }
 
 func NewDashboardService(
 	bloodDonationRepository repository.BloodDonationRepository,
 	bloodRequestRepository repository.BloodRequestRepository,
 	userRepository repository.UserRepository,
+	certificateRepository repository.CertificateRepository,
 ) DashboardService {
 	return &dashboardService{
 		bloodDonationRepository,
 		bloodRequestRepository,
 		userRepository,
+		certificateRepository,
 	}
 }
 
 func (s *dashboardService) DashboardUser(ctx context.Context, userId int64) (map[string]interface{}, error) {
 	bloodDonations, err := s.bloodDonationRepository.GetByUser(ctx, userId)
+	totalSertifikat, err := s.certificateRepository.GetByUserid(ctx, userId)
 	if err != nil {
 		return nil, errors.New("Gagal mendapatkan data dashboard")
 	}
@@ -45,7 +48,7 @@ func (s *dashboardService) DashboardUser(ctx context.Context, userId int64) (map
 	data := map[string]interface{}{
 		"total_donor":      int(len(bloodDonations)),
 		"last_donation":    lastDonation,
-		"total_sertifikat": countCompletedDonations(bloodDonations),
+		"total_sertifikat": int(len(totalSertifikat)),
 	}
 	return data, nil
 }
@@ -109,14 +112,4 @@ func (s *dashboardService) LandingPage(ctx context.Context) (map[string]interfac
 		"event_bulan_ini":  bloodRequest,
 	}
 	return data, nil
-}
-
-func countCompletedDonations(donations []entity.BloodDonation) int {
-	count := 0
-	for _, donation := range donations {
-		if donation.Status == "completed" {
-			count++
-		}
-	}
-	return count
 }
