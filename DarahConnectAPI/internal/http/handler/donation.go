@@ -18,12 +18,14 @@ import (
 type DonationHandler struct {
 	midtransService midtrans.MidtransService
 	notificationService service.NotificationService
+	donationService service.DonationsService
 }
 
-func NewDonationHandler(midtransService midtrans.MidtransService, notificationService service.NotificationService) *DonationHandler {
+func NewDonationHandler(midtransService midtrans.MidtransService, notificationService service.NotificationService, donationService service.DonationsService) *DonationHandler {
 	return &DonationHandler{
 		midtransService: midtransService,
 		notificationService: notificationService,
+		donationService: donationService,
 	}
 }
 
@@ -67,6 +69,7 @@ func (h *DonationHandler) CreateTransaction(ctx echo.Context) error {
 	req.OrderID = "ORDER-" + strconv.FormatInt(claimsData.Id, 10) + "-" + time.Now().Format("20060102150405")
 	req.Fullname = claimsData.Name
 	req.Email = claimsData.Email
+	req.UserId = claimsData.Id
 
 	redirectURL, err := h.midtransService.CreateTransaction(ctx.Request().Context(), req)
 	if err != nil {
@@ -75,7 +78,7 @@ func (h *DonationHandler) CreateTransaction(ctx echo.Context) error {
 	notificationData := dto.NotificationCreateRequest{
 		UserId:      claimsData.Id,
 		Title:       "Pemberitahuan Donasi",
-		Message:     "Terima kasih telah berdonasi. Sialhkan cek cara pembayaran di email anda.",
+		Message:     "Terima kasih telah berdonasi. Sialahkan cek pembayaran di email anda. Atau anda bisa klik link ini : " + redirectURL,
 		NotificationType: "Donation",
 	}
 	if err := h.notificationService.Create(ctx.Request().Context(), notificationData); err != nil {
@@ -84,4 +87,40 @@ func (h *DonationHandler) CreateTransaction(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully created transaction", map[string]interface{}{
 		"redirect_url": redirectURL,
 	}))
+}
+
+func (h	 *DonationHandler) GetDonations(ctx echo.Context) error {
+	var req dto.GetAllDonation
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, err.Error()))
+	}
+	donations, total, err := h.donationService.GetAllDonation(ctx.Request().Context(), req)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, response.ErrorResponse(http.StatusInternalServerError, err.Error()))
+	}
+
+	if req.Limit == 0 {
+		req.Limit = 1
+	}
+
+	if req.Page == 0 {
+		req.Page = 10
+	}
+	return ctx.JSON(http.StatusOK, response.SuccessResponseWithPagi("successfully showing all blood requests", donations, req.Page, req.Limit, total))
+}
+
+func (h *DonationHandler) GetDonation(ctx echo.Context) error {
+	// Ambil ID dari parameter path
+	idStr := ctx.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, "Invalid ID format"))
+	}
+
+	donation, err := h.donationService.GetById(ctx.Request().Context(), id)
+	if err != nil {
+		return ctx.JSON(http.StatusNotFound, response.ErrorResponse(http.StatusNotFound, err.Error()))
+	}
+
+	return ctx.JSON(http.StatusOK, response.SuccessResponse("successfully showing user", donation))
 }

@@ -6,10 +6,12 @@ import (
 
 type Donation struct {
 	Id        int64     `gorm:"primaryKey" json:"id"`
-	UserId    int64     `gorm:"not null" json:"user_id"`
-	Amount    int64     `gorm:"not null" json:"amount"`
-	Status    string    `gorm:"not null" json:"status"`
-	TransactionTime time.Time `gorm:"not null" json:"transaction_time"`
+	UserId    int64     `json:"user_id"`
+	User      User      `json:"user" gorm:"foreignKey:UserId;references:Id"`
+	OrderId   int64     `json:"order_id"`
+	Amount    int64     `json:"amount"`
+	Status    string    `json:"status"`
+	TransactionTime time.Time `json:"transaction_time"`
 	CreatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
 	UpdatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
 }

@@ -367,6 +367,18 @@ func PrivateRoutes(
 			Handler: hospitalHandler.Update,
 			Roles:   adminOnly,
 		},
+		{
+			Method: http.MethodGet,
+			Path:    "admin/donations",
+			Handler: donationHandler.GetDonations,
+			Roles:   adminOnly,
+		},
+		{
+			Method: http.MethodGet,
+			Path:    "admin/donation/:id",
+			Handler: donationHandler.GetDonation,
+			Roles:   adminOnly,
+		},
 		// =============================================
 		// ALL ROLES ROUTES (Admin & User)
 		// =============================================

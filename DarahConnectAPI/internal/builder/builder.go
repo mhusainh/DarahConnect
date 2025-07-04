@@ -43,6 +43,7 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, cloudinaryService *clou
 	midtransService.DonationsRepository = donationsRepository
 	dashboardService := service.NewDashboardService(bloodDonationRepository, bloodRequestRepository, userRepository)
 	googleAuthService := googleoauth.NewGoogleOAuthService(tokenUseCase, userService, &cfg.GoogleOauth)
+	donationService := service.NewDonationService(donationsRepository)
 	//end
 
 	//handler
@@ -51,7 +52,7 @@ func BuildPublicRoutes(cfg *configs.Config, db *gorm.DB, cloudinaryService *clou
 	bloodDonationHandler := handler.NewBloodDonationHandler(bloodDonationService, notificationService, certificateService, donorRegistrationService, userService, blockchain)
 	dashboardHandler := handler.NewDashboardHandler(dashboardService)
 	certificateHandler := handler.NewCertificateHandler(certificateService)
-	donationHandler := handler.NewDonationHandler(midtransService, notificationService)
+	donationHandler := handler.NewDonationHandler(midtransService, notificationService, donationService)
 	//end
 
 	return router.PublicRoutes(userHandler, bloodRequestHandler, bloodDonationHandler, certificateHandler, donationHandler, dashboardHandler)
@@ -89,7 +90,7 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, cloudinaryService *clo
 	// Set donationsRepository
 	midtransService.DonationsRepository = donationsRepository
 	googleAuthService := googleoauth.NewGoogleOAuthService(tokenUseCase, userService, &cfg.GoogleOauth)
-
+	donationService := service.NewDonationService(donationsRepository)
 	dashboardService := service.NewDashboardService(bloodDonationRepository, bloodRequestRepository, userRepository)
 
 	//end
@@ -106,7 +107,7 @@ func BuildPrivateRoutes(cfg *configs.Config, db *gorm.DB, cloudinaryService *clo
 	bloodDonationHandler := handler.NewBloodDonationHandler(bloodDonationService, notificationService, certificateService, donorRegistrationService, userService, blockchain)
 
 	certificateHandler := handler.NewCertificateHandler(certificateService)
-	donationHandler := handler.NewDonationHandler(midtransService, notificationService)
+	donationHandler := handler.NewDonationHandler(midtransService, notificationService,donationService)
 	dashboardHandler := handler.NewDashboardHandler(dashboardService)
 	//end
 
