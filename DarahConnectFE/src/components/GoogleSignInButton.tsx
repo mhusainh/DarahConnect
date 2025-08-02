@@ -29,7 +29,7 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
     try {
       // signIn();
       // ini diambil dari env
-      const ngelink = process.env.REACT_APP_GOOGLE_LOGIN_URL || 'http://darahconnect.experienceroleplay.online:8081/api/v1/login/google';
+      const ngelink = process.env.REACT_APP_GOOGLE_LOGIN_URL || 'https://apidarahconnect.experienceroleplay.online/api/v1/login/google';
       window.location.href = ngelink;
       // const response = await get('/login/google');
       // console.log(response);
