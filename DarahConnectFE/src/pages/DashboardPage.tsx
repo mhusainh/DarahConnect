@@ -735,7 +735,8 @@ const DashboardPage: React.FC = () => {
                         <p className="text-3xl font-bold">
                           {quickStats.totalDonor !== null && 
                            quickStats.totalDonor !== undefined && 
-                           !isNaN(quickStats.totalDonor) ? (
+                           !isNaN(quickStats.totalDonor) && 
+                           quickStats.totalDonor > 0 ? (
                             <CountUp
                               end={quickStats.totalDonor}
                               duration={0}
@@ -758,10 +759,10 @@ const DashboardPage: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-green-100 text-sm">Last Donation</p>
-                        <p className="text-lg font-bold">
+                        <p className="text-3xl font-bold">
                           {quickStats.lastDonation
                             ? formatDate(quickStats.lastDonation)
-                            : "Belum ada"}
+                            : "Belum Ada"}
                         </p>
                       </div>
                       <CalendarIcon className="w-10 h-10 text-green-200" />
@@ -781,7 +782,8 @@ const DashboardPage: React.FC = () => {
                         <p className="text-3xl font-bold">
                           {quickStats.totalSertifikat !== null && 
                            quickStats.totalSertifikat !== undefined && 
-                           !isNaN(quickStats.totalSertifikat) ? (
+                           !isNaN(quickStats.totalSertifikat) && 
+                           quickStats.totalSertifikat > 0 ? (
                             <CountUp
                               end={quickStats.totalSertifikat}
                               duration={0}
