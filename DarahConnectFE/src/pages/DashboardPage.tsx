@@ -379,9 +379,9 @@ const DashboardPage: React.FC = () => {
   }));
   
   const quickStats = {
-    totalDonor: dashboardData?.total_donor ?? 0,
+    totalDonor: dashboardData?.total_donor,
     lastDonation: dashboardData?.last_donation || null,
-    totalSertifikat: dashboardData?.total_sertifikat || 0,
+    totalSertifikat: dashboardData?.total_sertifikat,
   };
   
   const handleBloodRequestRespond = (requestId: string) => {
@@ -733,12 +733,17 @@ const DashboardPage: React.FC = () => {
                       <div>
                         <p className="text-red-100 text-sm">Total Donor</p>
                         <p className="text-3xl font-bold">
-                          
-                          <CountUp
-                            end={quickStats.totalDonor}
-                            duration={0}
-                            delay={0.2}
-                          />
+                          {quickStats.totalDonor !== null && 
+                           quickStats.totalDonor !== undefined && 
+                           !isNaN(quickStats.totalDonor) ? (
+                            <CountUp
+                              end={quickStats.totalDonor}
+                              duration={0}
+                              delay={0.2}
+                            />
+                          ) : (
+                            "Belum Ada"
+                          )}
                         </p>
                       </div>
                       <HeartIcon className="w-10 h-10 text-red-200" />
@@ -774,11 +779,17 @@ const DashboardPage: React.FC = () => {
                           Total Sertifikat
                         </p>
                         <p className="text-3xl font-bold">
-                          <CountUp
-                            end={quickStats.totalSertifikat}
-                            duration={0}
-                            delay={0}
-                          />
+                          {quickStats.totalSertifikat !== null && 
+                           quickStats.totalSertifikat !== undefined && 
+                           !isNaN(quickStats.totalSertifikat) ? (
+                            <CountUp
+                              end={quickStats.totalSertifikat}
+                              duration={0}
+                              delay={0}
+                            />
+                          ) : (
+                            "Belum Ada"
+                          )}
                         </p>
                       </div>
                       <Database className="w-10 h-10 text-blue-200" />

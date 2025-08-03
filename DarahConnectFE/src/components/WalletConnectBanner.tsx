@@ -122,7 +122,9 @@ export const WalletConnectBanner: React.FC = () => {
           onClose={() => {
             setShowSuccessAlert(false);
             localStorage.removeItem('authToken');
-            window.location.href = '/login';
+            setTimeout(() => {
+              window.location.href = '/login';
+            }, 2000);
           }}
         />
           setSuccessAlertMessage(
