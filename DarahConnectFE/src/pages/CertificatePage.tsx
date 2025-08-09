@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import html2canvas from "html2canvas";
+import BackgroundSertifikat from "../assets/background_sertifikat.png";
 import WalletConnectBanner from "../components/WalletConnectBanner";
 import {
   HeartIcon,
@@ -130,7 +131,7 @@ const CertificatePage: React.FC = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("id-ID", {
+    return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -583,261 +584,141 @@ const CertificatePage: React.FC = () => {
             left: "0",
             width: "800px",
             height: "600px",
+            
             backgroundColor: "white",
-            padding: "32px",
+            padding: "0",
             fontFamily: "Arial, sans-serif",
             zIndex: -1,
             pointerEvents: "none",
             boxSizing: "border-box",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
           }}
         >
           <div
             style={{
-              border: "8px solid #e3342f",
               height: "100%",
-              borderRadius: "8px",
+              width: "100%",
               position: "relative",
-              padding: 0,
+              padding: "0",
               boxSizing: "border-box",
               display: "flex",
               flexDirection: "column",
-              justifyContent: "flex-start",
+              backgroundImage: `url(${BackgroundSertifikat})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
             }}
           >
             {/* Header */}
-            <div
-              style={{ textAlign: "center", paddingTop: 24, paddingBottom: 10 }}
-            >
+            <div style={{ textAlign: "center", marginBottom: "40px", paddingTop: "40px" }}>
               <div
                 style={{
                   display: "flex",
                   justifyContent: "center",
                   alignItems: "center",
-                  marginBottom: 10,
+                  marginBottom: "20px",
                 }}
               >
+                <div>
+                </div>
+              </div>
+            </div>
+
+            {/* Content Section */}
+            <div style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              gap: "40px",
+              maxWidth: "800px",
+              margin: "50px auto 0 auto",
+              width: "100%",
+              padding: "0 40px"
+            }}>
+              {/* Certificate Number */}
+              <div style={{ textAlign: "center" }}>
                 <div
                   style={{
-                    width: 48,
-                    height: 48,
-                    background: "#e3342f",
-                    borderRadius: "50%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginRight: 18,
+                    marginTop: "25px",
+                    fontSize: "24px",
+                    color: "#000000",
+                    fontFamily: "Source Sans Pro, Arial, sans-serif",
+                    fontWeight: 700,
+                    textShadow: "1px 1px 2px rgba(0,0,0,0.3)",
+                    letterSpacing: "1px",
                   }}
                 >
-                  <HeartIcon className="w-8 h-8" color="white" />
-                </div>
-                <div>
-                  <div
-                    style={{
-                      fontWeight: 700,
-                      fontSize: 26,
-                      color: "#e3342f",
-                      letterSpacing: 1,
-                    }}
-                  >
-                    SERTIFIKAT DONOR DARAH
-                  </div>
-                  <div style={{ fontSize: 15, color: "#6b7280", marginTop: 2 }}>
-                    Blood Donation Certificate
-                  </div>
+                  {downloadTarget.certificateNumber}
                 </div>
               </div>
-              <div
-                style={{
-                  width: 90,
-                  height: 3,
-                  background: "#e3342f",
-                  margin: "0 auto",
-                  borderRadius: 2,
-                }}
-              ></div>
-            </div>
-            {/* Certificate Number */}
-            <div style={{ textAlign: "center", marginBottom: 8 }}>
-              <div style={{ fontSize: 14, color: "#6b7280" }}>
-                Certificate Number
-              </div>
-              <div
-                style={{
-                  fontSize: 17,
-                  color: "#e3342f",
-                  fontFamily: "monospace",
-                  fontWeight: 600,
-                }}
-              >
-                {downloadTarget.certificateNumber}
-              </div>
-            </div>
-            {/* Blockchain Section */}
-            <div style={{ textAlign: "center", marginBottom: 8 }}>
-              <div style={{ fontSize: 14, color: "#6b7280" }}>
-                Blockchain ID
-              </div>
-              <div
-                style={{
-                  fontSize: 17,
-                  color: "#e3342f",
-                  fontFamily: "monospace",
-                  fontWeight: 600,
-                }}
-              >
-                {downloadTarget.blockchainId || "-"}
-              </div>
-            </div>
-            {/* Nama & Role */}
-            <div style={{ textAlign: "center", marginBottom: 6 }}>
-              <div style={{ fontSize: 16, color: "#6b7280", marginBottom: 2 }}>
-                Diberikan kepada:
-              </div>
-              <div
-                style={{
-                  fontWeight: 700,
-                  fontSize: 22,
-                  color: "#111827",
-                  marginBottom: 1,
-                }}
-              >
-                {downloadTarget.name}
-              </div>
-              <div style={{ fontSize: 14, color: "#6b7280" }}>
-                {downloadTarget.role}
-              </div>
-            </div>
-            {/* Kontribusi */}
-            <div
-              style={{
-                textAlign: "center",
-                margin: "10px 0 16px 0",
-                fontSize: 15,
-                color: "#374151",
-              }}
-            >
-              Atas kontribusi dalam donor darah yang telah dilakukan dengan
-              golongan darah
-            </div>
-            {/* Golongan Darah */}
-            <div style={{ textAlign: "center", marginBottom: 18 }}>
-              <span
-                style={{
-                  display: "inline-block",
-                  background: "#e3342f",
-                  color: "white",
-                  fontWeight: 700,
-                  fontSize: 22,
-                  borderRadius: 8,
-                  padding: "6px 24px",
-                  letterSpacing: 2,
-                }}
-              >
-                {downloadTarget.bloodType}
-              </span>
-            </div>
-            {/* Statistik */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                gap: 40,
-                marginBottom: 18,
-              }}
-            >
+
+              {/* Blockchain Section */}
               <div style={{ textAlign: "center" }}>
                 <div
-                  style={{ fontSize: 13, color: "#6b7280", marginBottom: 2 }}
+                  style={{
+                    fontSize: "16px",
+                    color: "#000000",
+                    fontFamily: "Source Sans Pro, Arial, sans-serif",
+                    fontWeight: 600,
+                    textShadow: "1px 1px 2px rgba(0,0,0,0.3)",
+                    wordBreak: "break-all",
+                    maxWidth: "600px",
+                    margin: "10px auto -10px auto",
+                    lineHeight: "1.4",
+                  }}
                 >
-                  Total Donasi
-                </div>
-                <div
-                  style={{ fontWeight: 700, fontSize: 18, color: "#111827" }}
-                >
-                  {downloadTarget.totalDonations}
+                  {downloadTarget.blockchainId || "-"}
                 </div>
               </div>
+
+              {/* User Name */}
               <div style={{ textAlign: "center" }}>
                 <div
-                  style={{ fontSize: 13, color: "#6b7280", marginBottom: 2 }}
+                  style={{
+                    fontWeight: 700,
+                    marginTop: "-10px",
+                    // paddingTop: "20px",
+                    fontSize: "37px",
+                    color: "#e3342f",
+                    fontFamily: "Bebas Neue, Arial, sans-serif",
+                    textShadow: "2px 2px 4px rgba(255,255,255,0.9)",
+                    letterSpacing: "1px",
+                  }}
                 >
-                  Tanggal Terakhir
+                  {downloadTarget.name}
                 </div>
+              </div>
+
+              {/* Donation Date */}
+              <div style={{ textAlign: "center" }}>
                 <div
-                  style={{ fontWeight: 700, fontSize: 15, color: "#111827" }}
+                  style={{
+                    marginTop: "38px",
+                    fontWeight: 700,
+                    fontSize: "24px",
+                    color: "#111827",
+                    fontFamily: "Source Sans Pro, Arial, sans-serif",
+                    textShadow: "1px 1px 2px rgba(255,255,255,0.9)",
+                  }}
                 >
                   {formatDate(downloadTarget.createdAt)}
                 </div>
               </div>
             </div>
-            {/* Garis pemisah */}
-            <div
-              style={{
-                width: "80%",
-                height: 1,
-                background: "#e5e7eb",
-                margin: "0 auto 10px auto",
-              }}
-            ></div>
+
             {/* Footer */}
             <div
               style={{
                 textAlign: "center",
-                fontSize: 12,
+                fontSize: "14px",
                 color: "#6b7280",
-                marginBottom: 6,
+                marginTop: "40px",
+                paddingBottom: "40px",
+                textShadow: "1px 1px 2px rgba(255,255,255,0.9)",
+                fontWeight: 400,
               }}
             >
-              Sertifikat ini dikeluarkan oleh DarahConnect sebagai bukti
-              kontribusi donor darah
-            </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-end",
-                padding: "0 32px 16px 32px",
-              }}
-            >
-              <div style={{ textAlign: "center" }}>
-                <div
-                  style={{
-                    width: 60,
-                    height: 60,
-                    border: "2px solid #d1d5db",
-                    borderRadius: 8,
-                    margin: "0 auto 6px auto",
-                  }}
-                ></div>
-                <div style={{ fontSize: 10, color: "#6b7280" }}>
-                  Tanda Tangan
-                </div>
-              </div>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 11, color: "#6b7280" }}>
-                  Dikeluarkan pada:
-                </div>
-                <div
-                  style={{ fontWeight: 600, fontSize: 12, color: "#111827" }}
-                >
-                  {formatDate(downloadTarget.createdAt)}
-                </div>
-              </div>
-              <div style={{ textAlign: "center" }}>
-                <div
-                  style={{
-                    width: 60,
-                    height: 60,
-                    border: "2px solid #d1d5db",
-                    borderRadius: 8,
-                    margin: "0 auto 6px auto",
-                  }}
-                ></div>
-                <div style={{ fontSize: 10, color: "#6b7280" }}>Stempel</div>
-              </div>
+              {/* Sertifikat ini dikeluarkan oleh DarahConnect sebagai bukti kontribusi donor darah */}
             </div>
           </div>
         </div>
