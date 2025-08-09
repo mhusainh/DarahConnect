@@ -639,7 +639,7 @@ const CertificatePage: React.FC = () => {
               <div style={{ textAlign: "center" }}>
                 <div
                   style={{
-                    marginTop: "25px",
+                    marginTop: "45px",
                     fontSize: "24px",
                     color: "#000000",
                     fontFamily: "Source Sans Pro, Arial, sans-serif",
@@ -663,7 +663,7 @@ const CertificatePage: React.FC = () => {
                     textShadow: "1px 1px 2px rgba(0,0,0,0.3)",
                     wordBreak: "break-all",
                     maxWidth: "600px",
-                    margin: "10px auto -10px auto",
+                    margin: "10px auto 0px auto",
                     lineHeight: "1.4",
                   }}
                 >
@@ -676,7 +676,7 @@ const CertificatePage: React.FC = () => {
                 <div
                   style={{
                     fontWeight: 700,
-                    marginTop: "-10px",
+                    // marginTop: "20px",
                     // paddingTop: "20px",
                     fontSize: "37px",
                     color: "#e3342f",
@@ -693,7 +693,7 @@ const CertificatePage: React.FC = () => {
               <div style={{ textAlign: "center" }}>
                 <div
                   style={{
-                    marginTop: "38px",
+                    marginTop: "55px",
                     fontWeight: 700,
                     fontSize: "24px",
                     color: "#111827",
