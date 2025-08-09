@@ -17,7 +17,7 @@ import { useCampaignService } from '../services/campaignService';
 import { useNotification } from '../hooks/useNotification';
 import { BloodCampaign } from '../types';
 import Header from '../components/Header';
-import Footer from '../components/Footer';
+// import Footer from '../components/Footer';
 import DonorOptionModal from '../components/DonorOptionModal';
 import HospitalDetailModal from '../components/HospitalDetailModal';
 import WalletConnectBanner from '../components/WalletConnectBanner';
@@ -137,7 +137,7 @@ const BloodRequestDetailPage: React.FC = () => {
             <p className="mt-4 text-gray-600">Memuat permintaan darah...</p>
           </div>
         </div>
-        <Footer />
+        {/* <Footer /> */}
       </>
     );
   }
@@ -169,7 +169,7 @@ const BloodRequestDetailPage: React.FC = () => {
             </div>
           </div>
         </div>
-        <Footer />
+        {/* <Footer /> */}
       </>
     );
   }
@@ -280,6 +280,24 @@ const BloodRequestDetailPage: React.FC = () => {
         duration: 3000
       });
     }
+  };
+
+  const getFallbackCoordinates = (address: string) => {
+    // This is a placeholder. In a real app, you'd use a geocoding service
+    // to convert address to coordinates. For now, return coordinates based on address location.
+    
+    // If address contains "Depok", use Depok coordinates
+    if (address.toLowerCase().includes('depok')) {
+      return { latitude: -6.4025, longitude: 106.7942 }; // Depok, West Java
+    }
+    
+    // If address contains "Jakarta", use Jakarta coordinates
+    if (address.toLowerCase().includes('jakarta')) {
+      return { latitude: -6.2088, longitude: 106.8456 }; // Jakarta, Indonesia
+    }
+    
+    // Default to Depok coordinates since most hospitals in the system are in Depok
+    return { latitude: -6.4025, longitude: 106.7942 }; // Depok, West Java
   };
 
   return (
@@ -645,8 +663,9 @@ const BloodRequestDetailPage: React.FC = () => {
               address: bloodRequest.location,
               city: bloodRequest.location.split(',')[0] || '',
               province: bloodRequest.location.split(',')[1] || '',
-              latitude: -6.2088,
-              longitude: 106.8456,
+              // Use actual hospital coordinates from API if available, otherwise use fallback
+              latitude: bloodRequest.hospitalCoordinates?.latitude || getFallbackCoordinates(bloodRequest.location).latitude,
+              longitude: bloodRequest.hospitalCoordinates?.longitude || getFallbackCoordinates(bloodRequest.location).longitude,
               created_at: '',
               updated_at: ''
             }}
@@ -654,7 +673,7 @@ const BloodRequestDetailPage: React.FC = () => {
         </>
       )}
 
-      <Footer />
+      {/* <Footer /> */}
     </>
   );
 };

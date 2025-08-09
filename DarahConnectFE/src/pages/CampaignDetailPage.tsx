@@ -262,10 +262,32 @@ const CampaignDetailPage: React.FC = () => {
         url: window.location.href,
       });
     } else {
-      // Fallback - copy to clipboard
       navigator.clipboard.writeText(window.location.href);
-      alert('Link berhasil disalin!');
+      addNotification({
+        type: 'success',
+        title: 'Link Disalin!',
+        message: 'Link campaign berhasil disalin ke clipboard.',
+        duration: 3000
+      });
     }
+  };
+
+  const getFallbackCoordinates = (address: string) => {
+    // This is a placeholder. In a real app, you'd use a geocoding service
+    // to convert address to coordinates. For now, return coordinates based on address location.
+    
+    // If address contains "Depok", use Depok coordinates
+    if (address.toLowerCase().includes('depok')) {
+      return { latitude: -6.4025, longitude: 106.7942 }; // Depok, West Java
+    }
+    
+    // If address contains "Jakarta", use Jakarta coordinates
+    if (address.toLowerCase().includes('jakarta')) {
+      return { latitude: -6.2088, longitude: 106.8456 }; // Jakarta, Indonesia
+    }
+    
+    // Default to Depok coordinates since most hospitals in the system are in Depok
+    return { latitude: -6.4025, longitude: 106.7942 }; // Depok, West Java
   };
 
   return (
@@ -668,8 +690,9 @@ const CampaignDetailPage: React.FC = () => {
           address: campaign.location,
           city: campaign.location.split(',')[0] || '',
           province: campaign.location.split(',')[1] || '',
-          latitude: -6.2088,
-          longitude: 106.8456,
+          // Use actual hospital coordinates from API if available, otherwise use fallback
+          latitude: campaign.hospitalCoordinates?.latitude || getFallbackCoordinates(campaign.location).latitude,
+          longitude: campaign.hospitalCoordinates?.longitude || getFallbackCoordinates(campaign.location).longitude,
           created_at: '',
           updated_at: ''
         }}

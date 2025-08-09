@@ -16,6 +16,14 @@ export interface BloodCampaign {
   organizer: Organizer;
   hospital: string;
   location: string;
+  // Hospital coordinates for map functionality
+  hospitalCoordinates?: {
+    latitude: number;
+    longitude: number;
+    city: string;
+    province: string;
+    address: string;
+  } | null;
   bloodType: BloodType[];
   targetDonors: number;
   currentDonors: number;

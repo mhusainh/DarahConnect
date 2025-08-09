@@ -33,6 +33,14 @@ export const adaptCampaignFromApi = (apiCampaign: ApiCampaign): ComponentCampaig
     description: apiCampaign.diagnosis || 'Bantuan donor darah dibutuhkan',
     hospital: apiCampaign.hospital?.name || 'Rumah Sakit',
     location: location,
+    // Preserve hospital coordinates for map functionality
+    hospitalCoordinates: apiCampaign.hospital ? {
+      latitude: apiCampaign.hospital.latitude,
+      longitude: apiCampaign.hospital.longitude,
+      city: apiCampaign.hospital.city,
+      province: apiCampaign.hospital.province,
+      address: apiCampaign.hospital.address
+    } : null,
     targetDonors: apiCampaign.slots_available || 1,
     currentDonors: apiCampaign.slots_booked || 0,
     bloodType: apiCampaign.blood_type ? [apiCampaign.blood_type as BloodType] : ['O+' as BloodType], // Convert single string to array, default to O+
